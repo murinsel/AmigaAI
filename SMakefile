@@ -1,0 +1,53 @@
+# AmigaAI SMakefile - SAS/C 6.x native compilation on Amiga
+#
+# Usage:  smake
+#         smake clean
+
+CC      = sc
+LINK    = slink
+
+CFLAGS  = CPU=68020 OPTIMIZE NOSTKCHK STRMER IDIR=sdk/include IDIR=src
+LFLAGS  = NOICONS
+
+TARGET  = AmigaAI
+
+OBJS    = obj/main.o obj/http.o obj/claude.o obj/json_utils.o \
+          obj/cJSON.o obj/gui.o obj/arexx_port.o obj/config.o
+
+LIBS    = LIB:sc.lib LIB:amiga.lib sdk/lib/libamisslstubs.a
+
+all: obj $(TARGET)
+
+$(TARGET): $(OBJS)
+    $(LINK) FROM $(OBJS) TO $(TARGET) LIB $(LIBS) $(LFLAGS)
+
+obj/main.o: src/main.c
+    $(CC) $(CFLAGS) OBJNAME=$@ src/main.c
+
+obj/http.o: src/http.c
+    $(CC) $(CFLAGS) OBJNAME=$@ src/http.c
+
+obj/claude.o: src/claude.c
+    $(CC) $(CFLAGS) OBJNAME=$@ src/claude.c
+
+obj/json_utils.o: src/json_utils.c
+    $(CC) $(CFLAGS) OBJNAME=$@ src/json_utils.c
+
+obj/cJSON.o: src/cJSON.c
+    $(CC) $(CFLAGS) OBJNAME=$@ src/cJSON.c
+
+obj/gui.o: src/gui.c
+    $(CC) $(CFLAGS) OBJNAME=$@ src/gui.c
+
+obj/arexx_port.o: src/arexx_port.c
+    $(CC) $(CFLAGS) OBJNAME=$@ src/arexx_port.c
+
+obj/config.o: src/config.c
+    $(CC) $(CFLAGS) OBJNAME=$@ src/config.c
+
+obj:
+    makedir obj
+
+clean:
+    -delete obj/#?.o ALL QUIET
+    -delete $(TARGET) QUIET

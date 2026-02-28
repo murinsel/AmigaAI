@@ -1,0 +1,54 @@
+# AmigaAI Makefile.amiga - Native GCC compilation on Amiga
+# Requires: Bebbo GCC installed on the Amiga
+#
+# Usage:  make -f Makefile.amiga
+#         make -f Makefile.amiga clean
+
+CC      = gcc
+STRIP   = strip
+
+# Adjust GCC_DIR if your gcc is installed elsewhere
+GCC_DIR = GCC:
+
+CFLAGS  = -m68020 -O2 -Wall -noixemul -fcommon \
+          -Isdk/include -Isrc
+LDFLAGS = -noixemul -Lsdk/lib -Wl,--allow-multiple-definition
+LIBS    = -lamisslstubs -lnet
+
+TARGET  = AmigaAI
+SRCDIR  = src
+OBJDIR  = obj
+
+SOURCES = $(SRCDIR)/main.c \
+          $(SRCDIR)/http.c \
+          $(SRCDIR)/claude.c \
+          $(SRCDIR)/json_utils.c \
+          $(SRCDIR)/cJSON.c \
+          $(SRCDIR)/gui.c \
+          $(SRCDIR)/arexx_port.c \
+          $(SRCDIR)/config.c \
+          $(SRCDIR)/memory.c
+
+OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+
+.PHONY: all clean install
+
+all: $(OBJDIR) $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(STRIP) $@
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(OBJDIR):
+	makedir $(OBJDIR)
+
+install: all
+	copy $(TARGET) SYS:Tools/$(TARGET)
+	SYS:Tools/$(TARGET) CREATEICON
+
+clean:
+	-delete $(OBJDIR)/#?.o ALL QUIET
+	-delete $(TARGET) QUIET

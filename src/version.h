@@ -1,0 +1,12 @@
+#ifndef AMIGAAI_VERSION_H
+#define AMIGAAI_VERSION_H
+
+#define PROGRAM_NAME    "AmigaAI"
+#define VERSION_MAJOR   0
+#define VERSION_MINOR   1
+#define VERSION_STRING  "0.1"
+#define VERSION_DATE    "25.02.2026"
+
+#define VERSTAG "\0$VER: " PROGRAM_NAME " " VERSION_STRING " (" VERSION_DATE ")"
+
+#endif /* AMIGAAI_VERSION_H */

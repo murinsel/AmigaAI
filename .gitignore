@@ -1,0 +1,34 @@
+# Build artifacts
+obj/
+AmigaAI
+FileType
+
+# SDK (external dependencies, too large for repo)
+sdk/
+
+# Amiga cross-compiler build tree
+amiga-gcc-build/
+
+# API key
+oelli-amiga_api_key
+
+# Amiga icon files
+*.info
+
+# Log files
+*.log
+log.txt
+
+# Editor temp files
+*.tmp.*
+
+# IDE / editor config
+.vscode/
+
+# Claude Code project files
+.claude/
+CLAUDE.md.tmp.*
+
+# macOS / SMB temp files
+.DS_Store
+.smbdelete*

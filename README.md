@@ -7,11 +7,15 @@ AmigaAI brings modern AI capabilities to AmigaOS 3.x, running natively on 68020+
 ## Features
 
 - **MUI-based chat interface** with real-time conversation display
-- **Tool use** — Claude can execute AmigaDOS commands, send ARexx messages, read/write files, and identify file types via the DataType system
+- **Tool use** — Claude can execute AmigaDOS commands, send ARexx messages, read/write files, identify file types, and control mouse/keyboard
+- **Input simulation** — Mouse positioning, clicks (left/right/middle), and keyboard input via input.device
 - **Persistent memory** across sessions
+- **Localization** — English (built-in) and German via locale.library catalogs
 - **ARexx port** (AMIGAAI) for scripting and automation
+- **Window control** — Move, resize, iconify via ARexx commands
 - **FileType** standalone CLI command for DataType-based file identification
 - **Configurable** model, system prompt, and API key via AmigaOS ENV: system
+- **Single instance** — Only one copy of AmigaAI runs at a time
 - **API logging** for debugging (CLI and ToolType activation)
 
 ## Requirements
@@ -19,7 +23,8 @@ AmigaAI brings modern AI capabilities to AmigaOS 3.x, running natively on 68020+
 - AmigaOS 3.x (68020 CPU or higher)
 - [Roadshow](http://roadshow.apc-tcp.de/index-en.php) TCP/IP stack
 - [AmiSSL](https://aminet.net/package/comm/net/AmiSSL-v5) v5
-- [MUI](https://aminet.net/package/util/libs/mui38usr) 3.8+
+- [MUI](https://aminet.net/package/util/libs/mui38usr) 3.8+ with TextEditor.mcc
+- [json-c](https://aminet.net/package/dev/lib/json-c-amiga) (JSON parsing library)
 
 ## Building
 
@@ -92,6 +97,10 @@ AmigaAI provides Claude with the following tools:
 | `write_file` | Write to files |
 | `list_ports` | List active ARexx message ports |
 | `identify_file` | Identify file types using the DataType system |
+| `mouse_move` | Move mouse pointer to screen coordinates |
+| `mouse_click` | Click mouse button (left, right, middle) |
+| `key_press` | Send a raw keyboard event |
+| `type_text` | Type a string via keyboard simulation |
 
 ## FileType
 
@@ -114,7 +123,28 @@ Port name: `AMIGAAI`
 | `CLEAR` | Clear conversation history |
 | `SETMODEL <model>` | Change the Claude model |
 | `SETSYSTEM <prompt>` | Set system prompt |
+| `MEMADD <text>` | Add a persistent memory entry |
+| `MEMCLEAR` | Clear all memory entries |
+| `MEMCOUNT` | Return number of memory entries |
+| `MEMORY` | Return all memory entries |
+| `MOVE <left> <top>` | Move window to position |
+| `RESIZE <width> <height>` | Resize window |
+| `WINDOWPOS` | Get window position and size |
+| `WINDOWTOFRONT` | Bring window to front |
+| `WINDOWTOBACK` | Send window to back |
+| `MOUSEMOVE <x> <y>` | Move mouse to screen coordinates |
+| `MOUSECLICK <button>` | Click mouse (LEFT, RIGHT, MIDDLE) |
+| `KEYPRESS <code> [<qual>]` | Send raw key event |
+| `TYPETEXT <text>` | Type text via keyboard simulation |
+| `HIDE` | Iconify the application |
+| `SHOW` | Deiconify the application |
 | `QUIT` | Exit AmigaAI |
+
+## Localization
+
+AmigaAI uses AmigaOS locale.library for localization. English is built-in, German is included as a catalog file.
+
+To use German: Set your system language to "deutsch" in the Locale preferences, and copy `Catalogs/Deutsch/AmigaAI.catalog` to `LOCALE:Catalogs/Deutsch/`.
 
 ## License
 

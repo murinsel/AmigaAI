@@ -1,0 +1,186 @@
+; AmigaAI German Translation
+; Format: ID number followed by translated string on next line
+; Language: Deutsch
+;
+0
+Projekt
+1
+Einstellungen
+2
+Ged\xe4chtnis
+3
+Neues Gespr\xe4ch
+4
+Gespr\xe4ch speichern...
+5
+Gespr\xe4ch laden...
+6
+\xdcber...
+7
+Beenden
+8
+API-Schl\xfcssel...
+9
+Modell...
+10
+Systemvorgabe...
+11
+Ged\xe4chtnis anzeigen...
+12
+Ged\xe4chtnis hinzuf\xfcgen...
+13
+Ged\xe4chtnis l\xf6schen
+14
+_Senden
+15
+S_topp
+16
+_OK
+17
+_Abbrechen
+18
+Bereit.
+19
+Sende an Claude...
+20
+Anfrage abgebrochen.
+21
+Fehler
+22
+Gespr\xe4ch gel\xf6scht. Bereit.
+23
+Nachricht oder Befehl eingeben
+24
+F\xfchre Shell-Befehl aus...
+25
+Sende ARexx-Befehl...
+26
+Kein API-Schl\xfcssel - in Einstellungen konfigurieren
+27
+Willkommen bei AmigaAI 0.2
+28
+Nachricht eingeben und Enter dr\xfccken oder Senden klicken.
+29
+\033bDu:\033n
+30
+\033bClaude:\033n
+31
+\033b\033c--- Abgebrochen ---\033n
+32
+\033c--- Neues Gespr\xe4ch ---
+33
+\033b\033cFEHLER:\033n
+34
+Token: %d rein / %d raus | Nachrichten: %d
+35
+\033b\033cVerf\xfcgbare Befehle\033n
+36
+\033b/help\033n              - Diese Hilfe anzeigen
+37
+\033b/shell <cmd>\033n      - AmigaDOS-Befehl ausf\xfchren
+38
+\033b/arexx <port> <cmd>\033n - ARexx-Befehl senden
+39
+\033b/read <pfad>\033n      - Datei lesen
+40
+\033b/write <pfad> <text>\033n - In Datei schreiben
+41
+\033b/ports\033n            - \xd6ffentliche Ports auflisten
+42
+\033b/remember <text>\033n  - Eintrag merken
+43
+\033b/memory\033n           - Alle Eintr\xe4ge anzeigen
+44
+Anderer Text wird als Nachricht an Claude gesendet.
+45
+Cursor hoch/runter f\xfcr Eingabeverlauf.
+46
+Claude KI-Agent f\xfcr AmigaOS
+47
+Stack: AmiSSL v5, cJSON, MUI
+48
+Ged\xe4chtnis
+49
+Ged\xe4chtniseintrag hinzuf\xfcgen
+50
+Ged\xe4chtnis l\xf6schen
+51
+Fakt oder Pr\xe4ferenz zum Merken eingeben:
+52
+Ged\xe4chtniseintrag hinzugef\xfcgt.
+53
+Ged\xe4chtnis ist voll!
+54
+Noch keine Eintr\xe4ge gespeichert.
+55
+Noch keine Eintr\xe4ge gespeichert.\n\nVerwende Ged\xe4chtnis > Hinzuf\xfcgen oder tippe:\n/remember <fakt>
+56
+Alle Ged\xe4chtniseintr\xe4ge l\xf6schen?\nDies kann nicht r\xfcckg\xe4ngig gemacht werden.
+57
+Gesamtes Ged\xe4chtnis gel\xf6scht.
+58
+*_L\xf6schen|_Abbrechen
+59
+Modell ausw\xe4hlen
+60
+Modell: %s
+61
+Gespr\xe4ch speichern
+62
+Keine Nachrichten zum Speichern.
+63
+Serialisierung fehlgeschlagen.
+64
+Gespr\xe4ch gespeichert in chat.json
+65
+Speichern fehlgeschlagen!
+66
+Kein gespeichertes Gespr\xe4ch gefunden (chat.json).
+67
+Gespr\xe4chsdatei zu gro\xdf oder leer.
+68
+Kein Speicher mehr.
+69
+Fehler beim Lesen der Gespr\xe4chsdatei.
+70
+Gespr\xe4ch geladen (%d Nachrichten)
+71
+\033c--- Gespr\xe4ch geladen ---
+72
+Gespeichertes Gespr\xe4ch konnte nicht gelesen werden!
+73
+FEHLER: Kein Speicher beim L\xf6schen des Verlaufs
+74
+Unbekannter Fehler
+75
+\033bShell:\033n %s
+76
+\033bARexx:\033n %s > %s
+77
+Verwendung: /arexx <PORT> <Befehl>
+78
+\033bLesen:\033n %s
+79
+Verwendung: /write <Pfad> <Inhalt>
+80
+Fertig
+81
+Befehl fehlgeschlagen
+82
+\033b\xd6ffentliche Ports:\033n
+83
+Ports aufgelistet
+84
+Ged\xe4chtnis: %d Eintr\xe4ge
+85
+\033bWARNUNG:\033n Kein API-Schl\xfcssel konfiguriert!
+86
+Verwende Einstellungen > API-Schl\xfcssel oder setze ENV:AmigaAI/api_key
+87
+Ged\xe4chtnis: %d Eintr\xe4ge geladen
+88
+Systemvorgabe-Editor - kommt bald
+89
+Claude KI-Agent f\xfcr AmigaOS
+90
+API-Schl\xfcssel setzen: echo "key" > ENV:AmigaAI/api_key

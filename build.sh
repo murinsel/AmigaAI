@@ -35,7 +35,7 @@ fi
 CFLAGS="-m68020 -O2 -Wall -noixemul -fcommon -Isdk/include -Isrc"
 LDFLAGS="-noixemul -Lsdk/lib -Wl,--allow-multiple-definition"
 LIBS="-lamisslstubs -lsocket -lm"
-SOURCES="src/main.c src/http.c src/claude.c src/json_utils.c src/cJSON.c src/gui.c src/arexx_port.c src/config.c src/memory.c src/tools.c src/dt_identify.c"
+SOURCES="src/main.c src/http.c src/claude.c src/json_utils.c src/cJSON.c src/gui.c src/arexx_port.c src/config.c src/memory.c src/tools.c src/dt_identify.c src/locale.c"
 
 if [ "$USE_DOCKER" = "1" ]; then
     IMAGE="kareandersen/amiga-gcc"
@@ -78,6 +78,16 @@ echo '=== Linking FileType ==='
 echo '=== Done: FileType ==='
 ls -la FileType
 "
+    # Build mkcatalog on host and generate .catalog files
+    echo ""
+    echo "=== Building mkcatalog (host) ==="
+    cc -o "$PROJDIR/tools/mkcatalog" "$PROJDIR/tools/mkcatalog.c"
+    echo "=== Generating German catalog ==="
+    mkdir -p "$PROJDIR/Catalogs/Deutsch"
+    "$PROJDIR/tools/mkcatalog" "$PROJDIR/catalogs/deutsch.txt" "$PROJDIR/Catalogs/Deutsch/AmigaAI.catalog" deutsch
+    echo "=== Done: Catalogs/Deutsch/AmigaAI.catalog ==="
+    ls -la "$PROJDIR/Catalogs/Deutsch/AmigaAI.catalog"
+
 else
     echo "=== Using native $CC ($($CC --version | head -1)) ==="
     cd "$PROJDIR"
@@ -112,4 +122,14 @@ else
     $STRIP FileType
     echo "=== Done: FileType ==="
     ls -la FileType
+
+    # Build mkcatalog (host tool) and generate .catalog files
+    echo ""
+    echo "=== Building mkcatalog (host) ==="
+    cc -o tools/mkcatalog tools/mkcatalog.c
+    echo "=== Generating German catalog ==="
+    mkdir -p Catalogs/Deutsch
+    tools/mkcatalog catalogs/deutsch.txt Catalogs/Deutsch/AmigaAI.catalog deutsch
+    echo "=== Done: Catalogs/Deutsch/AmigaAI.catalog ==="
+    ls -la Catalogs/Deutsch/AmigaAI.catalog
 fi

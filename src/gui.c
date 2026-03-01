@@ -1,4 +1,5 @@
 #include "gui.h"
+#include "locale.h"
 #include "texteditor_mcc.h"
 #include "version.h"
 
@@ -219,30 +220,30 @@ static Object *make_menu(void)
     Object *strip, *proj, *settings, *memory;
 
     /* --- Project menu items --- */
-    Object *mi_new      = mk_menuitem("New Chat",      "N", GUI_ID_NEW);
+    Object *mi_new      = mk_menuitem(GetString(MSG_MENU_NEW_CHAT), "N", GUI_ID_NEW);
     Object *mi_bar1     = mk_menuitem((const char *)NM_BARLABEL, NULL, 0);
-    Object *mi_save     = mk_menuitem("Save Chat...",  "S", GUI_ID_CHATSAVE);
-    Object *mi_load     = mk_menuitem("Load Chat...",  "L", GUI_ID_CHATLOAD);
+    Object *mi_save     = mk_menuitem(GetString(MSG_MENU_SAVE_CHAT), "S", GUI_ID_CHATSAVE);
+    Object *mi_load     = mk_menuitem(GetString(MSG_MENU_LOAD_CHAT), "L", GUI_ID_CHATLOAD);
     Object *mi_bar2     = mk_menuitem((const char *)NM_BARLABEL, NULL, 0);
-    Object *mi_about    = mk_menuitem("About...",      "?", GUI_ID_ABOUT);
+    Object *mi_about    = mk_menuitem(GetString(MSG_MENU_ABOUT), "?", GUI_ID_ABOUT);
     Object *mi_bar3     = mk_menuitem((const char *)NM_BARLABEL, NULL, 0);
-    Object *mi_quit     = mk_menuitem("Quit",          "Q", GUI_ID_QUIT);
+    Object *mi_quit     = mk_menuitem(GetString(MSG_MENU_QUIT), "Q", GUI_ID_QUIT);
 
     /* --- Settings menu items --- */
-    Object *mi_apikey   = mk_menuitem("API Key...",       NULL, GUI_ID_APIKEY);
-    Object *mi_model    = mk_menuitem("Model...",         NULL, GUI_ID_MODEL);
-    Object *mi_system   = mk_menuitem("System Prompt...", NULL, GUI_ID_SYSTEM);
+    Object *mi_apikey   = mk_menuitem(GetString(MSG_MENU_APIKEY),        NULL, GUI_ID_APIKEY);
+    Object *mi_model    = mk_menuitem(GetString(MSG_MENU_MODEL),         NULL, GUI_ID_MODEL);
+    Object *mi_system   = mk_menuitem(GetString(MSG_MENU_SYSTEM_PROMPT), NULL, GUI_ID_SYSTEM);
 
     /* --- Memory menu items --- */
-    Object *mi_memview  = mk_menuitem("View Memory...",   "M", GUI_ID_MEMVIEW);
-    Object *mi_memadd   = mk_menuitem("Add Memory...",    NULL, GUI_ID_MEMADD);
+    Object *mi_memview  = mk_menuitem(GetString(MSG_MENU_VIEW_MEMORY),  "M", GUI_ID_MEMVIEW);
+    Object *mi_memadd   = mk_menuitem(GetString(MSG_MENU_ADD_MEMORY),   NULL, GUI_ID_MEMADD);
     Object *mi_bar4     = mk_menuitem((const char *)NM_BARLABEL, NULL, 0);
-    Object *mi_memclear = mk_menuitem("Clear Memory",     NULL, GUI_ID_MEMCLEAR);
+    Object *mi_memclear = mk_menuitem(GetString(MSG_MENU_CLEAR_MEMORY), NULL, GUI_ID_MEMCLEAR);
 
     /* --- Project menu --- */
     {
         struct TagItem tags[] = {
-            { MUIA_Menu_Title,    (ULONG)"Project" },
+            { MUIA_Menu_Title,    (ULONG)GetString(MSG_MENU_PROJECT) },
             { MUIA_Family_Child,  (ULONG)mi_new },
             { MUIA_Family_Child,  (ULONG)mi_bar1 },
             { MUIA_Family_Child,  (ULONG)mi_save },
@@ -259,7 +260,7 @@ static Object *make_menu(void)
     /* --- Settings menu --- */
     {
         struct TagItem tags[] = {
-            { MUIA_Menu_Title,    (ULONG)"Settings" },
+            { MUIA_Menu_Title,    (ULONG)GetString(MSG_MENU_SETTINGS) },
             { MUIA_Family_Child,  (ULONG)mi_apikey },
             { MUIA_Family_Child,  (ULONG)mi_model },
             { MUIA_Family_Child,  (ULONG)mi_system },
@@ -271,7 +272,7 @@ static Object *make_menu(void)
     /* --- Memory menu --- */
     {
         struct TagItem tags[] = {
-            { MUIA_Menu_Title,    (ULONG)"Memory" },
+            { MUIA_Menu_Title,    (ULONG)GetString(MSG_MENU_MEMORY) },
             { MUIA_Family_Child,  (ULONG)mi_memview },
             { MUIA_Family_Child,  (ULONG)mi_memadd },
             { MUIA_Family_Child,  (ULONG)mi_bar4 },
@@ -373,7 +374,7 @@ int gui_open(struct Gui *gui)
     printf("  gui: creating send button...\n");
     {
         ULONG params[1];
-        params[0] = (ULONG)"_Send";
+        params[0] = (ULONG)GetString(MSG_BTN_SEND);
         gui->send_btn = MUI_MakeObjectA(MUIO_Button, params);
     }
     printf("  gui: send_btn=%p\n", (void *)gui->send_btn);
@@ -381,7 +382,7 @@ int gui_open(struct Gui *gui)
     printf("  gui: creating stop button...\n");
     {
         ULONG params[1];
-        params[0] = (ULONG)"S_top";
+        params[0] = (ULONG)GetString(MSG_BTN_STOP);
         gui->stop_btn = MUI_MakeObjectA(MUIO_Button, params);
     }
     /* Stop button starts disabled */
@@ -392,7 +393,7 @@ int gui_open(struct Gui *gui)
     {
         struct TagItem tags[] = {
             { MUIA_Frame, MUIV_Frame_Text },
-            { MUIA_Text_Contents, (ULONG)"Ready." },
+            { MUIA_Text_Contents, (ULONG)GetString(MSG_STATUS_READY) },
             { MUIA_Text_SetMin, (ULONG)FALSE },
             { TAG_DONE, 0 }
         };
@@ -457,6 +458,8 @@ int gui_open(struct Gui *gui)
                 struct TagItem tags[] = {
                     { MUIA_Window_Title,         (ULONG)PROGRAM_NAME " " VERSION_STRING },
                     { MUIA_Window_ID,            MAKE_ID('M','A','I','N') },
+                    { MUIA_Window_Width,         640 },
+                    { MUIA_Window_Height,        200 },
                     { MUIA_Window_RootObject,    (ULONG)vgrp },
                     { MUIA_Window_DefaultObject, (ULONG)gui->input },
                     { TAG_DONE, 0 }
@@ -486,9 +489,9 @@ int gui_open(struct Gui *gui)
         struct TagItem tags[] = {
             { MUIA_Application_Title,       (ULONG)PROGRAM_NAME },
             { MUIA_Application_Version,     (ULONG)VERSTAG + 1 },
-            { MUIA_Application_Copyright,   (ULONG)"2026" },
-            { MUIA_Application_Author,      (ULONG)"AmigaAI" },
-            { MUIA_Application_Description, (ULONG)"Claude AI Agent for AmigaOS" },
+            { MUIA_Application_Copyright,   (ULONG)"\xa9 2026 Thomas \xd6llinger" },
+            { MUIA_Application_Author,      (ULONG)"Thomas \xd6llinger" },
+            { MUIA_Application_Description, (ULONG)GetString(MSG_APP_DESCRIPTION) },
             { MUIA_Application_Base,        (ULONG)"AMIGAAI" },
             { MUIA_Application_Menustrip,   (ULONG)gui->menustrip },
             { MUIA_Application_Window,      (ULONG)gui->win },
@@ -504,9 +507,9 @@ int gui_open(struct Gui *gui)
         struct TagItem tags[] = {
             { MUIA_Application_Title,       (ULONG)PROGRAM_NAME },
             { MUIA_Application_Version,     (ULONG)VERSTAG + 1 },
-            { MUIA_Application_Copyright,   (ULONG)"2026" },
-            { MUIA_Application_Author,      (ULONG)"AmigaAI" },
-            { MUIA_Application_Description, (ULONG)"Claude AI Agent for AmigaOS" },
+            { MUIA_Application_Copyright,   (ULONG)"\xa9 2026 Thomas \xd6llinger" },
+            { MUIA_Application_Author,      (ULONG)"Thomas \xd6llinger" },
+            { MUIA_Application_Description, (ULONG)GetString(MSG_APP_DESCRIPTION) },
             { MUIA_Application_Base,        (ULONG)"AMIGAAI" },
             { MUIA_Application_Window,      (ULONG)gui->win },
             { TAG_DONE, 0 }
@@ -628,8 +631,8 @@ int gui_open(struct Gui *gui)
     }
 
     /* Welcome message */
-    gui_add_line(gui, "Welcome to " PROGRAM_NAME " " VERSION_STRING);
-    gui_add_line(gui, "Type a message and press Enter or click Send.");
+    gui_add_line(gui, GetString(MSG_WELCOME));
+    gui_add_line(gui, GetString(MSG_WELCOME_HINT));
     gui_add_line(gui, "");
 
     return 0;

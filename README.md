@@ -24,7 +24,6 @@ AmigaAI brings modern AI capabilities to AmigaOS 3.x, running natively on 68020+
 - [Roadshow](http://roadshow.apc-tcp.de/index-en.php) TCP/IP stack
 - [AmiSSL](https://aminet.net/package/comm/net/AmiSSL-v5) v5
 - [MUI](https://aminet.net/package/util/libs/mui38usr) 3.8+ with TextEditor.mcc
-- [json-c](https://aminet.net/package/dev/lib/json-c-amiga) (JSON parsing library)
 
 ## Building
 

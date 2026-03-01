@@ -15,6 +15,7 @@
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dostags.h>
+#include <dos/dosextens.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/rexxsyslib.h>
@@ -24,6 +25,118 @@
 
 /* Temp file for capturing shell command output */
 #define TOOL_CMD_OUTPUT "T:amigaai_cmd.out"
+
+/* Poll callback for async shell execution */
+static ToolPollCallback tool_poll_cb = NULL;
+static void *tool_poll_data = NULL;
+
+void tools_set_poll_callback(ToolPollCallback cb, void *userdata)
+{
+    tool_poll_cb = cb;
+    tool_poll_data = userdata;
+}
+
+/* Shared state between parent and child process for async shell */
+struct ShellTask {
+    const char   *command;
+    const char   *outfile;
+    LONG          rc;
+    volatile BYTE done;
+    volatile BYTE abandoned;  /* parent gave up waiting (background mode) */
+    struct Task  *parent;
+    BYTE          sigbit;
+    BPTR          parent_path; /* parent's cli_CommandDir to copy */
+};
+
+/* Copy the parent's CLI command search path into the child's CLI.
+ * Walks the parent's BPTR-linked path list and DupLocks each entry. */
+static void copy_parent_path(BPTR parent_cmd_dir)
+{
+    struct Process *pr = (struct Process *)FindTask(NULL);
+    struct CommandLineInterface *cli;
+    LONG *src;
+
+    if (!pr || !pr->pr_CLI) return;
+    cli = BADDR(pr->pr_CLI);
+    if (!cli) return;
+
+    /* Walk parent's path list and duplicate each entry */
+    src = parent_cmd_dir ? (LONG *)BADDR(parent_cmd_dir) : NULL;
+    while (src) {
+        BPTR lock = DupLock((BPTR)src[1]);
+        if (lock) {
+            LONG *node = (LONG *)AllocVec(8, MEMF_PUBLIC | MEMF_CLEAR);
+            if (node) {
+                node[0] = (LONG)cli->cli_CommandDir;
+                node[1] = (LONG)lock;
+                cli->cli_CommandDir = MKBADDR(node);
+            } else {
+                UnLock(lock);
+            }
+        }
+        src = src[0] ? (LONG *)BADDR((BPTR)src[0]) : NULL;
+    }
+}
+
+/* Free all path nodes in the current process's CLI path list */
+static void cleanup_child_path(void)
+{
+    struct Process *pr = (struct Process *)FindTask(NULL);
+    struct CommandLineInterface *cli;
+
+    if (!pr || !pr->pr_CLI) return;
+    cli = BADDR(pr->pr_CLI);
+    if (!cli) return;
+
+    while (cli->cli_CommandDir) {
+        LONG *node = (LONG *)BADDR(cli->cli_CommandDir);
+        cli->cli_CommandDir = (BPTR)node[0];
+        UnLock((BPTR)node[1]);
+        FreeVec(node);
+    }
+}
+
+/* Child process entry point for async shell execution */
+static void shell_child_entry(void)
+{
+    struct Process *me = (struct Process *)FindTask(NULL);
+    struct ShellTask *st = (struct ShellTask *)me->pr_ExitData;
+    BPTR outfh;
+
+    /* Copy parent's command search path so programs are found */
+    copy_parent_path(st->parent_path);
+
+    outfh = Open((CONST_STRPTR)st->outfile, MODE_NEWFILE);
+    if (outfh) {
+        struct TagItem sys_tags[] = {
+            { SYS_Output, (ULONG)outfh },
+            { SYS_Input,  (ULONG)NULL },
+            { TAG_DONE,   0 }
+        };
+        st->rc = SystemTagList((CONST_STRPTR)st->command, sys_tags);
+        Close(outfh);
+    } else {
+        st->rc = -1;
+    }
+
+    cleanup_child_path();
+
+    st->done = 1;
+
+    /* Synchronize with parent using Forbid to avoid race conditions */
+    Forbid();
+    if (st->abandoned) {
+        /* Parent gave up waiting — we own st, clean up.
+         * outfile is a string literal, do NOT free it. */
+        Permit();
+        DeleteFile((CONST_STRPTR)st->outfile);
+        free((void *)st->command);
+        free(st);
+    } else {
+        Signal(st->parent, 1UL << st->sigbit);
+        Permit();
+    }
+}
 
 /* ===================== Tool JSON definitions ===================== */
 
@@ -44,13 +157,23 @@ cJSON *tools_build_json(void)
         cJSON_AddStringToObject(tool, "description",
             "Execute an AmigaDOS shell command and return its output. "
             "Use for running programs, listing files, checking system state. "
-            "Examples: 'list SYS:', 'version', 'assign', 'type S:Startup-Sequence', "
-            "'run MultiView picture.iff'.");
+            "Examples: 'list SYS:', 'version', 'assign', 'type S:Startup-Sequence'. "
+            "Set background=true for interactive/GUI programs (editors, viewers) "
+            "that the user will interact with, so AmigaAI does not block.");
 
         cJSON_AddStringToObject(cmd_prop, "type", "string");
         cJSON_AddStringToObject(cmd_prop, "description",
             "The AmigaDOS command to execute");
         cJSON_AddItemToObject(props, "command", cmd_prop);
+
+        {
+            cJSON *bg_prop = cJSON_CreateObject();
+            cJSON_AddStringToObject(bg_prop, "type", "boolean");
+            cJSON_AddStringToObject(bg_prop, "description",
+                "Launch program in background (returns immediately). "
+                "Use for interactive/GUI programs like Ed, MultiView.");
+            cJSON_AddItemToObject(props, "background", bg_prop);
+        }
 
         cJSON_AddStringToObject(schema, "type", "object");
         cJSON_AddItemToObject(schema, "properties", props);
@@ -74,7 +197,7 @@ cJSON *tools_build_json(void)
         cJSON_AddStringToObject(tool, "description",
             "Send an ARexx command to a named ARexx port. "
             "Use to control running Amiga applications that have ARexx ports. "
-            "Common ports: MULTIVIEW, IBROWSE, REXX, DOPUS.1. "
+            "Common ports: WORKBENCH, MULTIVIEW, IBROWSE, REXX, DOPUS.1. "
             "The command is sent and the result string returned.");
 
         cJSON_AddStringToObject(port_prop, "type", "string");
@@ -108,7 +231,7 @@ cJSON *tools_build_json(void)
         cJSON_AddStringToObject(tool, "name", "read_file");
         cJSON_AddStringToObject(tool, "description",
             "Read the contents of a file. Returns the file content as text. "
-            "Use AmigaDOS paths like SYS:, WORK:, S:, RAM:, PROGDIR: etc. "
+            "Use AmigaDOS paths like SYS:, WORK:, S:, RAM:, AmigaAI: etc. "
             "Output is truncated to 4KB.");
 
         cJSON_AddStringToObject(path_prop, "type", "string");
@@ -281,11 +404,28 @@ static char *tool_exec_list_ports(int *is_error)
 }
 
 /* Execute an AmigaDOS shell command, capture output */
+/* Run shell command synchronously (fallback if async setup fails) */
+static LONG shell_exec_sync(const char *command)
+{
+    LONG rc;
+    BPTR outfh = Open((CONST_STRPTR)TOOL_CMD_OUTPUT, MODE_NEWFILE);
+    if (!outfh) return -1;
+    {
+        struct TagItem sys_tags[] = {
+            { SYS_Output, (ULONG)outfh },
+            { SYS_Input,  (ULONG)NULL },
+            { TAG_DONE,   0 }
+        };
+        rc = SystemTagList((CONST_STRPTR)command, sys_tags);
+    }
+    Close(outfh);
+    return rc;
+}
+
 static char *tool_exec_shell(cJSON *input, int *is_error)
 {
     cJSON *cmd_json;
     const char *command;
-    BPTR outfh;
     LONG rc;
     FILE *f;
     char *result;
@@ -298,26 +438,195 @@ static char *tool_exec_shell(cJSON *input, int *is_error)
     }
     command = cmd_json->valuestring;
 
+    /* Background mode: launch in child process, wait briefly for errors */
+    {
+        cJSON *bg_json = cJSON_GetObjectItemCaseSensitive(input, "background");
+        if (bg_json && cJSON_IsTrue(bg_json)) {
+            struct ShellTask *st;
+            struct Process *child;
+            BYTE sigbit;
+            int i;
+
+            printf("  [tool] shell (background): %s\n", command);
+
+            sigbit = AllocSignal(-1);
+            if (sigbit < 0) {
+                *is_error = 1;
+                return strdup("Cannot allocate signal");
+            }
+
+            st = malloc(sizeof(*st));
+            if (!st) {
+                FreeSignal(sigbit);
+                *is_error = 1;
+                return strdup("Out of memory");
+            }
+
+            st->command   = strdup(command);
+            st->outfile   = "T:amigaai_bg.out";
+            st->rc        = 0;
+            st->done      = 0;
+            st->abandoned   = 0;
+            st->parent      = FindTask(NULL);
+            st->sigbit      = sigbit;
+            {
+                struct Process *me = (struct Process *)FindTask(NULL);
+                struct CommandLineInterface *cli = me->pr_CLI ? BADDR(me->pr_CLI) : NULL;
+                st->parent_path = cli ? cli->cli_CommandDir : 0;
+            }
+
+            {
+                struct Process *me = (struct Process *)FindTask(NULL);
+                BPTR dup_cur  = me->pr_CurrentDir  ? DupLock(me->pr_CurrentDir) : 0;
+                BPTR dup_home = me->pr_HomeDir ? DupLock(me->pr_HomeDir) : 0;
+                struct TagItem np_tags[] = {
+                    { NP_Entry,      (ULONG)shell_child_entry },
+                    { NP_Name,       (ULONG)"AmigaAI Background" },
+                    { NP_StackSize,  65536 },
+                    { NP_ExitData,   (ULONG)st },
+                    { NP_CurrentDir, (ULONG)dup_cur },
+                    { NP_HomeDir,    (ULONG)dup_home },
+                    { NP_Cli,        TRUE },
+                    { TAG_DONE,      0 }
+                };
+                child = CreateNewProcTagList(np_tags);
+                if (!child) {
+                    if (dup_cur)  UnLock(dup_cur);
+                    if (dup_home) UnLock(dup_home);
+                    FreeSignal(sigbit);
+                    free((void *)st->command);
+                    free(st);
+                    *is_error = 1;
+                    return strdup("Cannot create background process");
+                }
+            }
+
+            /* Wait up to ~2 seconds for quick errors, process MUI events */
+            for (i = 0; i < 20 && !st->done; i++) {
+                Delay(5);  /* 0.1 second */
+                if (tool_poll_cb) tool_poll_cb(tool_poll_data);
+            }
+
+            Forbid();
+            if (st->done) {
+                /* Command finished quickly — read output (may contain error) */
+                Permit();
+                rc = st->rc;
+                FreeSignal(sigbit);
+                free((void *)st->command);
+                free(st);
+                /* Read the output file */
+                {
+                    FILE *bgf = fopen("T:amigaai_bg.out", "r");
+                    if (bgf) {
+                        long blen;
+                        fseek(bgf, 0, SEEK_END);
+                        blen = ftell(bgf);
+                        fseek(bgf, 0, SEEK_SET);
+                        if (blen > 0 && blen < TOOLS_MAX_OUTPUT) {
+                            result = malloc(blen + 1);
+                            if (result) {
+                                fread(result, 1, blen, bgf);
+                                result[blen] = '\0';
+                            }
+                        }
+                        fclose(bgf);
+                    }
+                    DeleteFile((CONST_STRPTR)"T:amigaai_bg.out");
+                }
+                if (rc != 0) *is_error = 1;
+                return result ? result :
+                       strdup(rc ? "Command failed" : "OK");
+            } else {
+                /* Still running — it's a long-running/interactive program */
+                st->abandoned = 1;
+                Permit();
+                FreeSignal(sigbit);
+                return strdup("Program launched in background");
+            }
+        }
+    }
+
     printf("  [tool] shell: %s\n", command);
 
-    /* Open output capture file */
-    outfh = Open((CONST_STRPTR)TOOL_CMD_OUTPUT, MODE_NEWFILE);
-    if (!outfh) {
-        *is_error = 1;
-        return strdup("Cannot create output capture file");
-    }
-
-    /* Execute the command using non-variadic SystemTagList */
+    /* Try async execution so MUI stays responsive */
     {
-        struct TagItem sys_tags[] = {
-            { SYS_Output, (ULONG)outfh },
-            { SYS_Input,  (ULONG)NULL },
-            { TAG_DONE,   0 }
-        };
-        rc = SystemTagList((CONST_STRPTR)command, sys_tags);
+        BYTE sigbit = AllocSignal(-1);
+
+        if (sigbit >= 0) {
+            struct ShellTask st;
+            struct Process *child;
+
+            st.command     = command;
+            st.outfile     = TOOL_CMD_OUTPUT;
+            st.rc          = 0;
+            st.done        = 0;
+            st.abandoned   = 0;
+            st.parent      = FindTask(NULL);
+            st.sigbit      = sigbit;
+            {
+                struct Process *me = (struct Process *)FindTask(NULL);
+                struct CommandLineInterface *cli = me->pr_CLI ? BADDR(me->pr_CLI) : NULL;
+                st.parent_path = cli ? cli->cli_CommandDir : 0;
+            }
+
+            {
+                struct Process *me = (struct Process *)FindTask(NULL);
+                BPTR cur_dir = me->pr_CurrentDir;
+                BPTR home_dir = me->pr_HomeDir;
+                BPTR dup_cur = cur_dir ? DupLock(cur_dir) : 0;
+                BPTR dup_home = home_dir ? DupLock(home_dir) : 0;
+                struct TagItem np_tags[] = {
+                    { NP_Entry,      (ULONG)shell_child_entry },
+                    { NP_Name,       (ULONG)"AmigaAI Shell" },
+                    { NP_StackSize,  65536 },
+                    { NP_ExitData,   (ULONG)&st },
+                    { NP_CurrentDir, (ULONG)dup_cur },
+                    { NP_HomeDir,    (ULONG)dup_home },
+                    { NP_Cli,        TRUE },
+                    { TAG_DONE,      0 }
+                };
+                child = CreateNewProcTagList(np_tags);
+                if (!child) {
+                    /* Clean up locks if proc creation fails */
+                    if (dup_cur)  UnLock(dup_cur);
+                    if (dup_home) UnLock(dup_home);
+                }
+            }
+
+            if (child) {
+                /* Poll loop: process MUI events while child runs */
+                while (!st.done) {
+                    ULONG sigs = Wait((1UL << sigbit) | SIGBREAKF_CTRL_C);
+
+                    if (sigs & SIGBREAKF_CTRL_C) {
+                        Signal((struct Task *)child, SIGBREAKF_CTRL_C);
+                    }
+
+                    if (!st.done && tool_poll_cb &&
+                        tool_poll_cb(tool_poll_data))
+                    {
+                        /* Stop requested - send CTRL-C and wait */
+                        Signal((struct Task *)child, SIGBREAKF_CTRL_C);
+                        while (!st.done)
+                            Wait(1UL << sigbit);
+                    }
+                }
+
+                rc = st.rc;
+                FreeSignal(sigbit);
+                goto read_output;
+            }
+
+            FreeSignal(sigbit);
+        }
+
+        /* Fallback: synchronous execution */
+        printf("  [tool] shell: async failed, running synchronously\n");
+        rc = shell_exec_sync(command);
     }
 
-    Close(outfh);
+read_output:
 
     /* Read the output */
     f = fopen(TOOL_CMD_OUTPUT, "r");
@@ -454,17 +763,12 @@ static char *tool_exec_arexx(cJSON *input, int *is_error)
                     result = strdup("OK");
                 }
             } else {
-                /* Error */
+                /* Error — rm_Result2 is a numeric secondary error code, NOT a pointer */
+                char buf[80];
                 *is_error = 1;
-                if (reply->rm_Result2) {
-                    result = strdup((char *)reply->rm_Result2);
-                    DeleteArgstring((STRPTR)reply->rm_Result2);
-                } else {
-                    char buf[64];
-                    snprintf(buf, sizeof(buf), "ARexx error code %ld",
-                             reply->rm_Result1);
-                    result = strdup(buf);
-                }
+                snprintf(buf, sizeof(buf), "ARexx error %ld/%ld",
+                         reply->rm_Result1, reply->rm_Result2);
+                result = strdup(buf);
             }
         }
     }
@@ -474,7 +778,78 @@ static char *tool_exec_arexx(cJSON *input, int *is_error)
     DeleteRexxMsg(rmsg);
     DeleteMsgPort(reply_port);
 
-    return result ? result : strdup("No reply received");
+    if (!result)
+        result = strdup("No reply received");
+
+    /* Auto-load ARexx documentation on FIRST use of each port.
+     * Strip instance suffix so MULTIVIEW.1 or ED_1 finds the base doc file */
+    {
+        static char docs_sent[16][32];  /* ports we already sent docs for */
+        static int  docs_count = 0;
+        char base_port[32];
+        int already_sent = 0, i;
+
+        strncpy(base_port, port_name, sizeof(base_port) - 1);
+        base_port[sizeof(base_port) - 1] = '\0';
+        {
+            /* Try ".N" suffix (MULTIVIEW.1) then "_N" suffix (ED_1) */
+            char *sep = strrchr(base_port, '.');
+            if (!sep || sep[1] < '0' || sep[1] > '9')
+                sep = strrchr(base_port, '_');
+            if (sep && sep[1] >= '0' && sep[1] <= '9')
+                *sep = '\0';
+        }
+
+        for (i = 0; i < docs_count; i++) {
+            if (stricmp(docs_sent[i], base_port) == 0) {
+                already_sent = 1;
+                break;
+            }
+        }
+
+        if (!already_sent) {
+            char docpath[256];
+            FILE *docf;
+            snprintf(docpath, sizeof(docpath),
+                     "AmigaAI:instructions/ARexx/%s.md", base_port);
+            docf = fopen(docpath, "r");
+            if (docf) {
+                long doclen;
+                fseek(docf, 0, SEEK_END);
+                doclen = ftell(docf);
+                fseek(docf, 0, SEEK_SET);
+                if (doclen > 0 && doclen < 8192) {
+                    char *docbuf = malloc(doclen + 1);
+                    if (docbuf) {
+                        fread(docbuf, 1, doclen, docf);
+                        docbuf[doclen] = '\0';
+                        {
+                            char *combined = malloc(doclen + strlen(result) + 80);
+                            if (combined) {
+                                sprintf(combined,
+                                        "--- ARexx reference for %s ---\n%s"
+                                        "\n--- Command result ---\n%s",
+                                        port_name, docbuf, result);
+                                free(result);
+                                result = combined;
+                            }
+                        }
+                        free(docbuf);
+                    }
+                }
+                fclose(docf);
+            }
+            /* Remember this port (even if no doc file found) */
+            if (docs_count < 16) {
+                strncpy(docs_sent[docs_count], base_port,
+                        sizeof(docs_sent[0]) - 1);
+                docs_sent[docs_count][sizeof(docs_sent[0]) - 1] = '\0';
+                docs_count++;
+            }
+        }
+    }
+
+    return result;
 }
 
 /* Read a file and return its contents */

@@ -15,4 +15,10 @@ cJSON *tools_build_json(void);
  * Sets *is_error to 1 if the tool execution failed. */
 char *tool_execute(const char *name, cJSON *input, int *is_error);
 
+/* Poll callback for async shell execution.
+ * Called periodically while a shell command runs in a child process.
+ * Return non-zero to abort the command (sends CTRL-C to child). */
+typedef int (*ToolPollCallback)(void *userdata);
+void tools_set_poll_callback(ToolPollCallback cb, void *userdata);
+
 #endif /* AMIGAAI_TOOLS_H */

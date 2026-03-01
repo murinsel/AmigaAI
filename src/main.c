@@ -37,6 +37,7 @@
 #include <workbench/workbench.h>
 #include <utility/tagitem.h>
 #include <dos/dosextens.h>
+#include <rexx/rxslib.h>
 
 /* MAKE_ID for MUI window IDs */
 #ifndef MAKE_ID
@@ -53,6 +54,7 @@ unsigned long __stack = 131072;
 struct IntuitionBase *IntuitionBase = NULL;
 struct Library       *MUIMasterBase = NULL;
 struct Library       *IconBase      = NULL;
+struct RxsLib        *RexxSysBase   = NULL;
 
 /* Application state */
 static struct Config     app_config;
@@ -62,8 +64,11 @@ static struct ARexxPort  app_arexx;
 static struct Memory     app_memory;
 
 /* Workbench state */
-static int  from_wb  = 0;
-static BPTR old_dir  = 0;
+static int  from_wb   = 0;
+static BPTR old_dir   = 0;
+static BPTR old_home  = 0;  /* Original pr_HomeDir to restore on exit */
+static BPTR our_home  = 0;  /* Our DupLock'd home dir to free on exit */
+static int  assign_ok = 0;  /* Non-zero if AmigaAI: assign was created */
 
 /* API log path (set via CLI APILOG= or ToolType APILOG=) */
 static char api_log_file[256] = "";
@@ -98,10 +103,8 @@ static void setup_search_path(void)
     struct Process *pr = (struct Process *)FindTask(NULL);
     struct CommandLineInterface *cli;
     static const char *dirs[] = {
-        "SYS:Utilities",
-        "SYS:System",
-        "SYS:Tools",
-        "SYS:Prefs",
+        "C:", "S:", "SYS:Utilities", "SYS:System",
+        "SYS:Tools", "SYS:Prefs", "SYS:Rexxc",
         NULL
     };
     int i;
@@ -115,11 +118,10 @@ static void setup_search_path(void)
     for (i = 0; dirs[i]; i++) {
         BPTR lock = Lock((CONST_STRPTR)dirs[i], ACCESS_READ);
         if (lock) {
-            /* Allocate an 8-byte path node (BPTR-aligned via AllocVec) */
             LONG *node = (LONG *)AllocVec(8, MEMF_PUBLIC | MEMF_CLEAR);
             if (node) {
-                node[0] = (LONG)cli->cli_CommandDir;  /* BPTR to next */
-                node[1] = (LONG)lock;                 /* BPTR to lock */
+                node[0] = (LONG)cli->cli_CommandDir;
+                node[1] = (LONG)lock;
                 cli->cli_CommandDir = MKBADDR(node);
             } else {
                 UnLock(lock);
@@ -162,7 +164,7 @@ static void cleanup_search_path(void)
  * Format: [HH:MM:SS] prefix: text */
 static void chat_log(const char *prefix, const char *text)
 {
-    FILE *f = fopen("PROGDIR:chat.log", "a");
+    FILE *f = fopen("AmigaAI:chat.log", "a");
     if (!f) return;
 
     /* AmigaOS DateStamp for timestamp */
@@ -212,14 +214,20 @@ static int open_libraries(void)
         return -1;
     }
 
+    RexxSysBase = (struct RxsLib *)OpenLibrary((CONST_STRPTR)"rexxsyslib.library", 0);
+    if (!RexxSysBase)
+        printf("WARNING: Cannot open rexxsyslib.library - ARexx disabled\n");
+
     return 0;
 }
 
 static void close_libraries(void)
 {
+    if (RexxSysBase)   CloseLibrary((struct Library *)RexxSysBase);
     if (MUIMasterBase) CloseLibrary(MUIMasterBase);
     if (IntuitionBase) CloseLibrary((struct Library *)IntuitionBase);
 
+    RexxSysBase   = NULL;
     MUIMasterBase = NULL;
     IntuitionBase = NULL;
 }
@@ -875,7 +883,7 @@ static void handle_chat_save(void)
 {
     char *json_str;
     FILE *f;
-    const char *filename = "PROGDIR:chat.json";
+    const char *filename = "AmigaAI:chat.json";
 
     if (claude_message_count(&app_claude) == 0) {
         gui_about(&app_gui, "Save Chat", "No messages to save.");
@@ -905,7 +913,7 @@ static void handle_chat_load(void)
     char *buf;
     long len;
     cJSON *loaded;
-    const char *filename = "PROGDIR:chat.json";
+    const char *filename = "AmigaAI:chat.json";
 
     f = fopen(filename, "r");
     if (!f) {
@@ -1003,10 +1011,22 @@ int main(int argc, char *argv[])
         struct WBStartup *wbs = (struct WBStartup *)argv;
         from_wb = 1;
 
-        /* Change to the program's directory */
+        /* Change to the program's directory and set PROGDIR: */
         if (wbs->sm_NumArgs > 0) {
+            struct Process *pr = (struct Process *)FindTask(NULL);
             old_dir = CurrentDir(wbs->sm_ArgList[0].wa_Lock);
             prog_name = (const char *)wbs->sm_ArgList[0].wa_Name;
+
+            /* Set pr_HomeDir (= PROGDIR:) to the program's directory.
+             * Workbench doesn't always set this correctly. */
+            if (pr) {
+                BPTR home = DupLock(wbs->sm_ArgList[0].wa_Lock);
+                if (home) {
+                    old_home = pr->pr_HomeDir;
+                    pr->pr_HomeDir = home;
+                    our_home = home;
+                }
+            }
         }
 
         /* Read ToolTypes from program icon */
@@ -1067,6 +1087,23 @@ int main(int argc, char *argv[])
 
     /* Add standard directories to command search path */
     setup_search_path();
+
+    /* Create AmigaAI: assign pointing to the program's directory.
+     * This gives shell commands and Claude a stable way to reference
+     * the application directory (PROGDIR: doesn't work in child processes). */
+    {
+        struct Process *pr = (struct Process *)FindTask(NULL);
+        BPTR cur = pr ? pr->pr_CurrentDir : 0;
+        if (cur) {
+            BPTR lock = DupLock(cur);
+            if (lock) {
+                if (AssignLock((CONST_STRPTR)"AmigaAI", lock))
+                    assign_ok = 1;
+                else
+                    UnLock(lock);  /* AssignLock failed, free the lock */
+            }
+        }
+    }
 
     /* Force unbuffered stdout so crash diagnostics are not lost */
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -1140,6 +1177,7 @@ int main(int argc, char *argv[])
     }
     claude_set_tool_callback(&app_claude, tool_status_cb, NULL);
     http_set_event_callback(http_poll_cb, NULL);
+    tools_set_poll_callback(http_poll_cb, NULL);
     dbg_step(10, "Claude OK");
 
     /* Open MUI GUI */
@@ -1280,9 +1318,20 @@ int main(int argc, char *argv[])
     close_libraries();
     cleanup_search_path();
 
-    /* Restore original directory if launched from Workbench */
-    if (from_wb && old_dir)
-        CurrentDir(old_dir);
+    /* Remove AmigaAI: assign */
+    if (assign_ok)
+        AssignLock((CONST_STRPTR)"AmigaAI", 0);
+
+    /* Restore original directory and PROGDIR: if launched from Workbench */
+    if (from_wb) {
+        if (our_home) {
+            struct Process *pr = (struct Process *)FindTask(NULL);
+            if (pr) pr->pr_HomeDir = old_home;
+            UnLock(our_home);
+        }
+        if (old_dir)
+            CurrentDir(old_dir);
+    }
 
     printf("%s terminated.\n", PROGRAM_NAME);
     return 0;

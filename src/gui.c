@@ -1,4 +1,5 @@
 #include "gui.h"
+#include "texteditor_mcc.h"
 #include "version.h"
 
 #include <stdio.h>
@@ -308,62 +309,32 @@ int gui_open(struct Gui *gui)
 
     /* Create window contents step by step for debugging. */
 
-    printf("  gui: creating list (TagItem)...\n");
+    /* Create scrollbar for TextEditor */
+    printf("  gui: creating scrollbar...\n");
     {
-        struct TagItem list_tags[] = {
-            { MUIA_Frame, MUIV_Frame_ReadList },
-            { MUIA_Font,  MUIV_Font_Fixed },
-            { MUIA_List_ConstructHook, (ULONG)MUIV_List_ConstructHook_String },
-            { MUIA_List_DestructHook,  (ULONG)MUIV_List_DestructHook_String },
-            { TAG_DONE, 0 }
-        };
-        gui->list = MUI_NewObjectA((CONST_STRPTR)MUIC_List, list_tags);
+        struct TagItem sb_tags[] = { { TAG_DONE, 0 } };
+        gui->scrollbar = MUI_NewObjectA((CONST_STRPTR)MUIC_Scrollbar, sb_tags);
     }
-    printf("  gui: list=%p\n", (void *)gui->list);
+    printf("  gui: scrollbar=%p\n", (void *)gui->scrollbar);
 
-    printf("  gui: creating listview (TagItem)...\n");
+    /* Create TextEditor.mcc for chat display */
+    printf("  gui: creating TextEditor.mcc...\n");
     {
-        struct TagItem lv_tags[] = {
-            { MUIA_Listview_List, (ULONG)gui->list },
-            { MUIA_Listview_Input, FALSE },
+        struct TagItem te_tags[] = {
+            { MUIA_TextEditor_ReadOnly,   TRUE },
+            { MUIA_TextEditor_FixedFont,  TRUE },
+            { MUIA_TextEditor_ImportHook, MUIV_TextEditor_ImportHook_Plain },
+            { MUIA_TextEditor_ExportHook, MUIV_TextEditor_ExportHook_Plain },
+            { MUIA_TextEditor_Slider,     (ULONG)gui->scrollbar },
             { TAG_DONE, 0 }
         };
-        gui->listview = MUI_NewObjectA((CONST_STRPTR)MUIC_Listview, lv_tags);
-        printf("  gui: listview(with Input)=%p\n", (void *)gui->listview);
-        if (!gui->listview) {
-            /* Retry without Input attribute */
-            struct TagItem lv_tags2[] = {
-                { MUIA_Listview_List, (ULONG)gui->list },
-                { TAG_DONE, 0 }
-            };
-            printf("  gui: retrying listview without Input...\n");
-            gui->listview = MUI_NewObjectA((CONST_STRPTR)MUIC_Listview, lv_tags2);
-            printf("  gui: listview(no Input)=%p\n", (void *)gui->listview);
-        }
-        if (!gui->listview) {
-            /* Retry with fresh minimal list */
-            struct TagItem fresh_list_tags[] = { { TAG_DONE, 0 } };
-            printf("  gui: retrying with fresh list...\n");
-            gui->list = MUI_NewObjectA((CONST_STRPTR)MUIC_List, fresh_list_tags);
-            printf("  gui: fresh list=%p\n", (void *)gui->list);
-            if (gui->list) {
-                struct TagItem fresh_lv_tags[] = {
-                    { MUIA_Listview_List, (ULONG)gui->list },
-                    { TAG_DONE, 0 }
-                };
-                gui->listview = MUI_NewObjectA((CONST_STRPTR)MUIC_Listview, fresh_lv_tags);
-                printf("  gui: listview(fresh)=%p\n", (void *)gui->listview);
-            }
-        }
-        if (!gui->listview) {
-            /* Last resort: Listview with no list at all */
-            struct TagItem bare_lv_tags[] = { { TAG_DONE, 0 } };
-            printf("  gui: trying bare ListviewObject...\n");
-            gui->listview = MUI_NewObjectA((CONST_STRPTR)MUIC_Listview, bare_lv_tags);
-            printf("  gui: listview(bare)=%p\n", (void *)gui->listview);
-        }
+        gui->editor = MUI_NewObjectA((CONST_STRPTR)MUIC_TextEditor, te_tags);
     }
-    printf("  gui: listview final=%p\n", (void *)gui->listview);
+    printf("  gui: editor=%p\n", (void *)gui->editor);
+    if (!gui->editor) {
+        printf("WARNING: TextEditor.mcc not available!\n");
+        printf("Please install TextEditor.mcc from Aminet.\n");
+    }
 
     /* Set up global pointer for custom class access */
     edit_hook_gui = gui;
@@ -455,16 +426,28 @@ int gui_open(struct Gui *gui)
                 hgrp = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, tags);
             }
 
-            /* Build the main VGroup */
-            printf("  gui: building VGroup...\n");
+            /* Build editor + scrollbar HGroup */
             {
-                struct TagItem tags[] = {
-                    { MUIA_Group_Child,  (ULONG)gui->listview },
-                    { MUIA_Group_Child,  (ULONG)hgrp },
-                    { MUIA_Group_Child,  (ULONG)gui->status },
+                Object *editor_grp;
+                struct TagItem eg_tags[] = {
+                    { MUIA_Group_Horiz,  TRUE },
+                    { MUIA_Group_Child,  (ULONG)gui->editor },
+                    { MUIA_Group_Child,  (ULONG)gui->scrollbar },
                     { TAG_DONE, 0 }
                 };
-                vgrp = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, tags);
+                editor_grp = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, eg_tags);
+
+                /* Build the main VGroup */
+                printf("  gui: building VGroup...\n");
+                {
+                    struct TagItem tags[] = {
+                        { MUIA_Group_Child,  (ULONG)editor_grp },
+                        { MUIA_Group_Child,  (ULONG)hgrp },
+                        { MUIA_Group_Child,  (ULONG)gui->status },
+                        { TAG_DONE, 0 }
+                    };
+                    vgrp = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, tags);
+                }
             }
             printf("  gui: vgroup=%p\n", (void *)vgrp);
 
@@ -546,8 +529,8 @@ int gui_open(struct Gui *gui)
         return -1;
     }
 
-    printf("  gui: list=%p input=%p btn=%p status=%p\n",
-           (void *)gui->list, (void *)gui->input,
+    printf("  gui: editor=%p input=%p btn=%p status=%p\n",
+           (void *)gui->editor, (void *)gui->input,
            (void *)gui->send_btn, (void *)gui->status);
 
     /* Notifications - use DoMethodA with ULONG arrays to avoid variadic issues */
@@ -708,33 +691,146 @@ void gui_clear_input(struct Gui *gui)
 
 void gui_add_line(struct Gui *gui, const char *text)
 {
-    if (!gui->list) return;
+    char buf[1024];
+
+    if (!gui->editor) return;
+
+    snprintf(buf, sizeof(buf), "%s\n", text);
 
     {
-        ULONG msg[] = { MUIM_List_InsertSingle, (ULONG)text, MUIV_List_Insert_Bottom };
-        DoMethodA(gui->list, (Msg)msg);
+        ULONG msg[] = { MUIM_TextEditor_InsertText,
+                         (ULONG)buf,
+                         MUIV_TextEditor_InsertText_Bottom };
+        DoMethodA(gui->editor, (Msg)msg);
+    }
+}
+
+/* Emit color escape: \033P[rrggbb] for RGB, \033p[0] for reset */
+#define EMIT_BLUE(d, end) do { \
+    if ((d) + 10 <= (end)) { \
+        *(d)++ = '\033'; *(d)++ = 'P'; *(d)++ = '['; \
+        *(d)++ = '0'; *(d)++ = '0'; *(d)++ = '0'; *(d)++ = '0'; \
+        *(d)++ = 'c'; *(d)++ = 'c'; *(d)++ = ']'; \
+    } } while(0)
+#define EMIT_COLOR_RESET(d, end) do { \
+    if ((d) + 4 <= (end)) { \
+        *(d)++ = '\033'; *(d)++ = 'p'; *(d)++ = '['; \
+        *(d)++ = '0'; *(d)++ = ']'; \
+    } } while(0)
+
+/* Convert Markdown formatting to MUI TextEditor escape codes.
+ * **bold** -> \033b...\033n, *italic* -> \033i...\033n,
+ * # headings -> bold+underline, `code` -> blue, ``` blocks -> blue.
+ * in_code_block is persistent state for multi-line ``` fences. */
+static void strip_markdown(const char *src, char *dst, int dstsize,
+                           int *in_code_block)
+{
+    const char *s = src;
+    char *d = dst;
+    char *end = dst + dstsize - 12; /* leave room for escape codes */
+    int in_bold = 0;
+    int in_italic = 0;
+
+    /* Check for ``` code fence toggle */
+    if (s[0] == '`' && s[1] == '`' && s[2] == '`') {
+        *in_code_block = !*in_code_block;
+        /* Skip the fence line entirely (including language tag) */
+        *dst = '\0';
+        return;
     }
 
-    /* Scroll to bottom by activating the last entry */
-    {
-        LONG count = (LONG)xget(gui->list, MUIA_List_Entries);
-        if (count > 0) {
-            struct TagItem tags[3];
-            tags[0].ti_Tag  = MUIA_NoNotify;
-            tags[0].ti_Data = TRUE;
-            tags[1].ti_Tag  = MUIA_List_Active;
-            tags[1].ti_Data = (ULONG)(count - 1);
-            tags[2].ti_Tag  = TAG_DONE;
-            SetAttrsA(gui->list, tags);
+    /* Inside code block: output entire line in blue */
+    if (*in_code_block) {
+        EMIT_BLUE(d, end);
+        while (*s && d < end)
+            *d++ = *s++;
+        EMIT_COLOR_RESET(d, end);
+        *d = '\0';
+        return;
+    }
+
+    /* Strip leading # headings -> make bold + underline */
+    if (*s == '#') {
+        while (*s == '#') s++;
+        if (*s == ' ') s++;
+        /* Skip converted emoji (UTF-8 emoji become ? in Latin1) */
+        while (*s == '?' || *s == ' ') s++;
+        if (d + 4 <= end) { *d++ = '\033'; *d++ = 'b'; *d++ = '\033'; *d++ = 'u'; }
+        in_bold = 1;
+    }
+
+    while (*s && d < end) {
+        /* **bold** or __bold__ -> toggle MUI bold */
+        if ((s[0] == '*' && s[1] == '*') || (s[0] == '_' && s[1] == '_')) {
+            s += 2;
+            if (!in_bold) {
+                if (d + 2 <= end) { *d++ = '\033'; *d++ = 'b'; }
+                in_bold = 1;
+            } else {
+                if (d + 2 <= end) { *d++ = '\033'; *d++ = 'n'; }
+                in_bold = 0;
+            }
+            continue;
         }
+        /* *italic* or _italic_ - only at word boundaries to avoid
+         * false matches in filenames like my_file or *.txt */
+        if ((*s == '*' || *s == '_') && s[1] != ' ' && s[1] != '\0') {
+            char marker = *s;
+            /* Don't match if next char is also the marker (handled as bold above) */
+            if (s[1] != marker) {
+                /* Opening marker must be at start of line or after space/punctuation */
+                int at_boundary = (s == src || s[-1] == ' ' || s[-1] == '('
+                                   || s[-1] == '\033');
+                if (at_boundary) {
+                    const char *close = strchr(s + 1, marker);
+                    /* Closing marker must be followed by space/punctuation/EOL */
+                    if (close && close > s + 1 && *(close - 1) != ' '
+                        && (close[1] == '\0' || close[1] == ' '
+                            || close[1] == '.' || close[1] == ','
+                            || close[1] == ')' || close[1] == ':'
+                            || close[1] == ';' || close[1] == '!')) {
+                        s++;
+                        if (!in_italic) {
+                            if (d + 2 <= end) { *d++ = '\033'; *d++ = 'i'; }
+                            in_italic = 1;
+                        } else {
+                            if (d + 2 <= end) { *d++ = '\033'; *d++ = 'n'; }
+                            in_italic = 0;
+                        }
+                        continue;
+                    }
+                }
+            }
+        }
+        /* `inline code` -> blue text */
+        if (*s == '`') {
+            const char *close = strchr(s + 1, '`');
+            if (close && close > s + 1) {
+                s++;
+                EMIT_BLUE(d, end);
+                while (s < close && d < end)
+                    *d++ = *s++;
+                EMIT_COLOR_RESET(d, end);
+                s++; /* skip closing backtick */
+                continue;
+            }
+        }
+        *d++ = *s++;
     }
+    /* Close unclosed styles */
+    if ((in_bold || in_italic) && d + 2 <= end) {
+        *d++ = '\033'; *d++ = 'n';
+    }
+    *d = '\0';
 }
 
 void gui_add_text(struct Gui *gui, const char *prefix, const char *text)
 {
     const char *p = text;
-    char line_buf[GUI_MAX_LINE_LEN];
+    char line_buf[1024];
+    char clean_buf[2048]; /* larger: escape codes expand text */
     int first = 1;
+    int in_code_block = 0;
 
     while (*p) {
         const char *nl = strchr(p, '\n');
@@ -752,7 +848,11 @@ void gui_add_text(struct Gui *gui, const char *prefix, const char *text)
             snprintf(line_buf, sizeof(line_buf), "%.*s", len, p);
         }
 
-        gui_add_line(gui, line_buf);
+        /* Convert Markdown formatting to MUI escape codes */
+        strip_markdown(line_buf, clean_buf, sizeof(clean_buf), &in_code_block);
+        /* Skip empty lines from ``` fence markers */
+        if (clean_buf[0] != '\0' || (line_buf[0] != '`'))
+            gui_add_line(gui, clean_buf);
 
         p += len;
         if (*p == '\n') p++;
@@ -786,10 +886,10 @@ void gui_set_busy(struct Gui *gui, int busy)
 
 void gui_clear_chat(struct Gui *gui)
 {
-    if (gui->list)
+    if (gui->editor)
     {
-        ULONG msg[] = { MUIM_List_Clear };
-        DoMethodA(gui->list, (Msg)msg);
+        ULONG msg[] = { MUIM_TextEditor_ClearText };
+        DoMethodA(gui->editor, (Msg)msg);
     }
 }
 

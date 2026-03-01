@@ -3,7 +3,6 @@
 
 #include <libraries/mui.h>
 
-#define GUI_MAX_LINE_LEN  256
 #define GUI_HISTORY_SIZE   10
 #define GUI_HISTORY_LEN   512
 
@@ -25,8 +24,8 @@
 struct Gui {
     Object *app;
     Object *win;
-    Object *list;        /* List object for chat display */
-    Object *listview;    /* Listview wrapper */
+    Object *editor;      /* TextEditor.mcc for chat display */
+    Object *scrollbar;   /* Scrollbar for editor */
     Object *input;       /* String gadget for input */
     Object *send_btn;    /* Send button */
     Object *stop_btn;    /* Stop/abort button */

@@ -18,6 +18,7 @@
 #include "http.h"
 #include "claude.h"
 #include "gui.h"
+#include "locale.h"
 #include "arexx_port.h"
 #include "memory.h"
 #include "tools.h"
@@ -354,26 +355,26 @@ static void handle_send(void)
 
     /* /help - list all available commands */
     if (strcasecmp(input, "/help") == 0) {
-        gui_add_line(&app_gui, "\033b\033cAvailable Commands\033n");
+        gui_add_line(&app_gui, GetString(MSG_HELP_TITLE));
         gui_add_line(&app_gui, "");
-        gui_add_line(&app_gui, "\033b/help\033n              - Show this help");
-        gui_add_line(&app_gui, "\033b/shell <cmd>\033n      - Run AmigaDOS command");
+        gui_add_line(&app_gui, GetString(MSG_HELP_CMD_HELP));
+        gui_add_line(&app_gui, GetString(MSG_HELP_CMD_SHELL));
         gui_add_line(&app_gui, "  Example: /shell list SYS:Utilities");
-        gui_add_line(&app_gui, "\033b/arexx <port> <cmd>\033n - Send ARexx command");
+        gui_add_line(&app_gui, GetString(MSG_HELP_CMD_AREXX));
         gui_add_line(&app_gui, "  Example: /arexx MULTIVIEW ABOUT");
-        gui_add_line(&app_gui, "\033b/read <path>\033n      - Read a file");
+        gui_add_line(&app_gui, GetString(MSG_HELP_CMD_READ));
         gui_add_line(&app_gui, "  Example: /read S:Startup-Sequence");
-        gui_add_line(&app_gui, "\033b/write <path> <text>\033n - Write to a file");
+        gui_add_line(&app_gui, GetString(MSG_HELP_CMD_WRITE));
         gui_add_line(&app_gui, "  Example: /write RAM:test.txt Hello World");
-        gui_add_line(&app_gui, "\033b/ports\033n            - List public message ports");
-        gui_add_line(&app_gui, "\033b/remember <text>\033n  - Save a memory entry");
+        gui_add_line(&app_gui, GetString(MSG_HELP_CMD_PORTS));
+        gui_add_line(&app_gui, GetString(MSG_HELP_CMD_REMEMBER));
         gui_add_line(&app_gui, "  Example: /remember I prefer 68030 mode");
-        gui_add_line(&app_gui, "\033b/memory\033n           - View all memory entries");
+        gui_add_line(&app_gui, GetString(MSG_HELP_CMD_MEMORY));
         gui_add_line(&app_gui, "");
-        gui_add_line(&app_gui, "Any other text is sent to Claude as a message.");
-        gui_add_line(&app_gui, "Use cursor up/down to browse input history.");
+        gui_add_line(&app_gui, GetString(MSG_HELP_FOOTER1));
+        gui_add_line(&app_gui, GetString(MSG_HELP_FOOTER2));
         gui_add_line(&app_gui, "");
-        gui_set_status(&app_gui, "Type a command or message");
+        gui_set_status(&app_gui, GetString(MSG_STATUS_TYPE_CMD));
         gui_clear_input(&app_gui);
         return;
     }
@@ -385,14 +386,14 @@ static void handle_send(void)
         if (*entry) {
             if (memory_add(&app_memory, entry) == 0) {
                 memory_save(&app_memory);
-                gui_add_line(&app_gui, "\033bMemory:\033n Entry saved.");
+                gui_add_line(&app_gui, GetString(MSG_MEM_ADDED));
                 {
                     char buf[64];
-                    snprintf(buf, sizeof(buf), "Memory: %d entries", app_memory.count);
+                    snprintf(buf, sizeof(buf), GetString(MSG_CMD_MEM_ENTRIES), app_memory.count);
                     gui_set_status(&app_gui, buf);
                 }
             } else {
-                gui_add_line(&app_gui, "\033bMemory:\033n Memory is full!");
+                gui_add_line(&app_gui, GetString(MSG_MEM_FULL));
             }
         }
         gui_clear_input(&app_gui);
@@ -410,13 +411,13 @@ static void handle_send(void)
     if (strcasecmp(input, "/ports") == 0) {
         int is_error = 0;
         char *result = tool_execute("list_ports", NULL, &is_error);
-        gui_add_line(&app_gui, "\033bPublic Ports:\033n");
+        gui_add_line(&app_gui, GetString(MSG_CMD_PORTS_TITLE));
         if (result) {
             gui_add_text(&app_gui, NULL, result);
             free(result);
         }
         gui_add_line(&app_gui, "");
-        gui_set_status(&app_gui, "Ports listed");
+        gui_set_status(&app_gui, GetString(MSG_CMD_PORTS_LISTED));
         gui_clear_input(&app_gui);
         return;
     }
@@ -432,9 +433,9 @@ static void handle_send(void)
             char line[256];
 
             cJSON_AddStringToObject(inp, "command", cmd);
-            snprintf(line, sizeof(line), "\033bShell:\033n %s", cmd);
+            snprintf(line, sizeof(line), GetString(MSG_CMD_SHELL), cmd);
             gui_add_line(&app_gui, line);
-            gui_set_status(&app_gui, "Executing shell command...");
+            gui_set_status(&app_gui, GetString(MSG_STATUS_EXECUTING));
 
             result = tool_execute("shell_command", inp, &is_error);
             cJSON_Delete(inp);
@@ -445,7 +446,7 @@ static void handle_send(void)
                 free(result);
             }
             gui_add_line(&app_gui, "");
-            gui_set_status(&app_gui, is_error ? "Command failed" : "Done");
+            gui_set_status(&app_gui, is_error ? GetString(MSG_CMD_FAILED) : GetString(MSG_CMD_DONE));
         }
         gui_clear_input(&app_gui);
         return;
@@ -465,7 +466,7 @@ static void handle_send(void)
             char line[256];
 
             if (!sp) {
-                gui_add_line(&app_gui, "Usage: /arexx <PORT> <command>");
+                gui_add_line(&app_gui, GetString(MSG_CMD_AREXX_USAGE));
                 gui_clear_input(&app_gui);
                 return;
             }
@@ -482,9 +483,9 @@ static void handle_send(void)
             cJSON_AddStringToObject(inp, "port", port);
             cJSON_AddStringToObject(inp, "command", cmd);
 
-            snprintf(line, sizeof(line), "\033bARexx:\033n %s > %s", port, cmd);
+            snprintf(line, sizeof(line), GetString(MSG_CMD_AREXX), port, cmd);
             gui_add_line(&app_gui, line);
-            gui_set_status(&app_gui, "Sending ARexx command...");
+            gui_set_status(&app_gui, GetString(MSG_STATUS_AREXX_SENDING));
 
             result = tool_execute("arexx_command", inp, &is_error);
             cJSON_Delete(inp);
@@ -495,7 +496,7 @@ static void handle_send(void)
                 free(result);
             }
             gui_add_line(&app_gui, "");
-            gui_set_status(&app_gui, is_error ? "ARexx failed" : "Done");
+            gui_set_status(&app_gui, is_error ? GetString(MSG_CMD_FAILED) : GetString(MSG_CMD_DONE));
         }
         gui_clear_input(&app_gui);
         return;
@@ -512,7 +513,7 @@ static void handle_send(void)
             char line[256];
 
             cJSON_AddStringToObject(inp, "path", path);
-            snprintf(line, sizeof(line), "\033bRead:\033n %s", path);
+            snprintf(line, sizeof(line), GetString(MSG_CMD_READ), path);
             gui_add_line(&app_gui, line);
 
             result = tool_execute("read_file", inp, &is_error);
@@ -524,7 +525,7 @@ static void handle_send(void)
                 free(result);
             }
             gui_add_line(&app_gui, "");
-            gui_set_status(&app_gui, is_error ? "Read failed" : "Done");
+            gui_set_status(&app_gui, is_error ? GetString(MSG_CMD_FAILED) : GetString(MSG_CMD_DONE));
         }
         gui_clear_input(&app_gui);
         return;
@@ -542,7 +543,7 @@ static void handle_send(void)
             char *result;
 
             if (!sp) {
-                gui_add_line(&app_gui, "Usage: /write <path> <content>");
+                gui_add_line(&app_gui, GetString(MSG_CMD_WRITE_USAGE));
                 gui_clear_input(&app_gui);
                 return;
             }
@@ -565,7 +566,7 @@ static void handle_send(void)
                 free(result);
             }
             gui_add_line(&app_gui, "");
-            gui_set_status(&app_gui, is_error ? "Write failed" : "Done");
+            gui_set_status(&app_gui, is_error ? GetString(MSG_CMD_FAILED) : GetString(MSG_CMD_DONE));
         }
         gui_clear_input(&app_gui);
         return;
@@ -581,12 +582,12 @@ static void handle_send(void)
         input_copy[sizeof(input_copy) - 1] = '\0';
 
         /* Display user message */
-        gui_add_text(&app_gui, "\033bYou:\033n ", input_copy);
+        gui_add_text(&app_gui, GetString(MSG_LABEL_YOU), input_copy);
         chat_log("USER", input_copy);
 
         /* Clear input and set busy */
         gui_clear_input(&app_gui);
-        gui_set_status(&app_gui, "Sending to Claude...");
+        gui_set_status(&app_gui, GetString(MSG_STATUS_SENDING));
         gui_set_busy(&app_gui, 1);
 
         /* Send to API */
@@ -597,20 +598,20 @@ static void handle_send(void)
 
     if (app_gui.abort_requested) {
         /* User clicked Stop */
-        gui_add_line(&app_gui, "\033b\033c--- Aborted ---\033n");
-        gui_set_status(&app_gui, "Request aborted.");
+        gui_add_line(&app_gui, GetString(MSG_LABEL_ABORTED));
+        gui_set_status(&app_gui, GetString(MSG_STATUS_ABORTED));
         chat_log("SYSTEM", "Request aborted by user");
         free(reply);
         free(error_msg);
     } else if (reply) {
         /* Display response */
-        gui_add_text(&app_gui, "\033bClaude:\033n ", reply);
+        gui_add_text(&app_gui, GetString(MSG_LABEL_CLAUDE), reply);
         gui_add_line(&app_gui, "");
         chat_log("CLAUDE", reply);
 
         /* Show token usage in status bar */
         snprintf(status_buf, sizeof(status_buf),
-                 "Tokens: %d in / %d out | Messages: %d",
+                 GetString(MSG_STATUS_TOKENS),
                  app_claude.last_input_tokens,
                  app_claude.last_output_tokens,
                  claude_message_count(&app_claude));
@@ -620,10 +621,11 @@ static void handle_send(void)
     } else {
         /* Display error */
         char err_buf[256];
-        snprintf(err_buf, sizeof(err_buf), "\033b\033cERROR:\033n %s",
-                 error_msg ? error_msg : "Unknown error");
+        snprintf(err_buf, sizeof(err_buf), "%s%s",
+                 GetString(MSG_LABEL_ERROR),
+                 error_msg ? error_msg : GetString(MSG_ERR_UNKNOWN));
         gui_add_line(&app_gui, err_buf);
-        gui_set_status(&app_gui, error_msg ? error_msg : "Error");
+        gui_set_status(&app_gui, error_msg ? error_msg : GetString(MSG_STATUS_ERROR));
         chat_log("ERROR", error_msg ? error_msg : "Unknown error");
         free(error_msg);
     }
@@ -632,24 +634,24 @@ static void handle_send(void)
 static void handle_new_chat(void)
 {
     if (claude_clear_history(&app_claude) != 0) {
-        gui_set_status(&app_gui, "ERROR: Out of memory clearing history");
+        gui_set_status(&app_gui, GetString(MSG_ERR_OOM_HISTORY));
         return;
     }
     gui_clear_chat(&app_gui);
-    gui_add_line(&app_gui, "\033c--- New Chat ---");
+    gui_add_line(&app_gui, GetString(MSG_LABEL_NEW_CHAT));
     gui_add_line(&app_gui, "");
-    gui_set_status(&app_gui, "Chat cleared. Ready.");
+    gui_set_status(&app_gui, GetString(MSG_STATUS_CHAT_CLEARED));
 }
 
 static void handle_about(void)
 {
-    gui_about(&app_gui,
-              PROGRAM_NAME,
-              PROGRAM_NAME " " VERSION_STRING "\n\n"
-              "Claude AI Agent for AmigaOS\n\n"
-              "Stack: AmiSSL v5, cJSON, MUI\n"
-              "ARexx Port: AMIGAAI\n\n"
-              "Commands: /remember, /memory");
+    char buf[512];
+    snprintf(buf, sizeof(buf),
+             "%s %s\n\n%s\n\n\xa9 2026 Thomas \xd6llinger\n\n%s\nARexx Port: AMIGAAI",
+             PROGRAM_NAME, VERSION_STRING,
+             GetString(MSG_ABOUT_DESCRIPTION),
+             GetString(MSG_ABOUT_STACK));
+    gui_about(&app_gui, PROGRAM_NAME, buf);
 }
 
 /* Safe non-variadic wrappers for MUI attribute access.
@@ -676,14 +678,196 @@ static void handle_memory_view(void)
 {
     char *memstr = memory_to_string(&app_memory);
     if (memstr) {
-        gui_about(&app_gui, "Persistent Memory", memstr);
+        gui_about(&app_gui, GetString(MSG_MEM_TITLE_VIEW), memstr);
         free(memstr);
     } else {
-        gui_about(&app_gui, "Persistent Memory",
-                  "No memories stored yet.\n\n"
-                  "Use Memory > Add Memory or type:\n"
-                  "/remember <fact>");
+        gui_about(&app_gui, GetString(MSG_MEM_TITLE_VIEW),
+                  GetString(MSG_MEM_NONE_BODY));
     }
+}
+
+static const char *model_list[] = {
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5-20251001",
+    "claude-opus-4-6",
+    NULL
+};
+
+static void handle_model_select(void)
+{
+    Object *win, *list, *ok_btn, *cancel_btn;
+    Object *hgrp, *vgrp;
+    ULONG open;
+    ULONG sigs;
+    int done = 0;
+    int i, active = 0;
+    struct IClass *wincl;
+
+    /* Find currently active model in list */
+    for (i = 0; model_list[i]; i++) {
+        if (strcmp(model_list[i], app_config.model) == 0) {
+            active = i;
+            break;
+        }
+    }
+
+    {
+        ULONG ok_params[1];
+        ok_params[0] = (ULONG)GetString(MSG_BTN_OK);
+        ok_btn = MUI_MakeObjectA(MUIO_Button, ok_params);
+    }
+    {
+        ULONG cancel_params[1];
+        cancel_params[0] = (ULONG)GetString(MSG_BTN_CANCEL);
+        cancel_btn = MUI_MakeObjectA(MUIO_Button, cancel_params);
+    }
+    if (!ok_btn || !cancel_btn) return;
+
+    /* Create List with model entries */
+    {
+        struct TagItem tags[] = {
+            { MUIA_Frame, MUIV_Frame_InputList },
+            { MUIA_List_ConstructHook, MUIV_List_ConstructHook_String },
+            { MUIA_List_DestructHook,  MUIV_List_DestructHook_String },
+            { MUIA_List_SourceArray, (ULONG)model_list },
+            { MUIA_CycleChain, (ULONG)TRUE },
+            { TAG_DONE, 0 }
+        };
+        list = MUI_NewObjectA((CONST_STRPTR)MUIC_List, tags);
+    }
+
+    if (!list) return;
+
+    /* Pre-select active model */
+    xset(list, MUIA_List_Active, (ULONG)active);
+
+    {
+        struct TagItem tags[] = {
+            { MUIA_Group_Horiz, TRUE },
+            { MUIA_Group_Child, (ULONG)ok_btn },
+            { MUIA_Group_Child, (ULONG)cancel_btn },
+            { TAG_DONE, 0 }
+        };
+        hgrp = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, tags);
+    }
+
+    {
+        struct TagItem tags[] = {
+            { MUIA_Group_Child, (ULONG)list },
+            { MUIA_Group_Child, (ULONG)hgrp },
+            { TAG_DONE, 0 }
+        };
+        vgrp = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, tags);
+    }
+
+    if (!vgrp) return;
+
+    wincl = MUI_GetClass((CONST_STRPTR)MUIC_Window);
+    if (!wincl) {
+        MUI_DisposeObject(vgrp);
+        return;
+    }
+    {
+        struct TagItem tags[] = {
+            { MUIA_Window_Title, (ULONG)GetString(MSG_MODEL_TITLE) },
+            { MUIA_Window_ID,    MAKE_ID('M','O','D','L') },
+            { MUIA_Window_RootObject, (ULONG)vgrp },
+            { TAG_DONE, 0 }
+        };
+        win = NewObjectA(wincl, NULL, tags);
+    }
+    MUI_FreeClass(wincl);
+
+    if (!win) return;
+
+    {
+        ULONG msg[] = { OM_ADDMEMBER, (ULONG)win };
+        DoMethodA(app_gui.app, (Msg)msg);
+    }
+
+    /* OK button */
+    {
+        ULONG msg[] = { MUIM_Notify, MUIA_Pressed, (ULONG)FALSE,
+                         (ULONG)app_gui.app, 2,
+                         MUIM_Application_ReturnID, 100 };
+        DoMethodA(ok_btn, (Msg)msg);
+    }
+    /* Double-click on list entry = OK */
+    {
+        ULONG msg[] = { MUIM_Notify, MUIA_Listview_DoubleClick, (ULONG)TRUE,
+                         (ULONG)app_gui.app, 2,
+                         MUIM_Application_ReturnID, 100 };
+        DoMethodA(list, (Msg)msg);
+    }
+    /* Cancel button */
+    {
+        ULONG msg[] = { MUIM_Notify, MUIA_Pressed, (ULONG)FALSE,
+                         (ULONG)app_gui.app, 2,
+                         MUIM_Application_ReturnID, 101 };
+        DoMethodA(cancel_btn, (Msg)msg);
+    }
+    /* Window close = Cancel */
+    {
+        ULONG msg[] = { MUIM_Notify, MUIA_Window_CloseRequest, (ULONG)TRUE,
+                         (ULONG)app_gui.app, 2,
+                         MUIM_Application_ReturnID, 101 };
+        DoMethodA(win, (Msg)msg);
+    }
+
+    xset(win, MUIA_Window_Open, (ULONG)TRUE);
+    open = xget(win, MUIA_Window_Open);
+    if (!open) {
+        ULONG msg[] = { OM_REMMEMBER, (ULONG)win };
+        DoMethodA(app_gui.app, (Msg)msg);
+        MUI_DisposeObject(win);
+        return;
+    }
+
+    while (!done) {
+        ULONG mid;
+        {
+            ULONG msg[] = { MUIM_Application_NewInput, (ULONG)&sigs };
+            mid = DoMethodA(app_gui.app, (Msg)msg);
+        }
+        switch (mid) {
+        case 100: /* OK / Double-click */
+        {
+            LONG sel = (LONG)xget(list, MUIA_List_Active);
+            if (sel >= 0) {
+                char *entry = NULL;
+                {
+                    ULONG msg[] = { MUIM_List_GetEntry, (ULONG)sel, (ULONG)&entry };
+                    DoMethodA(list, (Msg)msg);
+                }
+                if (entry) {
+                    char buf[128];
+                    strncpy(app_config.model, entry, CONFIG_MAX_MODEL_LEN - 1);
+                    app_config.model[CONFIG_MAX_MODEL_LEN - 1] = '\0';
+                    config_save(&app_config, 1);
+                    snprintf(buf, sizeof(buf), GetString(MSG_MODEL_SET), app_config.model);
+                    gui_set_status(&app_gui, buf);
+                }
+            }
+            done = 1;
+            break;
+        }
+        case 101: /* Cancel / Close */
+            done = 1;
+            break;
+        case MUIV_Application_ReturnID_Quit:
+            done = 1;
+            break;
+        }
+        if (sigs && !done)
+            sigs = Wait(sigs);
+    }
+
+    xset(win, MUIA_Window_Open, FALSE);
+    {
+        ULONG msg[] = { OM_REMMEMBER, (ULONG)win };
+        DoMethodA(app_gui.app, (Msg)msg);
+    }
+    MUI_DisposeObject(win);
 }
 
 static void handle_memory_add(void)
@@ -698,12 +882,12 @@ static void handle_memory_add(void)
     /* Create buttons via MUI_MakeObjectA (non-variadic) */
     {
         ULONG ok_params[1];
-        ok_params[0] = (ULONG)"_OK";
+        ok_params[0] = (ULONG)GetString(MSG_BTN_OK);
         ok_btn = MUI_MakeObjectA(MUIO_Button, ok_params);
     }
     {
         ULONG cancel_params[1];
-        cancel_params[0] = (ULONG)"_Cancel";
+        cancel_params[0] = (ULONG)GetString(MSG_BTN_CANCEL);
         cancel_btn = MUI_MakeObjectA(MUIO_Button, cancel_params);
     }
     if (!ok_btn || !cancel_btn) return;
@@ -711,7 +895,7 @@ static void handle_memory_add(void)
     /* Create text label */
     {
         struct TagItem tags[] = {
-            { MUIA_Text_Contents, (ULONG)"Enter a fact or preference to remember:" },
+            { MUIA_Text_Contents, (ULONG)GetString(MSG_MEM_ENTER_FACT) },
             { TAG_DONE, 0 }
         };
         text_obj = MUI_NewObjectA((CONST_STRPTR)MUIC_Text, tags);
@@ -760,7 +944,7 @@ static void handle_memory_add(void)
     }
     {
         struct TagItem tags[] = {
-            { MUIA_Window_Title, (ULONG)"Add Memory Entry" },
+            { MUIA_Window_Title, (ULONG)GetString(MSG_MEM_TITLE_ADD) },
             { MUIA_Window_ID,    MAKE_ID('M','E','M','A') },
             { MUIA_Window_RootObject, (ULONG)vgrp },
             { TAG_DONE, 0 }
@@ -828,9 +1012,9 @@ static void handle_memory_add(void)
             if (text && text[0]) {
                 if (memory_add(&app_memory, text) == 0) {
                     memory_save(&app_memory);
-                    gui_set_status(&app_gui, "Memory entry added.");
+                    gui_set_status(&app_gui, GetString(MSG_MEM_ADDED));
                 } else {
-                    gui_set_status(&app_gui, "Memory is full!");
+                    gui_set_status(&app_gui, GetString(MSG_MEM_FULL));
                 }
             }
             done = 1;
@@ -860,20 +1044,19 @@ static void handle_memory_clear(void)
     LONG result;
 
     if (app_memory.count == 0) {
-        gui_about(&app_gui, "Clear Memory", "No memories to clear.");
+        gui_about(&app_gui, GetString(MSG_MEM_TITLE_CLEAR), GetString(MSG_MEM_NONE));
         return;
     }
 
     result = MUI_RequestA(app_gui.app, app_gui.win, 0,
-                          (CONST_STRPTR)"Clear Memory",
-                          (CONST_STRPTR)"*_Clear|_Cancel",
-                          (CONST_STRPTR)"Clear all memory entries?\n"
-                                        "This cannot be undone.",
+                          (CONST_STRPTR)GetString(MSG_MEM_TITLE_CLEAR),
+                          (CONST_STRPTR)GetString(MSG_MEM_CLEAR_BUTTONS),
+                          (CONST_STRPTR)GetString(MSG_MEM_CLEAR_CONFIRM),
                           NULL);
     if (result == 1) {
         memory_clear(&app_memory);
         memory_save(&app_memory);
-        gui_set_status(&app_gui, "All memory cleared.");
+        gui_set_status(&app_gui, GetString(MSG_MEM_CLEARED));
     }
 }
 
@@ -886,13 +1069,13 @@ static void handle_chat_save(void)
     const char *filename = "AmigaAI:chat.json";
 
     if (claude_message_count(&app_claude) == 0) {
-        gui_about(&app_gui, "Save Chat", "No messages to save.");
+        gui_about(&app_gui, GetString(MSG_CHAT_SAVE_TITLE), GetString(MSG_CHAT_SAVE_NONE));
         return;
     }
 
     json_str = cJSON_Print(app_claude.messages);
     if (!json_str) {
-        gui_set_status(&app_gui, "Failed to serialize chat.");
+        gui_set_status(&app_gui, GetString(MSG_CHAT_SAVE_FAIL));
         return;
     }
 
@@ -900,9 +1083,9 @@ static void handle_chat_save(void)
     if (f) {
         fputs(json_str, f);
         fclose(f);
-        gui_set_status(&app_gui, "Chat saved to chat.json");
+        gui_set_status(&app_gui, GetString(MSG_CHAT_SAVE_OK));
     } else {
-        gui_set_status(&app_gui, "Failed to save chat!");
+        gui_set_status(&app_gui, GetString(MSG_CHAT_SAVE_WRITE_FAIL));
     }
     cJSON_free(json_str);
 }
@@ -917,7 +1100,7 @@ static void handle_chat_load(void)
 
     f = fopen(filename, "r");
     if (!f) {
-        gui_set_status(&app_gui, "No saved chat found (chat.json).");
+        gui_set_status(&app_gui, GetString(MSG_CHAT_LOAD_NONE));
         return;
     }
 
@@ -927,21 +1110,21 @@ static void handle_chat_load(void)
 
     if (len <= 0 || len > 256L * 1024L) {
         fclose(f);
-        gui_set_status(&app_gui, "Chat file too large or empty.");
+        gui_set_status(&app_gui, GetString(MSG_CHAT_LOAD_TOO_LARGE));
         return;
     }
 
     buf = malloc(len + 1);
     if (!buf) {
         fclose(f);
-        gui_set_status(&app_gui, "Out of memory.");
+        gui_set_status(&app_gui, GetString(MSG_CHAT_LOAD_OOM));
         return;
     }
 
     if ((long)fread(buf, 1, len, f) != len) {
         free(buf);
         fclose(f);
-        gui_set_status(&app_gui, "Failed to read chat file.");
+        gui_set_status(&app_gui, GetString(MSG_CHAT_LOAD_READ_FAIL));
         return;
     }
     buf[len] = '\0';
@@ -957,7 +1140,7 @@ static void handle_chat_load(void)
 
         /* Rebuild the chat display */
         gui_clear_chat(&app_gui);
-        gui_add_line(&app_gui, "\033c--- Chat Loaded ---");
+        gui_add_line(&app_gui, GetString(MSG_CHAT_LOADED_LINE));
         gui_add_line(&app_gui, "");
 
         /* Replay messages into display */
@@ -971,10 +1154,10 @@ static void handle_chat_load(void)
                     cJSON_IsString(role) && cJSON_IsString(content))
                 {
                     if (strcmp(role->valuestring, "user") == 0)
-                        gui_add_text(&app_gui, "\033bYou:\033n ",
+                        gui_add_text(&app_gui, GetString(MSG_LABEL_YOU),
                                      content->valuestring);
                     else
-                        gui_add_text(&app_gui, "\033bClaude:\033n ",
+                        gui_add_text(&app_gui, GetString(MSG_LABEL_CLAUDE),
                                      content->valuestring);
                     gui_add_line(&app_gui, "");
                 }
@@ -983,13 +1166,13 @@ static void handle_chat_load(void)
 
         {
             char buf2[64];
-            snprintf(buf2, sizeof(buf2), "Chat loaded (%d messages)",
+            snprintf(buf2, sizeof(buf2), GetString(MSG_CHAT_LOADED),
                      claude_message_count(&app_claude));
             gui_set_status(&app_gui, buf2);
         }
     } else {
         if (loaded) cJSON_Delete(loaded);
-        gui_set_status(&app_gui, "Failed to parse saved chat!");
+        gui_set_status(&app_gui, GetString(MSG_CHAT_LOAD_PARSE_FAIL));
     }
 }
 
@@ -1127,6 +1310,9 @@ int main(int argc, char *argv[])
     }
     dbg_step(2, "Libraries OK");
 
+    /* Initialize locale for translations */
+    locale_open();
+
     /* Initialize HTTP/SSL subsystem */
     dbg_step(3, "Init HTTP/SSL...");
     if (http_init() != 0) {
@@ -1209,16 +1395,16 @@ int main(int argc, char *argv[])
 
     /* Check for missing API key */
     if (!app_config.api_key[0]) {
-        gui_add_line(&app_gui, "\033bWARNING:\033n No API key configured!");
-        gui_add_line(&app_gui, "Use Settings > API Key or set ENV:AmigaAI/api_key");
+        gui_add_line(&app_gui, GetString(MSG_WARN_NO_APIKEY));
+        gui_add_line(&app_gui, GetString(MSG_WARN_SET_APIKEY));
         gui_add_line(&app_gui, "");
-        gui_set_status(&app_gui, "No API key - configure in Settings");
+        gui_set_status(&app_gui, GetString(MSG_STATUS_NO_APIKEY));
     }
 
     /* Show memory count on startup */
     if (app_memory.count > 0) {
         char mbuf[64];
-        snprintf(mbuf, sizeof(mbuf), "Memory: %d entries loaded", app_memory.count);
+        snprintf(mbuf, sizeof(mbuf), GetString(MSG_WARN_MEM_LOADED), app_memory.count);
         gui_add_line(&app_gui, mbuf);
         gui_add_line(&app_gui, "");
     }
@@ -1246,21 +1432,16 @@ int main(int argc, char *argv[])
 
         case GUI_ID_APIKEY:
             /* TODO: Open API key requester */
-            gui_set_status(&app_gui, "Set API key via: echo \"key\" > ENV:AmigaAI/api_key");
+            gui_set_status(&app_gui, GetString(MSG_APIKEY_HINT));
             break;
 
         case GUI_ID_MODEL:
-            /* TODO: Open model selection requester */
-            {
-                char buf[128];
-                snprintf(buf, sizeof(buf), "Current model: %s", app_config.model);
-                gui_set_status(&app_gui, buf);
-            }
+            handle_model_select();
             break;
 
         case GUI_ID_SYSTEM:
             /* TODO: Open system prompt editor */
-            gui_set_status(&app_gui, "System prompt editor - coming soon");
+            gui_set_status(&app_gui, GetString(MSG_SYSTEM_COMING_SOON));
             break;
 
         /* Memory menu */
@@ -1315,6 +1496,7 @@ int main(int argc, char *argv[])
     gui_close(&app_gui);
     claude_cleanup(&app_claude);
     http_cleanup();
+    locale_close();
     close_libraries();
     cleanup_search_path();
 

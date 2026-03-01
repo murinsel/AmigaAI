@@ -167,6 +167,52 @@ cJSON *json_make_tool_result(const char *tool_use_id,
     return block;
 }
 
+cJSON *json_make_tool_result_with_image(const char *tool_use_id,
+                                         const char *image_base64,
+                                         const char *media_type,
+                                         const char *alt_text)
+{
+    cJSON *block, *content, *img, *source, *text;
+
+    block = cJSON_CreateObject();
+    if (!block) return NULL;
+
+    cJSON_AddStringToObject(block, "type", "tool_result");
+    cJSON_AddStringToObject(block, "tool_use_id", tool_use_id);
+
+    content = cJSON_CreateArray();
+    if (!content) { cJSON_Delete(block); return NULL; }
+
+    /* Image block */
+    img = cJSON_CreateObject();
+    if (img) {
+        cJSON_AddStringToObject(img, "type", "image");
+        source = cJSON_CreateObject();
+        if (source) {
+            cJSON_AddStringToObject(source, "type", "base64");
+            cJSON_AddStringToObject(source, "media_type",
+                                    media_type ? media_type : "image/png");
+            cJSON_AddStringToObject(source, "data", image_base64);
+            cJSON_AddItemToObject(img, "source", source);
+        }
+        cJSON_AddItemToArray(content, img);
+    }
+
+    /* Text block */
+    if (alt_text) {
+        text = cJSON_CreateObject();
+        if (text) {
+            cJSON_AddStringToObject(text, "type", "text");
+            cJSON_AddStringToObject(text, "text", alt_text);
+            cJSON_AddItemToArray(content, text);
+        }
+    }
+
+    cJSON_AddItemToObject(block, "content", content);
+
+    return block;
+}
+
 char *json_parse_response(const char *json_str, char **error_msg)
 {
     cJSON *root, *err_obj, *content, *item, *text_obj;

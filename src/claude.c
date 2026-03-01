@@ -303,6 +303,7 @@ char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg
                         const char *tool_id   = id_obj->valuestring;
                         const char *tool_name = name_obj->valuestring;
                         int is_error = 0;
+                        int has_image = 0;
                         char *result;
 
                         /* Build a summary of the tool input */
@@ -318,25 +319,36 @@ char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg
                                    tool_name, tool_id);
 
                             /* Execute the tool */
-                            result = tool_execute(tool_name, inp_obj, &is_error);
+                            result = tool_execute(tool_name, inp_obj,
+                                                  &is_error, &has_image);
 
                             printf("  [agent] result: %s%s\n",
                                    is_error ? "ERROR: " : "",
-                                   result ? result : "(null)");
+                                   has_image ? "(image data)"
+                                   : (result ? result : "(null)"));
 
                             /* Notify callback with result */
                             if (ctx->tool_cb)
                                 ctx->tool_cb(tool_name,
                                              is_error ? "error" : "done",
-                                             result, ctx->tool_cb_data);
+                                             has_image ? "(screenshot)"
+                                             : result,
+                                             ctx->tool_cb_data);
 
                             cJSON_free(inp_summary);
                         }
 
                         /* Build tool_result block */
                         {
-                            cJSON *tr = json_make_tool_result(
-                                tool_id, result, is_error);
+                            cJSON *tr;
+                            if (has_image && !is_error) {
+                                tr = json_make_tool_result_with_image(
+                                    tool_id, result, "image/png",
+                                    "Screenshot captured");
+                            } else {
+                                tr = json_make_tool_result(
+                                    tool_id, result, is_error);
+                            }
                             if (tr)
                                 cJSON_AddItemToArray(tool_results, tr);
                         }

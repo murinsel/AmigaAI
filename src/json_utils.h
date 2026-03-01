@@ -40,6 +40,16 @@ cJSON *json_make_tool_result(const char *tool_use_id,
                              const char *result,
                              int is_error);
 
+/* Build a tool_result with an image content block (base64-encoded).
+ * Returns: {"type":"tool_result", "tool_use_id":"...", "content":[
+ *   {"type":"image", "source":{"type":"base64","media_type":"...","data":"..."}},
+ *   {"type":"text", "text":"..."}
+ * ]} */
+cJSON *json_make_tool_result_with_image(const char *tool_use_id,
+                                         const char *image_base64,
+                                         const char *media_type,
+                                         const char *alt_text);
+
 /* Parse usage info from response. Returns 0 on success. */
 int json_parse_usage(const char *json_str, int *input_tokens, int *output_tokens);
 

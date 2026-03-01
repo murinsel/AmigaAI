@@ -403,8 +403,8 @@ static void handle_send(void)
 
     /* /ports - list all public Exec message ports */
     if (strcasecmp(input, "/ports") == 0) {
-        int is_error = 0;
-        char *result = tool_execute("list_ports", NULL, &is_error);
+        int is_error = 0, has_image = 0;
+        char *result = tool_execute("list_ports", NULL, &is_error, &has_image);
         gui_add_line(&app_gui, GetString(MSG_CMD_PORTS_TITLE));
         if (result) {
             gui_add_text(&app_gui, NULL, result);
@@ -422,7 +422,7 @@ static void handle_send(void)
         while (*cmd == ' ') cmd++;
         if (*cmd) {
             cJSON *inp = cJSON_CreateObject();
-            int is_error = 0;
+            int is_error = 0, has_image = 0;
             char *result;
             char line[256];
 
@@ -431,7 +431,7 @@ static void handle_send(void)
             gui_add_line(&app_gui, line);
             gui_set_status(&app_gui, GetString(MSG_STATUS_EXECUTING));
 
-            result = tool_execute("shell_command", inp, &is_error);
+            result = tool_execute("shell_command", inp, &is_error, &has_image);
             cJSON_Delete(inp);
 
             if (result) {
@@ -455,7 +455,7 @@ static void handle_send(void)
             const char *cmd;
             const char *sp = strchr(args, ' ');
             cJSON *inp;
-            int is_error = 0;
+            int is_error = 0, has_image = 0;
             char *result;
             char line[256];
 
@@ -481,7 +481,7 @@ static void handle_send(void)
             gui_add_line(&app_gui, line);
             gui_set_status(&app_gui, GetString(MSG_STATUS_AREXX_SENDING));
 
-            result = tool_execute("arexx_command", inp, &is_error);
+            result = tool_execute("arexx_command", inp, &is_error, &has_image);
             cJSON_Delete(inp);
 
             if (result) {
@@ -502,7 +502,7 @@ static void handle_send(void)
         while (*path == ' ') path++;
         if (*path) {
             cJSON *inp = cJSON_CreateObject();
-            int is_error = 0;
+            int is_error = 0, has_image = 0;
             char *result;
             char line[256];
 
@@ -510,7 +510,7 @@ static void handle_send(void)
             snprintf(line, sizeof(line), GetString(MSG_CMD_READ), path);
             gui_add_line(&app_gui, line);
 
-            result = tool_execute("read_file", inp, &is_error);
+            result = tool_execute("read_file", inp, &is_error, &has_image);
             cJSON_Delete(inp);
 
             if (result) {
@@ -533,7 +533,7 @@ static void handle_send(void)
             const char *sp = strchr(args, ' ');
             char path[256];
             cJSON *inp;
-            int is_error = 0;
+            int is_error = 0, has_image = 0;
             char *result;
 
             if (!sp) {
@@ -552,7 +552,7 @@ static void handle_send(void)
             cJSON_AddStringToObject(inp, "path", path);
             cJSON_AddStringToObject(inp, "content", sp + 1);
 
-            result = tool_execute("write_file", inp, &is_error);
+            result = tool_execute("write_file", inp, &is_error, &has_image);
             cJSON_Delete(inp);
 
             if (result) {

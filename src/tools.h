@@ -12,8 +12,9 @@ cJSON *tools_build_json(void);
 
 /* Execute a tool by name with the given input object.
  * Returns a newly allocated result string (caller must free).
- * Sets *is_error to 1 if the tool execution failed. */
-char *tool_execute(const char *name, cJSON *input, int *is_error);
+ * Sets *is_error to 1 if the tool execution failed.
+ * Sets *has_image to 1 if the result is base64-encoded image data. */
+char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image);
 
 /* Poll callback for async shell execution.
  * Called periodically while a shell command runs in a child process.

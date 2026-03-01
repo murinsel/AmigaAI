@@ -94,6 +94,14 @@ NEVER use `*` as wildcard. It does NOT work on AmigaDOS.
 - Example: `~(#?.info)` matches all files except .info files
 - Example: `LIST WORK: PAT=#?.mod` matches all .mod files
 
+## Screen Capture (SGrab)
+- `sgrab FILE <path> PNG NOBEEP` -- Capture full screen as PNG
+- `sgrab FILE <path> PNG NOBEEP X <x> Y <y> W <w> H <h>` -- Capture region
+- `sgrab FILE <path> JPEG NOBEEP` -- Capture as JPEG
+- Formats: ILBM (default), PNG, JPEG
+- NOBEEP suppresses the screen flash during capture
+- Use the screenshot tool instead of calling sgrab directly
+
 ## Redirection
 - `>file` -- Redirect output to file
 - `>>file` -- Append output to file

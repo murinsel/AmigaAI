@@ -9,6 +9,7 @@
 #include "arexx_port.h"
 #include "dt_identify.h"
 #include "input.h"
+#include "base64.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -500,6 +501,50 @@ cJSON *tools_build_json(void)
         cJSON_AddItemToObject(schema, "properties", props);
         cJSON_AddItemToArray(req, cJSON_CreateString("text"));
         cJSON_AddItemToObject(schema, "required", req);
+
+        cJSON_AddItemToObject(tool, "input_schema", schema);
+        cJSON_AddItemToArray(tools, tool);
+    }
+
+    /* Tool 11: screenshot */
+    {
+        cJSON *tool = cJSON_CreateObject();
+        cJSON *schema = cJSON_CreateObject();
+        cJSON *props = cJSON_CreateObject();
+        cJSON *x_prop = cJSON_CreateObject();
+        cJSON *y_prop = cJSON_CreateObject();
+        cJSON *w_prop = cJSON_CreateObject();
+        cJSON *h_prop = cJSON_CreateObject();
+
+        cJSON_AddStringToObject(tool, "name", "screenshot");
+        cJSON_AddStringToObject(tool, "description",
+            "Capture a screenshot of the Amiga screen using sgrab. "
+            "Returns the image as PNG. Omit all parameters for a full "
+            "screen capture, or specify x/y/w/h to capture a region.");
+
+        cJSON_AddStringToObject(x_prop, "type", "integer");
+        cJSON_AddStringToObject(x_prop, "description",
+            "Left edge of capture region (pixels)");
+        cJSON_AddItemToObject(props, "x", x_prop);
+
+        cJSON_AddStringToObject(y_prop, "type", "integer");
+        cJSON_AddStringToObject(y_prop, "description",
+            "Top edge of capture region (pixels)");
+        cJSON_AddItemToObject(props, "y", y_prop);
+
+        cJSON_AddStringToObject(w_prop, "type", "integer");
+        cJSON_AddStringToObject(w_prop, "description",
+            "Width of capture region (pixels)");
+        cJSON_AddItemToObject(props, "w", w_prop);
+
+        cJSON_AddStringToObject(h_prop, "type", "integer");
+        cJSON_AddStringToObject(h_prop, "description",
+            "Height of capture region (pixels)");
+        cJSON_AddItemToObject(props, "h", h_prop);
+
+        cJSON_AddStringToObject(schema, "type", "object");
+        cJSON_AddItemToObject(schema, "properties", props);
+        /* No required params — all optional */
 
         cJSON_AddItemToObject(tool, "input_schema", schema);
         cJSON_AddItemToArray(tools, tool);
@@ -1355,11 +1400,100 @@ static char *tool_exec_type_text(cJSON *input, int *is_error)
     return strdup("OK");
 }
 
+/* ===================== Screenshot ===================== */
+
+#define SCREENSHOT_FILE "T:aai_shot.png"
+
+static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
+{
+    char cmd[256];
+    int pos;
+    FILE *fp;
+    long fsize;
+    unsigned char *fdata;
+    char *b64;
+    cJSON *xj, *yj, *wj, *hj;
+
+    /* Build sgrab command */
+    pos = snprintf(cmd, sizeof(cmd), "sgrab FILE %s PNG NOBEEP", SCREENSHOT_FILE);
+
+    xj = cJSON_GetObjectItemCaseSensitive(input, "x");
+    yj = cJSON_GetObjectItemCaseSensitive(input, "y");
+    wj = cJSON_GetObjectItemCaseSensitive(input, "w");
+    hj = cJSON_GetObjectItemCaseSensitive(input, "h");
+
+    if (xj && cJSON_IsNumber(xj))
+        pos += snprintf(cmd + pos, sizeof(cmd) - pos, " X %d", xj->valueint);
+    if (yj && cJSON_IsNumber(yj))
+        pos += snprintf(cmd + pos, sizeof(cmd) - pos, " Y %d", yj->valueint);
+    if (wj && cJSON_IsNumber(wj))
+        pos += snprintf(cmd + pos, sizeof(cmd) - pos, " W %d", wj->valueint);
+    if (hj && cJSON_IsNumber(hj))
+        pos += snprintf(cmd + pos, sizeof(cmd) - pos, " H %d", hj->valueint);
+
+    /* Execute sgrab */
+    if (SystemTagList(cmd, NULL) != 0) {
+        *is_error = 1;
+        return strdup("sgrab command failed. Is sgrab installed in the path?");
+    }
+
+    /* Read the PNG file */
+    fp = fopen(SCREENSHOT_FILE, "rb");
+    if (!fp) {
+        *is_error = 1;
+        return strdup("Failed to open screenshot file");
+    }
+
+    fseek(fp, 0, SEEK_END);
+    fsize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    if (fsize <= 0) {
+        fclose(fp);
+        DeleteFile((CONST_STRPTR)SCREENSHOT_FILE);
+        *is_error = 1;
+        return strdup("Screenshot file is empty");
+    }
+
+    fdata = (unsigned char *)malloc(fsize);
+    if (!fdata) {
+        fclose(fp);
+        DeleteFile((CONST_STRPTR)SCREENSHOT_FILE);
+        *is_error = 1;
+        return strdup("Out of memory reading screenshot");
+    }
+
+    if (fread(fdata, 1, fsize, fp) != (size_t)fsize) {
+        free(fdata);
+        fclose(fp);
+        DeleteFile((CONST_STRPTR)SCREENSHOT_FILE);
+        *is_error = 1;
+        return strdup("Failed to read screenshot file");
+    }
+    fclose(fp);
+
+    /* Delete temp file */
+    DeleteFile((CONST_STRPTR)SCREENSHOT_FILE);
+
+    /* Base64-encode */
+    b64 = base64_encode(fdata, (size_t)fsize, NULL);
+    free(fdata);
+
+    if (!b64) {
+        *is_error = 1;
+        return strdup("Out of memory encoding screenshot");
+    }
+
+    *has_image = 1;
+    return b64;
+}
+
 /* ===================== Dispatcher ===================== */
 
-char *tool_execute(const char *name, cJSON *input, int *is_error)
+char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image)
 {
     *is_error = 0;
+    *has_image = 0;
 
     if (strcmp(name, "shell_command") == 0)
         return tool_exec_shell(input, is_error);
@@ -1390,6 +1524,9 @@ char *tool_execute(const char *name, cJSON *input, int *is_error)
 
     if (strcmp(name, "type_text") == 0)
         return tool_exec_type_text(input, is_error);
+
+    if (strcmp(name, "screenshot") == 0)
+        return tool_exec_screenshot(input, is_error, has_image);
 
     *is_error = 1;
     {

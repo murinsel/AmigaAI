@@ -53,6 +53,33 @@ Save permanently:
 copy ENV:AmigaAI ENVARC:AmigaAI ALL
 ```
 
+## Command Line Arguments
+
+```
+AmigaAI [CREATEICON] [APILOG <file>]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `CREATEICON` | Create a Workbench icon (.info file) for AmigaAI and exit |
+| `APILOG <file>` | Log all API requests and responses to the specified file |
+
+Example:
+
+```
+AmigaAI APILOG RAM:api.log
+```
+
+## ToolTypes
+
+When launched from Workbench, AmigaAI reads ToolTypes from its icon (.info file):
+
+| ToolType | Description |
+|----------|-------------|
+| `APILOG=<file>` | Log all API requests and responses to the specified file |
+
+Example icon ToolType entry: `APILOG=RAM:api.log`
+
 ## Tools
 
 AmigaAI provides Claude with the following tools:

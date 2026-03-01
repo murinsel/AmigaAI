@@ -20,6 +20,7 @@
 #include "gui.h"
 #include "locale.h"
 #include "arexx_port.h"
+#include "input.h"
 #include "memory.h"
 #include "tools.h"
 
@@ -38,7 +39,7 @@
 #include <workbench/workbench.h>
 #include <utility/tagitem.h>
 #include <dos/dosextens.h>
-#include <rexx/rxslib.h>
+/* rexx/rxslib.h not needed - MUI handles ARexx port */
 
 /* MAKE_ID for MUI window IDs */
 #ifndef MAKE_ID
@@ -55,13 +56,12 @@ unsigned long __stack = 131072;
 struct IntuitionBase *IntuitionBase = NULL;
 struct Library       *MUIMasterBase = NULL;
 struct Library       *IconBase      = NULL;
-struct RxsLib        *RexxSysBase   = NULL;
 
 /* Application state */
 static struct Config     app_config;
 static struct Claude     app_claude;
 static struct Gui        app_gui;
-static struct ARexxPort  app_arexx;
+static struct ARexxContext app_arexx;
 static struct Memory     app_memory;
 
 /* Workbench state */
@@ -215,20 +215,14 @@ static int open_libraries(void)
         return -1;
     }
 
-    RexxSysBase = (struct RxsLib *)OpenLibrary((CONST_STRPTR)"rexxsyslib.library", 0);
-    if (!RexxSysBase)
-        printf("WARNING: Cannot open rexxsyslib.library - ARexx disabled\n");
-
     return 0;
 }
 
 static void close_libraries(void)
 {
-    if (RexxSysBase)   CloseLibrary((struct Library *)RexxSysBase);
     if (MUIMasterBase) CloseLibrary(MUIMasterBase);
     if (IntuitionBase) CloseLibrary((struct Library *)IntuitionBase);
 
-    RexxSysBase   = NULL;
     MUIMasterBase = NULL;
     IntuitionBase = NULL;
 }
@@ -1182,7 +1176,6 @@ int main(int argc, char *argv[])
 {
     ULONG sigs = 0;
     ULONG id;
-    ULONG arexx_sig;
     int   running = 1;
     const char *prog_name = PROGRAM_NAME;
 
@@ -1366,27 +1359,27 @@ int main(int argc, char *argv[])
     tools_set_poll_callback(http_poll_cb, NULL);
     dbg_step(10, "Claude OK");
 
-    /* Open MUI GUI */
-    dbg_step(11, "Opening MUI GUI...");
-    if (gui_open(&app_gui) != 0) {
+    /* Initialize ARexx hooks (must be before gui_open) */
+    dbg_step(11, "Init ARexx...");
+    arexx_setup(&app_arexx, &app_claude, arexx_response_cb);
+
+    /* Open MUI GUI (includes ARexx port via MUIA_Application_Commands) */
+    dbg_step(12, "Opening MUI GUI...");
+    if (gui_open(&app_gui, arexx_get_commands()) != 0) {
         if (from_wb)
             wb_error("Failed to open GUI.\nIs MUI installed?");
         else
             printf("ERROR: Failed to open GUI (MUI installed?)\n");
+        arexx_cleanup(&app_arexx);
         claude_cleanup(&app_claude);
         http_cleanup();
         close_libraries();
         if (from_wb && old_dir) CurrentDir(old_dir);
         return 20;
     }
-    dbg_step(12, "GUI OK");
-
-    /* Initialize ARexx port */
-    dbg_step(13, "Init ARexx...");
-    if (arexx_init(&app_arexx, &app_claude, arexx_response_cb) != 0) {
-        printf("WARNING: ARexx port not available\n");
-    }
-    arexx_sig = arexx_signal(&app_arexx);
+    dbg_step(13, "GUI OK");
+    app_arexx.win = app_gui.win;
+    app_arexx.app = app_gui.app;
     dbg_step(14, "All init done - entering main loop");
 
     /* From Workbench, create icon if it doesn't exist yet */
@@ -1475,23 +1468,18 @@ int main(int argc, char *argv[])
             gui_focus_input(&app_gui);
 
         if (sigs && running) {
-            sigs = Wait(sigs | arexx_sig | SIGBREAKF_CTRL_C);
+            sigs = Wait(sigs | SIGBREAKF_CTRL_C);
 
             /* CTRL-C from shell */
             if (sigs & SIGBREAKF_CTRL_C)
                 running = 0;
-
-            /* ARexx events */
-            if (arexx_sig && (sigs & arexx_sig)) {
-                if (arexx_handle(&app_arexx))
-                    running = 0;
-            }
         }
     }
 
     /* Cleanup */
     printf("Shutting down...\n");
 
+    input_close();
     arexx_cleanup(&app_arexx);
     gui_close(&app_gui);
     claude_cleanup(&app_claude);

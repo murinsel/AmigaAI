@@ -94,6 +94,33 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
             "a specific file type (e.g. 'images' -> filter='picture').";
         snprintf(buf + pos, bufsize - pos, "%s", hint);
         pos += strlen(buf + pos);
+
+        /* Load instruction files into system prompt */
+        {
+            static const char *inst_files[] = {
+                "AmigaAI:instructions/ARexx/AMIGAAI.md",
+                "AmigaAI:instructions/Shell/AmigaDOS.md",
+                NULL
+            };
+            int i;
+            for (i = 0; inst_files[i]; i++) {
+                FILE *f = fopen(inst_files[i], "r");
+                if (f) {
+                    long len;
+                    fseek(f, 0, SEEK_END);
+                    len = ftell(f);
+                    fseek(f, 0, SEEK_SET);
+                    if (len > 0 && len < 8192 && pos + len + 4 < bufsize) {
+                        buf[pos++] = '\n';
+                        buf[pos++] = '\n';
+                        fread(buf + pos, 1, len, f);
+                        pos += len;
+                        buf[pos] = '\0';
+                    }
+                    fclose(f);
+                }
+            }
+        }
     }
 
     return pos > 0 ? buf : NULL;

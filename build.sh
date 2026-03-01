@@ -35,7 +35,7 @@ fi
 CFLAGS="-m68020 -O2 -Wall -noixemul -fcommon -Isdk/include -Isrc"
 LDFLAGS="-noixemul -Lsdk/lib -Wl,--allow-multiple-definition"
 LIBS="-lamisslstubs -lsocket -lm"
-SOURCES="src/main.c src/http.c src/claude.c src/json_utils.c src/cJSON.c src/gui.c src/arexx_port.c src/config.c src/memory.c src/tools.c src/dt_identify.c src/locale.c"
+SOURCES="src/main.c src/http.c src/claude.c src/json_utils.c src/cJSON.c src/gui.c src/arexx_port.c src/config.c src/memory.c src/tools.c src/dt_identify.c src/locale.c src/input.c"
 
 if [ "$USE_DOCKER" = "1" ]; then
     IMAGE="kareandersen/amiga-gcc"

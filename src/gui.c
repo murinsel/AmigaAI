@@ -296,7 +296,7 @@ static Object *make_menu(void)
     return strip;
 }
 
-int gui_open(struct Gui *gui)
+int gui_open(struct Gui *gui, struct MUI_Command *commands)
 {
     memset(gui, 0, sizeof(*gui));
 
@@ -493,6 +493,8 @@ int gui_open(struct Gui *gui)
             { MUIA_Application_Author,      (ULONG)"Thomas \xd6llinger" },
             { MUIA_Application_Description, (ULONG)GetString(MSG_APP_DESCRIPTION) },
             { MUIA_Application_Base,        (ULONG)"AMIGAAI" },
+            { MUIA_Application_SingleTask,  TRUE },
+            { MUIA_Application_Commands,    (ULONG)commands },
             { MUIA_Application_Menustrip,   (ULONG)gui->menustrip },
             { MUIA_Application_Window,      (ULONG)gui->win },
             { TAG_DONE, 0 }
@@ -511,6 +513,8 @@ int gui_open(struct Gui *gui)
             { MUIA_Application_Author,      (ULONG)"Thomas \xd6llinger" },
             { MUIA_Application_Description, (ULONG)GetString(MSG_APP_DESCRIPTION) },
             { MUIA_Application_Base,        (ULONG)"AMIGAAI" },
+            { MUIA_Application_SingleTask,  TRUE },
+            { MUIA_Application_Commands,    (ULONG)commands },
             { MUIA_Application_Window,      (ULONG)gui->win },
             { TAG_DONE, 0 }
         };

@@ -41,8 +41,10 @@ struct Gui {
     int     hist_pos;      /* current browse position (-1 = not browsing) */
 };
 
-/* Open MUI application and window. Returns 0 on success. */
-int gui_open(struct Gui *gui);
+/* Open MUI application and window.
+ * commands: optional MUI_Command array for ARexx (NULL for none).
+ * Returns 0 on success. */
+int gui_open(struct Gui *gui, struct MUI_Command *commands);
 
 /* Dispose MUI application and free resources. */
 void gui_close(struct Gui *gui);

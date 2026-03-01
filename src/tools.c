@@ -6,7 +6,9 @@
  */
 
 #include "tools.h"
+#include "arexx_port.h"
 #include "dt_identify.h"
+#include "input.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -159,7 +161,9 @@ cJSON *tools_build_json(void)
             "Use for running programs, listing files, checking system state. "
             "Examples: 'list SYS:', 'version', 'assign', 'type S:Startup-Sequence'. "
             "Set background=true for interactive/GUI programs (editors, viewers) "
-            "that the user will interact with, so AmigaAI does not block.");
+            "that the user will interact with, so AmigaAI does not block. "
+            "IMPORTANT: NEVER delete or rename files/directories without asking "
+            "the user for confirmation first.");
 
         cJSON_AddStringToObject(cmd_prop, "type", "string");
         cJSON_AddStringToObject(cmd_prop, "description",
@@ -350,6 +354,151 @@ cJSON *tools_build_json(void)
         cJSON_AddStringToObject(schema, "type", "object");
         cJSON_AddItemToObject(schema, "properties", props);
         cJSON_AddItemToArray(req, cJSON_CreateString("path"));
+        cJSON_AddItemToObject(schema, "required", req);
+
+        cJSON_AddItemToObject(tool, "input_schema", schema);
+        cJSON_AddItemToArray(tools, tool);
+    }
+
+    /* Tool 7: mouse_move */
+    {
+        cJSON *tool = cJSON_CreateObject();
+        cJSON *schema = cJSON_CreateObject();
+        cJSON *props = cJSON_CreateObject();
+        cJSON *x_prop = cJSON_CreateObject();
+        cJSON *y_prop = cJSON_CreateObject();
+        cJSON *req = cJSON_CreateArray();
+
+        cJSON_AddStringToObject(tool, "name", "mouse_move");
+        cJSON_AddStringToObject(tool, "description",
+            "Move the mouse pointer to absolute screen coordinates (pixels). "
+            "Top-left corner is 0,0. Typical Workbench screen: "
+            "640x256 (PAL) or 640x200 (NTSC), higher with RTG.");
+
+        cJSON_AddStringToObject(x_prop, "type", "integer");
+        cJSON_AddStringToObject(x_prop, "description", "X coordinate in pixels");
+        cJSON_AddItemToObject(props, "x", x_prop);
+
+        cJSON_AddStringToObject(y_prop, "type", "integer");
+        cJSON_AddStringToObject(y_prop, "description", "Y coordinate in pixels");
+        cJSON_AddItemToObject(props, "y", y_prop);
+
+        cJSON_AddStringToObject(schema, "type", "object");
+        cJSON_AddItemToObject(schema, "properties", props);
+        cJSON_AddItemToArray(req, cJSON_CreateString("x"));
+        cJSON_AddItemToArray(req, cJSON_CreateString("y"));
+        cJSON_AddItemToObject(schema, "required", req);
+
+        cJSON_AddItemToObject(tool, "input_schema", schema);
+        cJSON_AddItemToArray(tools, tool);
+    }
+
+    /* Tool 8: mouse_click */
+    {
+        cJSON *tool = cJSON_CreateObject();
+        cJSON *schema = cJSON_CreateObject();
+        cJSON *props = cJSON_CreateObject();
+        cJSON *btn_prop = cJSON_CreateObject();
+        cJSON *act_prop = cJSON_CreateObject();
+        cJSON *btn_enum = cJSON_CreateArray();
+        cJSON *act_enum = cJSON_CreateArray();
+        cJSON *req = cJSON_CreateArray();
+
+        cJSON_AddStringToObject(tool, "name", "mouse_click");
+        cJSON_AddStringToObject(tool, "description",
+            "Click a mouse button at the current pointer position. "
+            "Use mouse_move first to position the pointer.");
+
+        cJSON_AddStringToObject(btn_prop, "type", "string");
+        cJSON_AddStringToObject(btn_prop, "description",
+            "Mouse button: left, right, or middle");
+        cJSON_AddItemToArray(btn_enum, cJSON_CreateString("left"));
+        cJSON_AddItemToArray(btn_enum, cJSON_CreateString("right"));
+        cJSON_AddItemToArray(btn_enum, cJSON_CreateString("middle"));
+        cJSON_AddItemToObject(btn_prop, "enum", btn_enum);
+        cJSON_AddItemToObject(props, "button", btn_prop);
+
+        cJSON_AddStringToObject(act_prop, "type", "string");
+        cJSON_AddStringToObject(act_prop, "description",
+            "Action: click (press+release), press only, or release only. "
+            "Default: click");
+        cJSON_AddItemToArray(act_enum, cJSON_CreateString("click"));
+        cJSON_AddItemToArray(act_enum, cJSON_CreateString("press"));
+        cJSON_AddItemToArray(act_enum, cJSON_CreateString("release"));
+        cJSON_AddItemToObject(act_prop, "enum", act_enum);
+        cJSON_AddItemToObject(props, "action", act_prop);
+
+        cJSON_AddStringToObject(schema, "type", "object");
+        cJSON_AddItemToObject(schema, "properties", props);
+        cJSON_AddItemToArray(req, cJSON_CreateString("button"));
+        cJSON_AddItemToObject(schema, "required", req);
+
+        cJSON_AddItemToObject(tool, "input_schema", schema);
+        cJSON_AddItemToArray(tools, tool);
+    }
+
+    /* Tool 9: key_press */
+    {
+        cJSON *tool = cJSON_CreateObject();
+        cJSON *schema = cJSON_CreateObject();
+        cJSON *props = cJSON_CreateObject();
+        cJSON *code_prop = cJSON_CreateObject();
+        cJSON *qual_prop = cJSON_CreateObject();
+        cJSON *req = cJSON_CreateArray();
+
+        cJSON_AddStringToObject(tool, "name", "key_press");
+        cJSON_AddStringToObject(tool, "description",
+            "Send a raw keyboard event (press+release). "
+            "Common rawkey codes: Return=0x44, Escape=0x45, "
+            "Backspace=0x41, Tab=0x42, Space=0x40, Delete=0x46, "
+            "Up=0x4C, Down=0x4D, Right=0x4E, Left=0x4F, "
+            "F1-F10=0x50-0x59, Help=0x5F. "
+            "Qualifier flags (OR together): LSHIFT=1, RSHIFT=2, "
+            "CAPSLOCK=4, CTRL=8, LALT=16, RALT=32, LAMIGA=64, RAMIGA=128. "
+            "For typing text, prefer the type_text tool.");
+
+        cJSON_AddStringToObject(code_prop, "type", "integer");
+        cJSON_AddStringToObject(code_prop, "description",
+            "Amiga rawkey code");
+        cJSON_AddItemToObject(props, "rawkey", code_prop);
+
+        cJSON_AddStringToObject(qual_prop, "type", "integer");
+        cJSON_AddStringToObject(qual_prop, "description",
+            "Qualifier flags (default: 0, no modifiers)");
+        cJSON_AddItemToObject(props, "qualifiers", qual_prop);
+
+        cJSON_AddStringToObject(schema, "type", "object");
+        cJSON_AddItemToObject(schema, "properties", props);
+        cJSON_AddItemToArray(req, cJSON_CreateString("rawkey"));
+        cJSON_AddItemToObject(schema, "required", req);
+
+        cJSON_AddItemToObject(tool, "input_schema", schema);
+        cJSON_AddItemToArray(tools, tool);
+    }
+
+    /* Tool 10: type_text */
+    {
+        cJSON *tool = cJSON_CreateObject();
+        cJSON *schema = cJSON_CreateObject();
+        cJSON *props = cJSON_CreateObject();
+        cJSON *text_prop = cJSON_CreateObject();
+        cJSON *req = cJSON_CreateArray();
+
+        cJSON_AddStringToObject(tool, "name", "type_text");
+        cJSON_AddStringToObject(tool, "description",
+            "Type a string by simulating keyboard input. "
+            "Each character is converted to key events using the system keymap. "
+            "Supports printable characters, newlines, and tabs. "
+            "Use for entering text into input fields or editors.");
+
+        cJSON_AddStringToObject(text_prop, "type", "string");
+        cJSON_AddStringToObject(text_prop, "description",
+            "Text to type");
+        cJSON_AddItemToObject(props, "text", text_prop);
+
+        cJSON_AddStringToObject(schema, "type", "object");
+        cJSON_AddItemToObject(schema, "properties", props);
+        cJSON_AddItemToArray(req, cJSON_CreateString("text"));
         cJSON_AddItemToObject(schema, "required", req);
 
         cJSON_AddItemToObject(tool, "input_schema", schema);
@@ -700,6 +849,15 @@ static char *tool_exec_arexx(cJSON *input, int *is_error)
 
     port_name = port_json->valuestring;
     command   = cmd_json->valuestring;
+
+    /* Own port: execute locally to avoid deadlock */
+    if (strcasecmp(port_name, "AMIGAAI") == 0)
+    {
+        int local_rc;
+        char *local_result = arexx_exec_local(command, &local_rc);
+        *is_error = (local_rc != 0) ? 1 : 0;
+        return local_result ? local_result : strdup("OK");
+    }
 
     printf("  [tool] arexx: port=%s cmd=%s\n", port_name, command);
 
@@ -1105,6 +1263,98 @@ static char *tool_exec_identify(cJSON *input, int *is_error)
     }
 }
 
+/* ===================== Input tools ===================== */
+
+static char *tool_exec_mouse_move(cJSON *input, int *is_error)
+{
+    cJSON *x_json = cJSON_GetObjectItemCaseSensitive(input, "x");
+    cJSON *y_json = cJSON_GetObjectItemCaseSensitive(input, "y");
+
+    if (!x_json || !cJSON_IsNumber(x_json) ||
+        !y_json || !cJSON_IsNumber(y_json)) {
+        *is_error = 1;
+        return strdup("Missing or invalid x/y parameter");
+    }
+
+    if (input_mouse_move(x_json->valueint, y_json->valueint) != 0) {
+        *is_error = 1;
+        return strdup("Failed to move mouse");
+    }
+    return strdup("OK");
+}
+
+static char *tool_exec_mouse_click(cJSON *input, int *is_error)
+{
+    cJSON *btn_json = cJSON_GetObjectItemCaseSensitive(input, "button");
+    cJSON *act_json = cJSON_GetObjectItemCaseSensitive(input, "action");
+    const char *btn_str, *act_str;
+    int button = 0, action = 0;
+
+    if (!btn_json || !cJSON_IsString(btn_json)) {
+        *is_error = 1;
+        return strdup("Missing button parameter");
+    }
+    btn_str = btn_json->valuestring;
+
+    if (strcasecmp(btn_str, "left") == 0)        button = 0;
+    else if (strcasecmp(btn_str, "right") == 0)   button = 1;
+    else if (strcasecmp(btn_str, "middle") == 0)  button = 2;
+    else {
+        *is_error = 1;
+        return strdup("Invalid button: use left, right, or middle");
+    }
+
+    if (act_json && cJSON_IsString(act_json)) {
+        act_str = act_json->valuestring;
+        if (strcasecmp(act_str, "press") == 0)        action = 1;
+        else if (strcasecmp(act_str, "release") == 0)  action = 2;
+    }
+
+    if (input_mouse_click(button, action) != 0) {
+        *is_error = 1;
+        return strdup("Failed to click mouse button");
+    }
+    return strdup("OK");
+}
+
+static char *tool_exec_key_press(cJSON *input, int *is_error)
+{
+    cJSON *code_json = cJSON_GetObjectItemCaseSensitive(input, "rawkey");
+    cJSON *qual_json = cJSON_GetObjectItemCaseSensitive(input, "qualifiers");
+    int qualifiers = 0;
+
+    if (!code_json || !cJSON_IsNumber(code_json)) {
+        *is_error = 1;
+        return strdup("Missing or invalid rawkey parameter");
+    }
+
+    if (qual_json && cJSON_IsNumber(qual_json))
+        qualifiers = qual_json->valueint;
+
+    if (input_key(code_json->valueint, qualifiers) != 0) {
+        *is_error = 1;
+        return strdup("Failed to send key event");
+    }
+    return strdup("OK");
+}
+
+static char *tool_exec_type_text(cJSON *input, int *is_error)
+{
+    cJSON *text_json = cJSON_GetObjectItemCaseSensitive(input, "text");
+
+    if (!text_json || !cJSON_IsString(text_json) ||
+        !text_json->valuestring[0]) {
+        *is_error = 1;
+        return strdup("Missing or empty text parameter");
+    }
+
+    if (input_type_text(text_json->valuestring) != 0) {
+        *is_error = 1;
+        return strdup("Failed to type text");
+    }
+    return strdup("OK");
+}
+
 /* ===================== Dispatcher ===================== */
 
 char *tool_execute(const char *name, cJSON *input, int *is_error)
@@ -1128,6 +1378,18 @@ char *tool_execute(const char *name, cJSON *input, int *is_error)
 
     if (strcmp(name, "identify_file") == 0)
         return tool_exec_identify(input, is_error);
+
+    if (strcmp(name, "mouse_move") == 0)
+        return tool_exec_mouse_move(input, is_error);
+
+    if (strcmp(name, "mouse_click") == 0)
+        return tool_exec_mouse_click(input, is_error);
+
+    if (strcmp(name, "key_press") == 0)
+        return tool_exec_key_press(input, is_error);
+
+    if (strcmp(name, "type_text") == 0)
+        return tool_exec_type_text(input, is_error);
 
     *is_error = 1;
     {

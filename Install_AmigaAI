@@ -11,12 +11,8 @@
 
 (welcome
     "Welcome to the AmigaAI installer.\n\n"
-    "AmigaAI is a native Claude AI agent for AmigaOS 3.x.\n\n"
-    "This installer will:\n"
-    "  - Copy AmigaAI to your chosen location\n"
-    "  - Check for required libraries\n"
-    "  - Set up your API key\n"
-    "  - Add an Assign to S:User-Startup\n"
+    "AmigaAI is a native Claude AI agent\n"
+    "for AmigaOS 3.x (68020+)."
 )
 
 (complete 0)

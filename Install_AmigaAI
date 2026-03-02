@@ -1,0 +1,358 @@
+; Install_AmigaAI
+; Amiga Installer script for AmigaAI - Native Claude AI Agent
+; Requires Installer V43+
+
+(set @app-name "AmigaAI")
+(set @default-dest "Work:")
+
+; ============================================================
+; Welcome
+; ============================================================
+
+(welcome
+    "Welcome to the AmigaAI installer.\n\n"
+    "AmigaAI is a native Claude AI agent for AmigaOS 3.x.\n\n"
+    "This installer will:\n"
+    "  - Copy AmigaAI to your chosen location\n"
+    "  - Check for required libraries\n"
+    "  - Set up your API key\n"
+    "  - Add an Assign to S:User-Startup\n"
+)
+
+(complete 0)
+
+; ============================================================
+; Check Dependencies
+; ============================================================
+
+(set #missing "")
+
+; Check MUI
+(if (NOT (exists "LIBS:muimaster.library"))
+    (set #missing
+        (cat #missing
+            "  - MUI 3.8+ (muimaster.library)\n"
+            "    Get from: http://aminet.net/util/libs/mui38usr.lha\n\n"
+        )
+    )
+)
+
+; Check AmiSSL
+(if (AND
+        (NOT (exists "AmiSSL:libs/amisslmaster.library"))
+        (NOT (exists "LIBS:amisslmaster.library"))
+    )
+    (set #missing
+        (cat #missing
+            "  - AmiSSL v5 (amisslmaster.library)\n"
+            "    Get from: http://aminet.net/comm/net/AmiSSL-5.lha\n\n"
+        )
+    )
+)
+
+; Check bsdsocket (Roadshow or compatible TCP/IP stack)
+(if (NOT (exists "LIBS:bsdsocket.library"))
+    (set #missing
+        (cat #missing
+            "  - TCP/IP stack with bsdsocket.library (e.g. Roadshow)\n"
+            "    Get Roadshow from: http://roadshow.apc-tcp.de\n\n"
+        )
+    )
+)
+
+; Check json-c
+(if (NOT (exists "LIBS:json-c.library"))
+    (set #missing
+        (cat #missing
+            "  - json-c.library\n"
+            "    Get from: http://aminet.net/dev/lib/json-c.lha\n\n"
+        )
+    )
+)
+
+(if (<> #missing "")
+    (message
+        "WARNING: The following required libraries were not found:\n\n"
+        #missing
+        "AmigaAI will not run without them.\n"
+        "You can continue the installation and install the\n"
+        "missing libraries afterwards."
+    )
+)
+
+(complete 10)
+
+; ============================================================
+; Choose Destination
+; ============================================================
+
+(set #dest
+    (askdir
+        (prompt "Select the drawer where AmigaAI should be installed.\n\n"
+                "A drawer \"AmigaAI\" will be created inside your selection.")
+        (help "Choose the location for the AmigaAI installation.\n\n"
+              "A new drawer called \"AmigaAI\" will be created\n"
+              "in the selected location.\n\n"
+              "Typical locations: Work:, SYS:Tools, or any partition\n"
+              "with at least 1 MB free space.")
+        (default @default-dest)
+        (newpath)
+    )
+)
+
+(set #installdir (tackon #dest "AmigaAI"))
+(set @default-dest #installdir)
+
+(complete 15)
+
+; ============================================================
+; Create Drawers
+; ============================================================
+
+(makedir #installdir
+    (prompt "Creating drawer: " #installdir)
+    (help "The main AmigaAI application drawer.")
+    (infos)
+)
+
+(makedir (tackon #installdir "catalogs")
+    (prompt "Creating catalogs drawer")
+)
+
+(makedir (tackon #installdir "catalogs/Deutsch")
+    (prompt "Creating German catalog drawer")
+)
+
+(makedir (tackon #installdir "instructions")
+    (prompt "Creating instructions drawer")
+    (infos)
+)
+
+(makedir (tackon #installdir "instructions/ARexx")
+    (prompt "Creating ARexx instructions drawer")
+)
+
+(makedir (tackon #installdir "instructions/Shell")
+    (prompt "Creating Shell instructions drawer")
+)
+
+(makedir (tackon #installdir "docs")
+    (prompt "Creating docs drawer")
+)
+
+(makedir (tackon #installdir "docs/ARexx")
+    (prompt "Creating ARexx docs drawer")
+)
+
+(makedir (tackon #installdir "docs/ARexx/deutsch")
+    (prompt "Creating German ARexx docs drawer")
+)
+
+(makedir (tackon #installdir "ARexx_Examples")
+    (prompt "Creating ARexx examples drawer")
+)
+
+(complete 20)
+
+; ============================================================
+; Copy Main Executable and Icon
+; ============================================================
+
+(copyfiles
+    (prompt "Copying AmigaAI executable...")
+    (help "The main AmigaAI application.")
+    (source "AmigaAI")
+    (dest #installdir)
+    (infos)
+)
+
+(complete 30)
+
+; ============================================================
+; Copy FileType utility
+; ============================================================
+
+(if (exists "FileType")
+    (copyfiles
+        (prompt "Copying FileType utility...")
+        (source "FileType")
+        (dest #installdir)
+    )
+)
+
+(complete 35)
+
+; ============================================================
+; Copy Catalogs
+; ============================================================
+
+(if (exists "catalogs/Deutsch/AmigaAI.catalog")
+    (copyfiles
+        (prompt "Copying German catalog...")
+        (source "catalogs/Deutsch/AmigaAI.catalog")
+        (dest (tackon #installdir "catalogs/Deutsch"))
+    )
+)
+
+(complete 40)
+
+; ============================================================
+; Copy Instructions
+; ============================================================
+
+(copyfiles
+    (prompt "Copying ARexx instructions...")
+    (source "instructions/ARexx")
+    (dest (tackon #installdir "instructions/ARexx"))
+    (all)
+)
+
+(copyfiles
+    (prompt "Copying Shell instructions...")
+    (source "instructions/Shell")
+    (dest (tackon #installdir "instructions/Shell"))
+    (all)
+)
+
+(complete 55)
+
+; ============================================================
+; Copy Documentation
+; ============================================================
+
+(copyfiles
+    (prompt "Copying ARexx documentation...")
+    (source "docs/ARexx")
+    (dest (tackon #installdir "docs/ARexx"))
+    (all)
+)
+
+(complete 70)
+
+; ============================================================
+; Copy ARexx Examples
+; ============================================================
+
+(if (exists "ARexx_Examples")
+    (copyfiles
+        (prompt "Copying ARexx examples...")
+        (source "ARexx_Examples")
+        (dest (tackon #installdir "ARexx_Examples"))
+        (all)
+    )
+)
+
+(complete 75)
+
+; ============================================================
+; API Key Configuration
+; ============================================================
+
+(set #apikey
+    (askstring
+        (prompt "Enter your Anthropic API key.\n\n"
+                "The key starts with \"sk-ant-...\" and can be\n"
+                "obtained from https://console.anthropic.com\n\n"
+                "Leave empty to skip (you can set it later via:\n"
+                "  echo \"sk-ant-...\" >ENV:AmigaAI/api_key)")
+        (help "AmigaAI requires an Anthropic API key to connect\n"
+              "to Claude. You can get one at:\n\n"
+              "  https://console.anthropic.com\n\n"
+              "The key will be saved to ENV:AmigaAI/api_key\n"
+              "and ENVARC:AmigaAI/api_key for persistence.\n\n"
+              "If you skip this step, set it later with:\n"
+              "  echo \"sk-ant-...\" >ENV:AmigaAI/api_key\n"
+              "  copy ENV:AmigaAI ENVARC:AmigaAI ALL")
+        (default "")
+    )
+)
+
+(if (<> #apikey "")
+    (
+        ; Create ENV:AmigaAI/ drawer
+        (makedir "ENV:AmigaAI"
+            (prompt "Creating ENV:AmigaAI drawer")
+        )
+
+        ; Write API key to ENV:
+        (textfile
+            (prompt "Saving API key to ENV:AmigaAI/api_key")
+            (help "Saves the API key for the current session.")
+            (dest "ENV:AmigaAI/api_key")
+            (append #apikey)
+        )
+
+        ; Create ENVARC:AmigaAI/ drawer
+        (makedir "ENVARC:AmigaAI"
+            (prompt "Creating ENVARC:AmigaAI drawer")
+        )
+
+        ; Write API key to ENVARC: for persistence
+        (textfile
+            (prompt "Saving API key to ENVARC:AmigaAI/api_key")
+            (help "Saves the API key permanently across reboots.")
+            (dest "ENVARC:AmigaAI/api_key")
+            (append #apikey)
+        )
+    )
+)
+
+(complete 85)
+
+; ============================================================
+; Update S:User-Startup with Assign
+; ============================================================
+
+(startup @app-name
+    (prompt "Add AmigaAI assign to S:User-Startup?\n\n"
+            "This will add the following lines:\n\n"
+            "  Assign AmigaAI: " #installdir "\n"
+            "  Path AmigaAI: ADD\n")
+    (help "This adds an Assign so that AmigaAI: points to\n"
+          "your installation directory. It also adds AmigaAI\n"
+          "to the command search path.\n\n"
+          "The entry is added between ;BEGIN AmigaAI and\n"
+          ";END AmigaAI markers in S:User-Startup.")
+    (command
+        "Assign AmigaAI: \"" #installdir "\"\n"
+        "Path AmigaAI: ADD\n"
+    )
+)
+
+(complete 95)
+
+; ============================================================
+; Run the Assign now
+; ============================================================
+
+(run (cat "Assign AmigaAI: \"" #installdir "\""))
+(run "Path AmigaAI: ADD")
+
+(complete 100)
+
+; ============================================================
+; Done
+; ============================================================
+
+(if (<> #apikey "")
+    (set #keymsg "API key has been configured.\n\n")
+    (set #keymsg
+        (cat
+            "Remember to set your API key later:\n"
+            "  echo \"sk-ant-...\" >ENV:AmigaAI/api_key\n"
+            "  copy ENV:AmigaAI ENVARC:AmigaAI ALL\n\n"
+        )
+    )
+)
+
+(exit
+    (cat
+        "AmigaAI has been installed to:\n\n"
+        "  " #installdir "\n\n"
+        #keymsg
+        "The AmigaAI: assign is now active.\n\n"
+        "You can start AmigaAI from Workbench or\n"
+        "by typing \"AmigaAI\" in a Shell."
+    )
+    (quiet)
+)

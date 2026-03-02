@@ -91,7 +91,10 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
             "When using identify_file: always set max_results when the user "
             "asks for a specific number of files (e.g. 'show 10 images' "
             "-> max_results=10). Always set filter when the user asks for "
-            "a specific file type (e.g. 'images' -> filter='picture').";
+            "a specific file type (e.g. 'images' -> filter='picture'). "
+            "Detailed documentation for ARexx ports and other topics is "
+            "available in AmigaAI:docs/ — use read_file to consult it "
+            "when you need more information about a specific application.";
         snprintf(buf + pos, bufsize - pos, "%s", hint);
         pos += strlen(buf + pos);
 

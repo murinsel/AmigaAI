@@ -29,10 +29,16 @@ Always confirm before using DELETE, DELETE ALL, or RENAME commands.
 - `MAKEDIR <path>` -- Create directory
 - `PROTECT <file> <flags>` -- Set file permissions (rwed, +r, -w, etc.)
 
+## Finding Files by Name
+- `LIST <path> PAT=<pattern> ALL` -- Find files by name recursively
+  - Example: `LIST SYS: PAT=#?yam#? ALL` -- Find all files with "yam" in the name
+  - Example: `LIST WORK: PAT=#?.png ALL FILES` -- Find all .png files recursively
+  - Example: `LIST DH0: PAT=#?.config ALL LFORMAT "%s%s"` -- List full paths only
+
 ## File Content
 - `TYPE <file>` -- Display file contents (text files)
 - `TYPE <file> HEX` -- Hex dump
-- `SEARCH <path> <string>` -- Search for text in files
+- `SEARCH <path> <string>` -- Search for text *inside* files (NOT by filename)
   - `SEARCH <path> <string> ALL` -- Search recursively in subdirectories
   - `SEARCH <path> <string> FILE` -- Show only filenames (not matching lines)
   - `SEARCH <path> <string> NONUM` -- Don't show line numbers

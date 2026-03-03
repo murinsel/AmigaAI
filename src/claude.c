@@ -84,10 +84,14 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
     if (ctx->tools && pos < bufsize - 256) {
         const char *hint =
             "\n\nYou are running on an Amiga computer with AmigaOS 3.x. "
-            "You have tools to execute AmigaDOS commands, send ARexx commands "
-            "to running applications, and read/write files. "
+            "This is NOT Unix/Linux! There is no bash, no cat, no grep, "
+            "no ls, no cp, no rm, no mkdir, no echo, no pipe operators. "
+            "Use only AmigaDOS commands: List, Type, Copy, Delete, "
+            "MakeDir, Rename, Echo, Search, Sort, Assign, etc. "
             "Use AmigaDOS paths (SYS:, WORK:, RAM:, S:, AmigaAI:, etc). "
             "AmigaAI: is an assign pointing to the application directory. "
+            "You have tools to execute AmigaDOS commands, send ARexx commands "
+            "to running applications, and read/write files. "
             "When using identify_file: always set max_results when the user "
             "asks for a specific number of files (e.g. 'show 10 images' "
             "-> max_results=10). Always set filter when the user asks for "

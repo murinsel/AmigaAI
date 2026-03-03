@@ -21,58 +21,128 @@
 ; Check Dependencies
 ; ============================================================
 
-(set #missing "")
-
-; Check MUI
+; --- MUI 3.8+ (check only) ---
 (if (NOT (exists "LIBS:muimaster.library"))
-    (set #missing
-        (cat #missing
-            "  - MUI 3.8+ (muimaster.library)\n"
-            "    Get from: http://aminet.net/util/libs/mui38usr.lha\n\n"
-        )
+    (message
+        "WARNING: MUI 3.8+ is not installed.\n\n"
+        "AmigaAI requires Magic User Interface 3.8 or newer.\n\n"
+        "Get it from: http://aminet.net/util/libs/mui38usr.lha\n\n"
+        "You can continue, but AmigaAI will not run without MUI."
     )
 )
 
-; Check AmiSSL
+(complete 2)
+
+; --- TCP/IP stack (check only) ---
+(if (NOT (exists "LIBS:bsdsocket.library"))
+    (message
+        "WARNING: No TCP/IP stack found.\n\n"
+        "AmigaAI requires a TCP/IP stack with bsdsocket.library\n"
+        "(e.g. Roadshow, Miami, or AmiTCP).\n\n"
+        "Get Roadshow from: http://roadshow.apc-tcp.de"
+    )
+)
+
+(complete 4)
+
+; --- AmiSSL v5 (install if missing) ---
+(set #need_amissl 0)
 (if (AND
         (NOT (exists "AmiSSL:libs/amisslmaster.library"))
         (NOT (exists "LIBS:amisslmaster.library"))
     )
-    (set #missing
-        (cat #missing
-            "  - AmiSSL v5 (amisslmaster.library)\n"
-            "    Get from: http://aminet.net/comm/net/AmiSSL-5.lha\n\n"
+    (set #need_amissl 1)
+)
+
+(if (= #need_amissl 1)
+    (
+        ; Check if AmiSSL installer is bundled
+        (if (exists "deps/AmiSSL/Install")
+            (
+                (set #install_amissl
+                    (askbool
+                        (prompt "AmiSSL v5 is not installed.\n\n"
+                                "AmiSSL is required for HTTPS connections\n"
+                                "to the Claude API.\n\n"
+                                "Install AmiSSL now?")
+                        (help "AmiSSL provides TLS/SSL encryption.\n"
+                              "Without it, AmigaAI cannot connect to\n"
+                              "the Anthropic API.")
+                        (default 1)
+                    )
+                )
+                (if (= #install_amissl 1)
+                    (run "Installer deps/AmiSSL/Install" (safe))
+                )
+            )
+            ; No bundled installer - just warn
+            (message
+                "AmiSSL v5 is not installed.\n\n"
+                "AmigaAI requires AmiSSL for HTTPS connections.\n\n"
+                "Get it from: http://aminet.net/comm/net/AmiSSL-5.lha\n\n"
+                "If you have the AmiSSL archive, extract it into\n"
+                "the \"deps/AmiSSL\" drawer next to this installer\n"
+                "and run the installer again."
+            )
         )
     )
 )
 
-; Check bsdsocket (Roadshow or compatible TCP/IP stack)
-(if (NOT (exists "LIBS:bsdsocket.library"))
-    (set #missing
-        (cat #missing
-            "  - TCP/IP stack with bsdsocket.library (e.g. Roadshow)\n"
-            "    Get Roadshow from: http://roadshow.apc-tcp.de\n\n"
-        )
-    )
+(complete 7)
+
+; --- TextEditor.mcc (install if missing) ---
+(set #need_texteditor 0)
+(if (NOT (exists "MUI:Libs/MUI/TextEditor.mcc"))
+    (set #need_texteditor 1)
 )
 
-; Check json-c
-(if (NOT (exists "LIBS:json-c.library"))
-    (set #missing
-        (cat #missing
-            "  - json-c.library\n"
-            "    Get from: http://aminet.net/dev/lib/json-c.lha\n\n"
+(if (= #need_texteditor 1)
+    (
+        ; Check if TextEditor.mcc is bundled
+        (if (exists "deps/TextEditor.mcc")
+            (
+                (set #install_te
+                    (askbool
+                        (prompt "TextEditor.mcc is not installed.\n\n"
+                                "This MUI custom class is required for\n"
+                                "the AmigaAI chat display.\n\n"
+                                "Install TextEditor.mcc now?")
+                        (help "TextEditor.mcc is a MUI custom class\n"
+                              "that provides the text editing widget\n"
+                              "used for the chat window.")
+                        (default 1)
+                    )
+                )
+                (if (= #install_te 1)
+                    (
+                        (copylib
+                            (prompt "Installing TextEditor.mcc...")
+                            (help "Copies TextEditor.mcc to MUI:Libs/MUI/")
+                            (source "deps/TextEditor.mcc")
+                            (dest "MUI:Libs/MUI")
+                        )
+                        ; Also copy TextEditor.mcp if present
+                        (if (exists "deps/TextEditor.mcp")
+                            (copylib
+                                (prompt "Installing TextEditor.mcp...")
+                                (source "deps/TextEditor.mcp")
+                                (dest "MUI:Libs/MUI")
+                            )
+                        )
+                    )
+                )
+            )
+            ; No bundled file - just warn
+            (message
+                "TextEditor.mcc is not installed.\n\n"
+                "This MUI custom class is required for the\n"
+                "AmigaAI chat display.\n\n"
+                "Get it from: http://aminet.net/dev/mui/MCC_TextEditor.lha\n\n"
+                "If you have the file, place TextEditor.mcc into\n"
+                "the \"deps\" drawer next to this installer\n"
+                "and run the installer again."
+            )
         )
-    )
-)
-
-(if (<> #missing "")
-    (message
-        "WARNING: The following required libraries were not found:\n\n"
-        #missing
-        "AmigaAI will not run without them.\n"
-        "You can continue the installation and install the\n"
-        "missing libraries afterwards."
     )
 )
 

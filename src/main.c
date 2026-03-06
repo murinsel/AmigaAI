@@ -23,6 +23,9 @@
 #include "input.h"
 #include "memory.h"
 #include "tools.h"
+#include "dt_identify.h"
+#include "base64.h"
+#include "png_convert.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,6 +92,8 @@ static void handle_memory_add(void);
 static void handle_memory_clear(void);
 static void handle_chat_save(void);
 static void handle_chat_load(void);
+static void handle_dropped_file(const char *path, int insert_path);
+static void handle_appwin_messages(void);
 static void arexx_response_cb(const char *response);
 static void create_icon(const char *name);
 static void wb_error(const char *msg);
@@ -1170,6 +1175,311 @@ static void handle_chat_load(void)
     }
 }
 
+/* ===================== Drag & Drop ===================== */
+
+/* Insert path at cursor position in the input field */
+static void insert_path_at_cursor(const char *path)
+{
+    const char *old_text = (const char *)xget(app_gui.input,
+                                               MUIA_String_Contents);
+    LONG cursor = (LONG)xget(app_gui.input, MUIA_String_BufferPos);
+    char new_text[1024];
+    int old_len = old_text ? strlen(old_text) : 0;
+    int path_len = strlen(path);
+
+    if (cursor < 0) cursor = 0;
+    if (cursor > old_len) cursor = old_len;
+
+    if (old_len + path_len + 2 < (int)sizeof(new_text)) {
+        memcpy(new_text, old_text, cursor);
+        memcpy(new_text + cursor, path, path_len);
+        memcpy(new_text + cursor + path_len,
+               old_text + cursor, old_len - cursor + 1);
+        xset(app_gui.input, MUIA_String_Contents, (ULONG)new_text);
+        xset(app_gui.input, MUIA_String_BufferPos,
+             (ULONG)(cursor + path_len));
+    } else {
+        xset(app_gui.input, MUIA_String_Contents, (ULONG)path);
+    }
+}
+
+static void handle_dropped_file(const char *path, int insert_path)
+{
+    char dt_name[64], group[32];
+    char status_buf[256];
+    const char *filename;
+
+    /* Extract filename from path */
+    filename = strrchr(path, '/');
+    if (!filename) filename = strrchr(path, ':');
+    filename = filename ? filename + 1 : path;
+
+    /* Drop on input field — always insert path */
+    if (insert_path) {
+        insert_path_at_cursor(path);
+        snprintf(status_buf, sizeof(status_buf), "Dropped: %s", filename);
+        gui_set_status(&app_gui, status_buf);
+        return;
+    }
+
+    /* Identify file type via DataTypes */
+    if (dt_identify_file(path, dt_name, sizeof(dt_name),
+                         group, sizeof(group)) != 0) {
+        /* Could not identify — insert path in input field */
+        insert_path_at_cursor(path);
+        snprintf(status_buf, sizeof(status_buf), "Dropped: %s", filename);
+        gui_set_status(&app_gui, status_buf);
+        return;
+    }
+
+    if (strcmp(group, "picture") == 0) {
+        /* Image file — read, base64 encode, send to Claude */
+        FILE *f;
+        char *fdata, *b64, *reply, *error_msg = NULL;
+        long fsize;
+        char text[320];
+        const char *media;
+        const char *read_path = path;
+        int converted = 0;
+
+        /* Check if format is natively supported by Claude API */
+        if (strcasecmp(dt_name, "JPEG") == 0 || strcasecmp(dt_name, "JFIF") == 0) {
+            media = "image/jpeg";
+        } else if (strcasecmp(dt_name, "PNG") == 0) {
+            media = "image/png";
+        } else if (strcasecmp(dt_name, "GIF") == 0) {
+            media = "image/gif";
+        } else {
+            /* ILBM, BMP, PCX, TIFF, etc. — convert to PNG via DataTypes */
+            gui_set_status(&app_gui, "Converting image...");
+            if (png_convert_file(path, "T:aai_dtconv.png") != 0) {
+                snprintf(status_buf, sizeof(status_buf),
+                         "Cannot convert: %s", filename);
+                gui_set_status(&app_gui, status_buf);
+                return;
+            }
+            read_path = "T:aai_dtconv.png";
+            media = "image/png";
+            converted = 1;
+        }
+
+        f = fopen(read_path, "rb");
+        if (!f) {
+            if (converted) DeleteFile((CONST_STRPTR)"T:aai_dtconv.png");
+            snprintf(status_buf, sizeof(status_buf), "Cannot open: %s", filename);
+            gui_set_status(&app_gui, status_buf);
+            return;
+        }
+
+        fseek(f, 0, SEEK_END);
+        fsize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        if (fsize <= 0 || fsize > 4L * 1024L * 1024L) {
+            fclose(f);
+            if (converted) DeleteFile((CONST_STRPTR)"T:aai_dtconv.png");
+            gui_set_status(&app_gui, "Image too large (max 4MB)");
+            return;
+        }
+
+        fdata = malloc(fsize);
+        if (!fdata) {
+            fclose(f);
+            if (converted) DeleteFile((CONST_STRPTR)"T:aai_dtconv.png");
+            gui_set_status(&app_gui, "Out of memory");
+            return;
+        }
+
+        if ((long)fread(fdata, 1, fsize, f) != fsize) {
+            free(fdata);
+            fclose(f);
+            if (converted) DeleteFile((CONST_STRPTR)"T:aai_dtconv.png");
+            gui_set_status(&app_gui, "Read error");
+            return;
+        }
+        fclose(f);
+
+        if (converted) DeleteFile((CONST_STRPTR)"T:aai_dtconv.png");
+
+        b64 = base64_encode((const unsigned char *)fdata, (size_t)fsize, NULL);
+        free(fdata);
+
+        if (!b64) {
+            gui_set_status(&app_gui, "Out of memory encoding image");
+            return;
+        }
+
+        snprintf(text, sizeof(text), "User dropped image: %s", path);
+
+        /* Display in chat */
+        gui_add_text(&app_gui, "\033bYou:\033n ", text);
+        chat_log("USER", text);
+        gui_set_status(&app_gui, "Sending image...");
+        gui_set_busy(&app_gui, 1);
+
+        reply = claude_send_image(&app_claude, b64, media, text, &error_msg);
+        free(b64);
+
+        gui_set_busy(&app_gui, 0);
+
+        if (reply) {
+            gui_add_text(&app_gui, GetString(MSG_LABEL_CLAUDE), reply);
+            gui_add_line(&app_gui, "");
+            chat_log("CLAUDE", reply);
+
+            snprintf(status_buf, sizeof(status_buf),
+                     GetString(MSG_STATUS_TOKENS),
+                     app_claude.last_input_tokens,
+                     app_claude.last_output_tokens,
+                     claude_message_count(&app_claude));
+            gui_set_status(&app_gui, status_buf);
+            free(reply);
+        } else {
+            char err_buf[256];
+            snprintf(err_buf, sizeof(err_buf), "%s%s",
+                     GetString(MSG_LABEL_ERROR),
+                     error_msg ? error_msg : "Unknown error");
+            gui_add_line(&app_gui, err_buf);
+            gui_set_status(&app_gui, error_msg ? error_msg : "Error");
+            free(error_msg);
+        }
+    } else if (strcmp(group, "text") == 0 || strcmp(group, "document") == 0) {
+        /* Text file — read content and send as context */
+        FILE *f;
+        char *buf, *msg, *reply, *error_msg = NULL;
+        long len;
+        size_t msg_len;
+
+        f = fopen(path, "r");
+        if (!f) {
+            snprintf(status_buf, sizeof(status_buf), "Cannot open: %s", filename);
+            gui_set_status(&app_gui, status_buf);
+            return;
+        }
+
+        fseek(f, 0, SEEK_END);
+        len = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        if (len <= 0) {
+            fclose(f);
+            gui_set_status(&app_gui, "File is empty");
+            return;
+        }
+
+        /* Limit to 8KB for text files */
+        if (len > 8192) len = 8192;
+
+        buf = malloc(len + 1);
+        if (!buf) {
+            fclose(f);
+            gui_set_status(&app_gui, "Out of memory");
+            return;
+        }
+
+        len = (long)fread(buf, 1, len, f);
+        buf[len] = '\0';
+        fclose(f);
+
+        /* Build message: "Content of <path>:\n<content>" */
+        msg_len = strlen(path) + len + 32;
+        msg = malloc(msg_len);
+        if (!msg) {
+            free(buf);
+            gui_set_status(&app_gui, "Out of memory");
+            return;
+        }
+
+        snprintf(msg, msg_len, "Content of %s:\n%s", path, buf);
+        free(buf);
+
+        /* Display and send */
+        {
+            char short_msg[256];
+            snprintf(short_msg, sizeof(short_msg), "Dropped text file: %s", path);
+            gui_add_text(&app_gui, "\033bYou:\033n ", short_msg);
+            chat_log("USER", short_msg);
+        }
+        gui_set_status(&app_gui, "Sending file content...");
+        gui_set_busy(&app_gui, 1);
+
+        reply = claude_send(&app_claude, msg, &error_msg);
+        free(msg);
+
+        gui_set_busy(&app_gui, 0);
+
+        if (reply) {
+            gui_add_text(&app_gui, GetString(MSG_LABEL_CLAUDE), reply);
+            gui_add_line(&app_gui, "");
+            chat_log("CLAUDE", reply);
+
+            snprintf(status_buf, sizeof(status_buf),
+                     GetString(MSG_STATUS_TOKENS),
+                     app_claude.last_input_tokens,
+                     app_claude.last_output_tokens,
+                     claude_message_count(&app_claude));
+            gui_set_status(&app_gui, status_buf);
+            free(reply);
+        } else {
+            char err_buf[256];
+            snprintf(err_buf, sizeof(err_buf), "%s%s",
+                     GetString(MSG_LABEL_ERROR),
+                     error_msg ? error_msg : "Unknown error");
+            gui_add_line(&app_gui, err_buf);
+            gui_set_status(&app_gui, error_msg ? error_msg : "Error");
+            free(error_msg);
+        }
+    } else {
+        /* Unknown type — insert path in input field */
+        insert_path_at_cursor(path);
+        snprintf(status_buf, sizeof(status_buf),
+                 "Dropped: %s", filename);
+        gui_set_status(&app_gui, status_buf);
+    }
+}
+
+static void handle_appwin_messages(void)
+{
+    struct AppMessage *amsg;
+
+    while ((amsg = (struct AppMessage *)GetMsg(app_gui.appwin_port))) {
+        int i;
+        int on_input = 0;
+
+        /* Check if drop landed on the input gadget */
+        {
+            LONG inp_top  = (LONG)xget(app_gui.input, MUIA_TopEdge);
+            LONG inp_left = (LONG)xget(app_gui.input, MUIA_LeftEdge);
+            LONG inp_w    = (LONG)xget(app_gui.input, MUIA_Width);
+            LONG inp_h    = (LONG)xget(app_gui.input, MUIA_Height);
+            LONG mx = amsg->am_MouseX;
+            LONG my = amsg->am_MouseY;
+
+            if (mx >= inp_left && mx < inp_left + inp_w &&
+                my >= inp_top  && my < inp_top + inp_h)
+                on_input = 1;
+        }
+
+        for (i = 0; i < amsg->am_NumArgs; i++) {
+            char fullpath[512];
+            BPTR dir_lock = amsg->am_ArgList[i].wa_Lock;
+            const char *name = (const char *)amsg->am_ArgList[i].wa_Name;
+
+            if (dir_lock) {
+                if (NameFromLock(dir_lock, (STRPTR)fullpath, sizeof(fullpath))) {
+                    if (AddPart((STRPTR)fullpath, (CONST_STRPTR)(name ? name : ""),
+                                sizeof(fullpath))) {
+                        handle_dropped_file(fullpath, on_input);
+                    }
+                }
+            } else if (name && name[0]) {
+                handle_dropped_file(name, on_input);
+            }
+        }
+        ReplyMsg((struct Message *)amsg);
+    }
+}
+
 /* ========================= main ========================= */
 
 int main(int argc, char *argv[])
@@ -1359,6 +1669,10 @@ int main(int argc, char *argv[])
     tools_set_poll_callback(http_poll_cb, NULL);
     dbg_step(10, "Claude OK");
 
+    /* Initialize DataTypes for drag & drop file identification */
+    if (dt_init() != 0)
+        printf("WARNING: datatypes.library not available\n");
+
     /* Initialize ARexx hooks (must be before gui_open) */
     dbg_step(11, "Init ARexx...");
     arexx_setup(&app_arexx, &app_claude, arexx_response_cb);
@@ -1468,7 +1782,12 @@ int main(int argc, char *argv[])
             gui_focus_input(&app_gui);
 
         if (sigs && running) {
-            sigs = Wait(sigs | SIGBREAKF_CTRL_C);
+            ULONG aw_sig = gui_appwin_signal(&app_gui);
+            sigs = Wait(sigs | SIGBREAKF_CTRL_C | aw_sig);
+
+            /* AppWindow drop events */
+            if (aw_sig && (sigs & aw_sig))
+                handle_appwin_messages();
 
             /* CTRL-C from shell */
             if (sigs & SIGBREAKF_CTRL_C)
@@ -1484,6 +1803,8 @@ int main(int argc, char *argv[])
     gui_close(&app_gui);
     claude_cleanup(&app_claude);
     http_cleanup();
+    dt_cleanup();
+    png_convert_cleanup();
     locale_close();
     close_libraries();
     cleanup_search_path();

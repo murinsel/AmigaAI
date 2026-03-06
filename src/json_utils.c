@@ -39,7 +39,7 @@ static char *iso8859_to_utf8(const char *src)
 /* Convert UTF-8 (API response) to ISO-8859-1 (AmigaOS).
  * Characters outside ISO-8859-1 are replaced with '?'.
  * Caller must free() the result. */
-static char *utf8_to_iso8859(const char *src)
+char *json_utf8_to_iso8859(const char *src)
 {
     const unsigned char *s = (const unsigned char *)src;
     int len = strlen(src);
@@ -213,6 +213,51 @@ cJSON *json_make_tool_result_with_image(const char *tool_use_id,
     return block;
 }
 
+cJSON *json_make_user_image_message(const char *image_base64,
+                                     const char *media_type,
+                                     const char *text)
+{
+    cJSON *msg, *content, *img, *source, *txt;
+
+    msg = cJSON_CreateObject();
+    if (!msg) return NULL;
+
+    cJSON_AddStringToObject(msg, "role", "user");
+
+    content = cJSON_CreateArray();
+    if (!content) { cJSON_Delete(msg); return NULL; }
+
+    /* Image block */
+    img = cJSON_CreateObject();
+    if (img) {
+        cJSON_AddStringToObject(img, "type", "image");
+        source = cJSON_CreateObject();
+        if (source) {
+            cJSON_AddStringToObject(source, "type", "base64");
+            cJSON_AddStringToObject(source, "media_type",
+                                    media_type ? media_type : "image/png");
+            cJSON_AddStringToObject(source, "data", image_base64);
+            cJSON_AddItemToObject(img, "source", source);
+        }
+        cJSON_AddItemToArray(content, img);
+    }
+
+    /* Text block */
+    if (text) {
+        char *utf8 = iso8859_to_utf8(text);
+        txt = cJSON_CreateObject();
+        if (txt) {
+            cJSON_AddStringToObject(txt, "type", "text");
+            cJSON_AddStringToObject(txt, "text", utf8 ? utf8 : text);
+            cJSON_AddItemToArray(content, txt);
+        }
+        free(utf8);
+    }
+
+    cJSON_AddItemToObject(msg, "content", content);
+    return msg;
+}
+
 char *json_parse_response(const char *json_str, char **error_msg)
 {
     cJSON *root, *err_obj, *content, *item, *text_obj;
@@ -278,7 +323,7 @@ char *json_parse_response(const char *json_str, char **error_msg)
 
     /* Convert UTF-8 response to ISO-8859-1 for AmigaOS display */
     {
-        char *iso = utf8_to_iso8859(result);
+        char *iso = json_utf8_to_iso8859(result);
         if (iso) { free(result); result = iso; }
     }
 
@@ -362,7 +407,7 @@ cJSON *json_parse_full_response(const char *json_str,
         }
         /* Convert UTF-8 response to ISO-8859-1 for AmigaOS display */
         if (buf) {
-            char *iso = utf8_to_iso8859(buf);
+            char *iso = json_utf8_to_iso8859(buf);
             if (iso) { free(buf); buf = iso; }
         }
         *text_out = buf;
@@ -402,4 +447,26 @@ int json_parse_usage(const char *json_str, int *input_tokens, int *output_tokens
 
     cJSON_Delete(root);
     return 0;
+}
+
+/* Recursively convert all string values in a cJSON tree from UTF-8 to
+ * ISO-8859-1.  Modifies the tree in-place by replacing valuestring
+ * pointers.  Use on tool input objects before passing to AmigaOS. */
+void json_convert_strings_to_iso8859(cJSON *obj)
+{
+    cJSON *child;
+
+    if (!obj) return;
+
+    if (cJSON_IsString(obj) && obj->valuestring) {
+        char *iso = json_utf8_to_iso8859(obj->valuestring);
+        if (iso) {
+            cJSON_free(obj->valuestring);
+            obj->valuestring = iso;
+        }
+    }
+
+    /* Recurse into children (arrays and objects) */
+    for (child = obj->child; child; child = child->next)
+        json_convert_strings_to_iso8859(child);
 }

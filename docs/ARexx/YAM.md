@@ -720,7 +720,89 @@ Passes an ARexx command to the internal TextEditor (TextEditor.mcc).
 WRITEEDITOR COMMAND/A
 ```
 
-See TextEditor.mcc documentation for available commands.
+#### TextEditor.mcc ARexx Commands
+
+These commands can be passed via `WRITEEDITOR`:
+
+**Clipboard & Editing:**
+
+| Command | Template | Description |
+|---------|----------|-------------|
+| `CLEAR` | — | Clear all editor contents |
+| `CUT` | — | Cut selected text to clipboard |
+| `COPY` | — | Copy selected text to clipboard |
+| `PASTE` | — | Paste from clipboard at cursor |
+| `ERASE` | — | Erase selected text (no clipboard) |
+| `DELETE` | — | Delete character at cursor |
+| `BACKSPACE` | — | Delete character before cursor |
+| `KILLLINE` | — | Delete entire current line |
+| `UNDO` | — | Undo last action |
+| `REDO` | — | Redo last undone action |
+
+**Navigation:**
+
+| Command | Template | Description |
+|---------|----------|-------------|
+| `GOTOLINE` | `/N/A` | Go to line number |
+| `GOTOCOLUMN` | `/N/A` | Go to column number |
+| `CURSOR` | `Up/S,Down/S,Left/S,Right/S` | Move cursor one step |
+| `NEXT` | `Word/S,Sentence/S,Paragraph/S,Page/S` | Move forward by unit |
+| `PREVIOUS` | `Word/S,Sentence/S,Paragraph/S,Page/S` | Move backward by unit |
+| `POSITION` | `SOF/S,EOF/S,SOL/S,EOL/S,SOW/S,EOW/S,SOV/S,EOV/S` | Jump to position |
+| `SETBOOKMARK` | `/N/A` | Set bookmark (1-3) |
+| `GOTOBOOKMARK` | `/N/A` | Jump to bookmark (1-3) |
+
+Position abbreviations: SOF=Start Of File, EOF=End Of File, SOL=Start Of Line, EOL=End Of Line, SOW=Start Of Word, EOW=End Of Word, SOV=Start Of View, EOV=End Of View.
+
+**Text & Query:**
+
+| Command | Template | Description |
+|---------|----------|-------------|
+| `TEXT` | `/F` | Insert text at cursor position |
+| `GETLINE` | — | Get current line text → RESULT |
+| `LINE` | `/N/A` | Get/set current line number → RESULT |
+| `COLUMN` | `/N/A` | Get/set current column → RESULT |
+| `GETCURSOR` | `Line/S,Column/S` | Get cursor position → RESULT |
+| `MARK` | `On/S,Off/S` | Start or stop text selection |
+
+**Case Conversion:**
+
+| Command | Template | Description |
+|---------|----------|-------------|
+| `TOUPPER` | — | Convert selected text to uppercase |
+| `TOLOWER` | — | Convert selected text to lowercase |
+
+#### Examples
+
+```rexx
+/* Insert text at cursor position */
+WRITEEDITOR 'TEXT Hello World'
+
+/* Go to beginning of file */
+WRITEEDITOR 'POSITION SOF'
+
+/* Go to line 10, column 5 */
+WRITEEDITOR 'GOTOLINE 10'
+WRITEEDITOR 'GOTOCOLUMN 5'
+
+/* Select and copy a line */
+WRITEEDITOR 'POSITION SOL'
+WRITEEDITOR 'MARK ON'
+WRITEEDITOR 'POSITION EOL'
+WRITEEDITOR 'COPY'
+WRITEEDITOR 'MARK OFF'
+
+/* Get the current line text */
+WRITEEDITOR 'GETLINE'
+SAY RESULT
+
+/* Get cursor position */
+WRITEEDITOR 'GETCURSOR Line'
+line = RESULT
+WRITEEDITOR 'GETCURSOR Column'
+col = RESULT
+SAY 'Cursor at line' line 'column' col
+```
 
 ### WRITESEND
 

@@ -35,6 +35,10 @@ struct Gui {
     int     busy;
     int     abort_requested;  /* Set by Stop button */
 
+    /* AppWindow (Workbench drag & drop) */
+    struct MsgPort   *appwin_port;
+    struct AppWindow *appwin;
+
     /* Input history (ring buffer) */
     char    history[GUI_HISTORY_SIZE][GUI_HISTORY_LEN];
     int     hist_count;    /* total entries stored */
@@ -89,5 +93,8 @@ void gui_focus_input(struct Gui *gui);
 /* Process MUI events and check if Stop was clicked.
  * Returns non-zero if abort requested. */
 int gui_check_abort(struct Gui *gui);
+
+/* Get the AppWindow signal mask (for Wait()). Returns 0 if not available. */
+ULONG gui_appwin_signal(struct Gui *gui);
 
 #endif /* AMIGAAI_GUI_H */

@@ -11,9 +11,11 @@
 #include <proto/intuition.h>
 #include <proto/muimaster.h>
 #include <proto/utility.h>
+#include <proto/wb.h>
 #include <clib/alib_protos.h>
 #include <libraries/mui.h>
 #include <intuition/intuition.h>
+#include <workbench/startup.h>
 
 /* MUI menu separator - NM_BARLABEL from gadtools.h */
 #ifndef NM_BARLABEL
@@ -623,6 +625,22 @@ int gui_open(struct Gui *gui, struct MUI_Command *commands)
         }
     }
 
+    /* Register as AppWindow for Workbench drag & drop */
+    gui->appwin_port = CreateMsgPort();
+    if (gui->appwin_port) {
+        struct Window *iwin = NULL;
+        GetAttr(MUIA_Window_Window, gui->win, (ULONG *)&iwin);
+        if (iwin) {
+            gui->appwin = AddAppWindowA(0, 0, iwin, gui->appwin_port, NULL);
+            if (gui->appwin)
+                printf("  gui: AppWindow registered (drag & drop enabled)\n");
+        }
+        if (!gui->appwin) {
+            DeleteMsgPort(gui->appwin_port);
+            gui->appwin_port = NULL;
+        }
+    }
+
     /* Activate the input field */
     gui_focus_input(gui);
 
@@ -644,6 +662,19 @@ int gui_open(struct Gui *gui, struct MUI_Command *commands)
 
 void gui_close(struct Gui *gui)
 {
+    /* Remove AppWindow before disposing MUI objects */
+    if (gui->appwin) {
+        RemoveAppWindow(gui->appwin);
+        gui->appwin = NULL;
+    }
+    if (gui->appwin_port) {
+        struct AppMessage *msg;
+        while ((msg = (struct AppMessage *)GetMsg(gui->appwin_port)))
+            ReplyMsg((struct Message *)msg);
+        DeleteMsgPort(gui->appwin_port);
+        gui->appwin_port = NULL;
+    }
+
     if (gui->app) {
         MUI_DisposeObject(gui->app);
         gui->app = NULL;
@@ -959,4 +990,11 @@ void gui_history_push(struct Gui *gui, const char *text)
 
     /* Reset browse position */
     gui->hist_pos = -1;
+}
+
+ULONG gui_appwin_signal(struct Gui *gui)
+{
+    if (gui->appwin_port)
+        return 1UL << gui->appwin_port->mp_SigBit;
+    return 0;
 }

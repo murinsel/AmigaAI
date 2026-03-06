@@ -105,6 +105,7 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
         /* Load instruction files into system prompt */
         {
             static const char *inst_files[] = {
+                "AmigaAI:instructions/Programs.md",
                 "AmigaAI:instructions/ARexx/AMIGAAI.md",
                 "AmigaAI:instructions/Shell/AmigaDOS.md",
                 NULL
@@ -418,5 +419,183 @@ fail:
         }
     }
 
+    return NULL;
+}
+
+char *claude_send_image(struct Claude *ctx, const char *image_base64,
+                        const char *media_type, const char *text,
+                        char **error_msg)
+{
+    cJSON *user_msg;
+    int iteration;
+    char *final_text = NULL;
+    int final_text_len = 0;
+    int final_text_cap = 0;
+    int initial_msg_count;
+
+    if (error_msg) *error_msg = NULL;
+
+    if (!ctx->config->api_key[0]) {
+        if (error_msg) *error_msg = strdup("No API key configured");
+        return NULL;
+    }
+
+    initial_msg_count = cJSON_GetArraySize(ctx->messages);
+
+    /* Build user message with image content */
+    user_msg = json_make_user_image_message(image_base64, media_type, text);
+    if (!user_msg) {
+        if (error_msg) *error_msg = strdup("Out of memory");
+        return NULL;
+    }
+    cJSON_AddItemToArray(ctx->messages, user_msg);
+
+    /* Tool use loop (same as claude_send) */
+    for (iteration = 0; iteration < TOOLS_MAX_ITERATIONS; iteration++) {
+        char *body;
+        char *stop_reason = NULL;
+        char *resp_text = NULL;
+        char *err = NULL;
+        cJSON *content;
+        int has_tool_use = 0;
+
+        body = api_call(ctx, &err);
+        if (!body) {
+            if (error_msg) *error_msg = err;
+            goto img_fail;
+        }
+
+        content = json_parse_full_response(body, &stop_reason, &resp_text, &err);
+        free(body);
+
+        if (!content) {
+            if (error_msg) *error_msg = err;
+            goto img_fail;
+        }
+
+        /* Accumulate text */
+        if (resp_text && resp_text[0]) {
+            int tlen = strlen(resp_text);
+            int needed = final_text_len + tlen + 2;
+            if (needed > final_text_cap) {
+                final_text_cap = needed + 256;
+                final_text = realloc(final_text, final_text_cap);
+            }
+            if (final_text) {
+                if (final_text_len > 0)
+                    final_text[final_text_len++] = '\n';
+                memcpy(final_text + final_text_len, resp_text, tlen);
+                final_text_len += tlen;
+                final_text[final_text_len] = '\0';
+            }
+        }
+        free(resp_text);
+
+        /* Add assistant response */
+        {
+            cJSON *asst_msg = json_make_content_message("assistant",
+                                  cJSON_Duplicate(content, 1));
+            if (asst_msg)
+                cJSON_AddItemToArray(ctx->messages, asst_msg);
+        }
+
+        /* Handle tool use */
+        if (stop_reason && strcmp(stop_reason, "tool_use") == 0) {
+            cJSON *tool_results = cJSON_CreateArray();
+            int i, count = cJSON_GetArraySize(content);
+
+            for (i = 0; i < count; i++) {
+                cJSON *block = cJSON_GetArrayItem(content, i);
+                cJSON *type = cJSON_GetObjectItemCaseSensitive(block, "type");
+
+                if (type && cJSON_IsString(type) &&
+                    strcmp(type->valuestring, "tool_use") == 0)
+                {
+                    cJSON *id_obj   = cJSON_GetObjectItemCaseSensitive(block, "id");
+                    cJSON *name_obj = cJSON_GetObjectItemCaseSensitive(block, "name");
+                    cJSON *inp_obj  = cJSON_GetObjectItemCaseSensitive(block, "input");
+
+                    if (id_obj && name_obj && inp_obj &&
+                        cJSON_IsString(id_obj) && cJSON_IsString(name_obj))
+                    {
+                        const char *tool_id   = id_obj->valuestring;
+                        const char *tool_name = name_obj->valuestring;
+                        int is_error = 0;
+                        int has_image = 0;
+                        char *result;
+
+                        if (ctx->tool_cb)
+                            ctx->tool_cb(tool_name, "executing",
+                                         NULL, ctx->tool_cb_data);
+
+                        result = tool_execute(tool_name, inp_obj,
+                                              &is_error, &has_image);
+
+                        if (ctx->tool_cb)
+                            ctx->tool_cb(tool_name,
+                                         is_error ? "error" : "done",
+                                         has_image ? "(image)" : result,
+                                         ctx->tool_cb_data);
+
+                        {
+                            cJSON *tr;
+                            if (has_image && !is_error) {
+                                tr = json_make_tool_result_with_image(
+                                    tool_id, result, "image/png",
+                                    "Screenshot captured");
+                            } else {
+                                tr = json_make_tool_result(
+                                    tool_id, result, is_error);
+                            }
+                            if (tr)
+                                cJSON_AddItemToArray(tool_results, tr);
+                        }
+
+                        free(result);
+                        has_tool_use = 1;
+                    }
+                }
+            }
+
+            cJSON_Delete(content);
+            free(stop_reason);
+
+            if (has_tool_use && cJSON_GetArraySize(tool_results) > 0) {
+                cJSON *tr_msg = json_make_content_message("user", tool_results);
+                if (tr_msg)
+                    cJSON_AddItemToArray(ctx->messages, tr_msg);
+                else
+                    cJSON_Delete(tool_results);
+                continue;
+            }
+
+            cJSON_Delete(tool_results);
+            break;
+        }
+
+        cJSON_Delete(content);
+        free(stop_reason);
+        break;
+    }
+
+    if (final_text && final_text[0])
+        return final_text;
+
+    free(final_text);
+    if (error_msg && !*error_msg)
+        *error_msg = strdup("No text in response");
+    return NULL;
+
+img_fail:
+    free(final_text);
+    {
+        int len = cJSON_GetArraySize(ctx->messages);
+        while (len > initial_msg_count) {
+            cJSON *item = cJSON_DetachItemFromArray(ctx->messages, len - 1);
+            if (item)
+                cJSON_Delete(item);
+            len--;
+        }
+    }
     return NULL;
 }

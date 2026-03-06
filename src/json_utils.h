@@ -50,7 +50,24 @@ cJSON *json_make_tool_result_with_image(const char *tool_use_id,
                                          const char *media_type,
                                          const char *alt_text);
 
+/* Build a user message with an image and text content block.
+ * Returns: {"role":"user", "content":[
+ *   {"type":"image", "source":{"type":"base64","media_type":"...","data":"..."}},
+ *   {"type":"text", "text":"..."}
+ * ]} */
+cJSON *json_make_user_image_message(const char *image_base64,
+                                     const char *media_type,
+                                     const char *text);
+
 /* Parse usage info from response. Returns 0 on success. */
 int json_parse_usage(const char *json_str, int *input_tokens, int *output_tokens);
+
+/* Convert a UTF-8 string to ISO-8859-1. Characters outside Latin-1 become '?'.
+ * Returns newly allocated string (caller must free) or NULL on alloc failure. */
+char *json_utf8_to_iso8859(const char *src);
+
+/* Convert all string values in a cJSON object tree from UTF-8 to ISO-8859-1.
+ * Modifies the cJSON tree in-place. Use on tool input before passing to AmigaOS. */
+void json_convert_strings_to_iso8859(cJSON *obj);
 
 #endif /* AMIGAAI_JSON_UTILS_H */

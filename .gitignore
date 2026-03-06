@@ -12,9 +12,8 @@ amiga-gcc-build/
 # API key
 oelli-amiga_api_key
 
-# Amiga icon files (except installer and app icons)
+# Amiga icon files
 *.info
-!Install_AmigaAI.info
 
 # Log files
 *.log

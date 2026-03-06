@@ -68,7 +68,7 @@ Results via: RESULT, VAR/K (named variable), or STEM/K (stem variable).
 - `WRITEMAILTO ADDRESS/A/M` -- Set "To" field (replaces existing)
 - `WRITEATTACH FILE/A [DESC] [ENCMODE] [CTYPE]` -- Add attachment (ENCMODE: uu or b64)
 - `WRITEOPTIONS [DELETE/S] [RECEIPT/S] [NOTIF/S] [ADDINFO/S] [IMPORTANCE/N] [SIG/N] [SECURITY/N]` -- Set options (IMPORTANCE: 0=high,1=normal,2=low; SIG: 0=none,1-3; SECURITY: 0=normal,1-5)
-- `WRITEEDITOR COMMAND/A` -- Send ARexx command to internal TextEditor
+- `WRITEEDITOR COMMAND/A` -- Send ARexx command to the mail body editor (TextEditor.mcc). Commands below.
 - `WRITESEND` -- Send the message
 - `WRITEQUEUE [HOLD/S]` -- Queue message (HOLD=mark as held)
 
@@ -92,3 +92,65 @@ Results via: RESULT, VAR/K (named variable), or STEM/K (stem variable).
 
 ## Network
 - `GETURL URL/A FILENAME/A` -- Download file via HTTP. RC=5 if offline, RC=10 if not found
+
+## TextEditor.mcc Commands (for WRITEEDITOR)
+
+YAM uses TextEditor.mcc for the mail body in write windows. Use `WRITEEDITOR` to control it.
+
+**Editing:** `CLEAR`, `CUT`, `COPY`, `PASTE`, `ERASE`, `DELETE`, `BACKSPACE`, `KILLLINE`, `UNDO`, `REDO`
+**Navigation:** `GOTOLINE /N`, `GOTOCOLUMN /N`, `CURSOR Up/Down/Left/Right`, `NEXT Word/Sentence/Paragraph/Page`, `PREVIOUS Word/Sentence/Paragraph/Page`, `POSITION SOF/EOF/SOL/EOL/SOW/EOW/SOV/EOV`
+**Bookmarks:** `SETBOOKMARK /N` (1-3), `GOTOBOOKMARK /N` (1-3)
+**Text:** `TEXT /F` (insert text at cursor), `GETLINE` (→RESULT: current line), `LINE /N` (→RESULT: line number), `COLUMN /N` (→RESULT: column), `GETCURSOR Line/Column` (→RESULT)
+**Selection:** `MARK On/Off`, `TOUPPER`, `TOLOWER`
+
+Position codes: SOF=Start Of File, EOF=End Of File, SOL=Start Of Line, EOL=End Of Line, SOW=Start Of Word, EOW=End Of Word, SOV=Start Of View, EOV=End Of View.
+
+### YAM Mail Body Examples
+
+Append signature text to mail body:
+```
+WRITEEDITOR 'POSITION EOF'
+WRITEEDITOR 'TEXT --'
+WRITEEDITOR 'TEXT Best regards, Thomas'
+```
+
+Get entire mail body line by line:
+```
+WRITEEDITOR 'POSITION SOF'
+WRITEEDITOR 'GETCURSOR Line'
+total = RESULT
+DO i = 1 TO total
+  WRITEEDITOR 'GOTOLINE' i
+  WRITEEDITOR 'GETLINE'
+  SAY RESULT
+END
+```
+
+Replace mail body with new text:
+```
+WRITEEDITOR 'CLEAR'
+WRITEEDITOR 'TEXT Dear Sir or Madam,'
+WRITEEDITOR 'TEXT '
+WRITEEDITOR 'TEXT Please find attached the requested documents.'
+```
+
+Select all text and copy to clipboard:
+```
+WRITEEDITOR 'POSITION SOF'
+WRITEEDITOR 'MARK ON'
+WRITEEDITOR 'POSITION EOF'
+WRITEEDITOR 'COPY'
+WRITEEDITOR 'MARK OFF'
+```
+
+Compose and send a complete email via ARexx:
+```
+MAILWRITE QUIET
+WRITETO 'user@example.com'
+WRITESUBJECT 'Monthly Report'
+WRITEEDITOR 'TEXT Hi,'
+WRITEEDITOR 'TEXT '
+WRITEEDITOR 'TEXT Here is the monthly report.'
+WRITEATTACH 'Work:Reports/March.pdf' 'Monthly report' b64
+WRITESEND
+```

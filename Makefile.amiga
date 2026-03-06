@@ -27,7 +27,13 @@ SOURCES = $(SRCDIR)/main.c \
           $(SRCDIR)/gui.c \
           $(SRCDIR)/arexx_port.c \
           $(SRCDIR)/config.c \
-          $(SRCDIR)/memory.c
+          $(SRCDIR)/memory.c \
+          $(SRCDIR)/tools.c \
+          $(SRCDIR)/dt_identify.c \
+          $(SRCDIR)/locale.c \
+          $(SRCDIR)/input.c \
+          $(SRCDIR)/base64.c \
+          $(SRCDIR)/png_convert.c
 
 OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 

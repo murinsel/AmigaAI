@@ -6,6 +6,7 @@
  */
 
 #include "tools.h"
+#include "json_utils.h"
 #include "arexx_port.h"
 #include "dt_identify.h"
 #include "input.h"
@@ -1494,6 +1495,10 @@ char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image
 {
     *is_error = 0;
     *has_image = 0;
+
+    /* Convert all UTF-8 strings in tool input to ISO-8859-1 for AmigaOS */
+    if (input)
+        json_convert_strings_to_iso8859(input);
 
     if (strcmp(name, "shell_command") == 0)
         return tool_exec_shell(input, is_error);

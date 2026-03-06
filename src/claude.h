@@ -46,6 +46,15 @@ void claude_set_tool_callback(struct Claude *ctx,
  * On error, *error_msg (if not NULL) is set to an error description. */
 char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg);
 
+/* Send a user message with an image and get the assistant's reply.
+ * image_base64: base64-encoded image data.
+ * media_type: e.g. "image/png", "image/jpeg".
+ * text: accompanying text (e.g. "User dropped image: Work:pic.png").
+ * Returns newly allocated reply string or NULL on error. */
+char *claude_send_image(struct Claude *ctx, const char *image_base64,
+                        const char *media_type, const char *text,
+                        char **error_msg);
+
 /* Clear conversation history. Returns 0 on success, -1 on alloc failure. */
 int claude_clear_history(struct Claude *ctx);
 

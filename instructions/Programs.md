@@ -27,7 +27,7 @@ This file lists programs installed on this Amiga. Use this to know what software
 | Program | Path | ARexx Port | Description |
 |---------|------|------------|-------------|
 | PageStream | PageStream:PageStream | PAGESTREAM | Desktop publishing. ARexx docs: AmigaAI:instructions/ARexx/PageStream.md |
-| SGrab | SYS:Tools/SGrab | SGRAB | Screenshot tool (PNG output). ARexx docs: AmigaAI:instructions/ARexx/SGRAB.md |
+| SGrab | SYS:Utilities/SGrab | SGRAB | Screenshot tool (PNG output). ARexx docs: AmigaAI:instructions/ARexx/SGRAB.md |
 
 ## System Services
 

@@ -22,4 +22,8 @@ char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image
 typedef int (*ToolPollCallback)(void *userdata);
 void tools_set_poll_callback(ToolPollCallback cb, void *userdata);
 
+/* Clean up resources allocated by the tools subsystem.
+ * Call at shutdown. */
+void tools_cleanup(void);
+
 #endif /* AMIGAAI_TOOLS_H */

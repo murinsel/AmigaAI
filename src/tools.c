@@ -34,6 +34,86 @@
 static ToolPollCallback tool_poll_cb = NULL;
 static void *tool_poll_data = NULL;
 
+/* Fallback command search path for Workbench launch (no CLI).
+ * Built once, freed at shutdown. BPTR-linked list of 8-byte nodes:
+ * node[0] = next BPTR, node[1] = directory lock BPTR. */
+static BPTR fallback_path = 0;
+
+/* Standard search directories to add when no CLI path exists */
+static const char *fallback_dirs[] = {
+    "C:", "SYS:Tools", "SYS:Utilities", "SYS:System", "SYS:Rexxc", NULL
+};
+
+/* Build the fallback BPTR path list (call once at first use) */
+static void build_fallback_path(void)
+{
+    int i;
+    for (i = 0; fallback_dirs[i]; i++) {
+        BPTR lock = Lock((CONST_STRPTR)fallback_dirs[i], ACCESS_READ);
+        if (lock) {
+            LONG *node = (LONG *)AllocVec(8, MEMF_PUBLIC | MEMF_CLEAR);
+            if (node) {
+                node[0] = (LONG)fallback_path;
+                node[1] = (LONG)lock;
+                fallback_path = MKBADDR(node);
+            } else {
+                UnLock(lock);
+            }
+        }
+    }
+}
+
+/* Get the command search path: CLI path if available, else fallback.
+ * Returns a BPTR to the path list (do NOT free). */
+static BPTR get_command_path(void)
+{
+    struct Process *pr = (struct Process *)FindTask(NULL);
+    struct CommandLineInterface *cli;
+
+    if (pr && pr->pr_CLI) {
+        cli = BADDR(pr->pr_CLI);
+        if (cli && cli->cli_CommandDir)
+            return cli->cli_CommandDir;
+    }
+
+    /* Workbench launch: build fallback path on first use */
+    if (!fallback_path)
+        build_fallback_path();
+
+    return fallback_path;
+}
+
+/* Prefix for shell commands when running synchronously without CLI.
+ * SystemTagList in the main process has no CLI to inject paths into,
+ * so we must prepend a Path command. */
+#define PATH_PREFIX "Path C: SYS:Tools SYS:Utilities SYS:System SYS:Rexxc ADD\n"
+
+/* Wrap a command with path setup for synchronous execution.
+ * Returns a newly allocated string (caller must free), or NULL
+ * if no wrapping is needed (command can be used as-is). */
+static char *wrap_command_with_path(const char *command)
+{
+    struct Process *pr = (struct Process *)FindTask(NULL);
+    struct CommandLineInterface *cli;
+    char *wrapped;
+    int len;
+
+    /* If main process has a CLI with path, no wrapping needed */
+    if (pr && pr->pr_CLI) {
+        cli = BADDR(pr->pr_CLI);
+        if (cli && cli->cli_CommandDir)
+            return NULL;
+    }
+
+    len = strlen(PATH_PREFIX) + strlen(command) + 1;
+    wrapped = malloc(len);
+    if (!wrapped) return NULL;
+
+    strcpy(wrapped, PATH_PREFIX);
+    strcat(wrapped, command);
+    return wrapped;
+}
+
 void tools_set_poll_callback(ToolPollCallback cb, void *userdata)
 {
     tool_poll_cb = cb;
@@ -107,7 +187,9 @@ static void shell_child_entry(void)
     struct ShellTask *st = (struct ShellTask *)me->pr_ExitData;
     BPTR outfh;
 
-    /* Copy parent's command search path so programs are found */
+    /* Copy parent's command search path so programs are found.
+     * This works even for Workbench launch because parent passes
+     * the fallback path list built from standard directories. */
     copy_parent_path(st->parent_path);
 
     outfh = Open((CONST_STRPTR)st->outfile, MODE_NEWFILE);
@@ -213,7 +295,12 @@ cJSON *tools_build_json(void)
 
         cJSON_AddStringToObject(cmd_prop, "type", "string");
         cJSON_AddStringToObject(cmd_prop, "description",
-            "The ARexx command to send");
+            "The ARexx command to send. The command is sent DIRECTLY to the "
+            "application (not through the ARexx interpreter). Use double quotes "
+            "around arguments that contain spaces, e.g. WRITESUBJECT \"Monthly Report\". "
+            "Do NOT use single quotes (ARexx interpreter syntax). "
+            "Inside double-quoted arguments: *\" for literal quote, "
+            "*n for newline, ** for literal asterisk.");
         cJSON_AddItemToObject(props, "command", cmd_prop);
 
         cJSON_AddStringToObject(schema, "type", "object");
@@ -521,7 +608,24 @@ cJSON *tools_build_json(void)
         cJSON_AddStringToObject(tool, "description",
             "Capture a screenshot of the Amiga screen using sgrab. "
             "Returns the image as PNG. Omit all parameters for a full "
-            "screen capture, or specify x/y/w/h to capture a region.");
+            "screen capture. Use window=true to capture the active window, "
+            "or window_contents=true for just the window interior without "
+            "borders. Alternatively specify x/y/w/h for a specific region.");
+
+        {
+            cJSON *win_prop = cJSON_CreateObject();
+            cJSON_AddStringToObject(win_prop, "type", "boolean");
+            cJSON_AddStringToObject(win_prop, "description",
+                "Capture the active window (with borders)");
+            cJSON_AddItemToObject(props, "window", win_prop);
+        }
+        {
+            cJSON *winc_prop = cJSON_CreateObject();
+            cJSON_AddStringToObject(winc_prop, "type", "boolean");
+            cJSON_AddStringToObject(winc_prop, "description",
+                "Capture the active window contents only (no borders)");
+            cJSON_AddItemToObject(props, "window_contents", winc_prop);
+        }
 
         cJSON_AddStringToObject(x_prop, "type", "integer");
         cJSON_AddStringToObject(x_prop, "description",
@@ -603,17 +707,20 @@ static char *tool_exec_list_ports(int *is_error)
 static LONG shell_exec_sync(const char *command)
 {
     LONG rc;
+    char *wrapped = wrap_command_with_path(command);
+    const char *cmd = wrapped ? wrapped : command;
     BPTR outfh = Open((CONST_STRPTR)TOOL_CMD_OUTPUT, MODE_NEWFILE);
-    if (!outfh) return -1;
+    if (!outfh) { free(wrapped); return -1; }
     {
         struct TagItem sys_tags[] = {
             { SYS_Output, (ULONG)outfh },
             { SYS_Input,  (ULONG)NULL },
             { TAG_DONE,   0 }
         };
-        rc = SystemTagList((CONST_STRPTR)command, sys_tags);
+        rc = SystemTagList((CONST_STRPTR)cmd, sys_tags);
     }
     Close(outfh);
+    free(wrapped);
     return rc;
 }
 
@@ -657,18 +764,14 @@ static char *tool_exec_shell(cJSON *input, int *is_error)
                 return strdup("Out of memory");
             }
 
-            st->command   = strdup(command);
-            st->outfile   = "T:amigaai_bg.out";
-            st->rc        = 0;
-            st->done      = 0;
+            st->command     = strdup(command);
+            st->outfile     = "T:amigaai_bg.out";
+            st->rc          = 0;
+            st->done        = 0;
             st->abandoned   = 0;
             st->parent      = FindTask(NULL);
             st->sigbit      = sigbit;
-            {
-                struct Process *me = (struct Process *)FindTask(NULL);
-                struct CommandLineInterface *cli = me->pr_CLI ? BADDR(me->pr_CLI) : NULL;
-                st->parent_path = cli ? cli->cli_CommandDir : 0;
-            }
+            st->parent_path = get_command_path();
 
             {
                 struct Process *me = (struct Process *)FindTask(NULL);
@@ -759,11 +862,7 @@ static char *tool_exec_shell(cJSON *input, int *is_error)
             st.abandoned   = 0;
             st.parent      = FindTask(NULL);
             st.sigbit      = sigbit;
-            {
-                struct Process *me = (struct Process *)FindTask(NULL);
-                struct CommandLineInterface *cli = me->pr_CLI ? BADDR(me->pr_CLI) : NULL;
-                st.parent_path = cli ? cli->cli_CommandDir : 0;
-            }
+            st.parent_path = get_command_path();
 
             {
                 struct Process *me = (struct Process *)FindTask(NULL);
@@ -1418,6 +1517,16 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
     /* Build sgrab command */
     pos = snprintf(cmd, sizeof(cmd), "sgrab FILE %s PNG NOBEEP", SCREENSHOT_FILE);
 
+    /* Window capture modes (override x/y/w/h) */
+    {
+        cJSON *winc = cJSON_GetObjectItemCaseSensitive(input, "window_contents");
+        cJSON *win  = cJSON_GetObjectItemCaseSensitive(input, "window");
+        if (winc && cJSON_IsTrue(winc))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " WINDOWCONTENTS");
+        else if (win && cJSON_IsTrue(win))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " WINDOW");
+    }
+
     xj = cJSON_GetObjectItemCaseSensitive(input, "x");
     yj = cJSON_GetObjectItemCaseSensitive(input, "y");
     wj = cJSON_GetObjectItemCaseSensitive(input, "w");
@@ -1538,5 +1647,16 @@ char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image
         char buf[128];
         snprintf(buf, sizeof(buf), "Unknown tool: %s", name);
         return strdup(buf);
+    }
+}
+
+void tools_cleanup(void)
+{
+    /* Free the fallback command search path built for Workbench launch */
+    while (fallback_path) {
+        LONG *node = (LONG *)BADDR(fallback_path);
+        fallback_path = (BPTR)node[0];
+        UnLock((BPTR)node[1]);
+        FreeVec(node);
     }
 }

@@ -104,53 +104,54 @@ YAM uses TextEditor.mcc for the mail body in write windows. Use `WRITEEDITOR` to
 **Selection:** `MARK On/Off`, `TOUPPER`, `TOLOWER`
 
 Position codes: SOF=Start Of File, EOF=End Of File, SOL=Start Of Line, EOL=End Of Line, SOW=Start Of Word, EOW=End Of Word, SOV=Start Of View, EOV=End Of View.
+Newline is added by: *n
 
 ### YAM Mail Body Examples
 
 Append signature text to mail body:
 ```
-WRITEEDITOR 'POSITION EOF'
-WRITEEDITOR 'TEXT --'
-WRITEEDITOR 'TEXT Best regards, Thomas'
+WRITEEDITOR "POSITION EOF"
+WRITEEDITOR "TEXT --*n"
+WRITEEDITOR "TEXT Best regards, Thomas"
 ```
 
 Get entire mail body line by line:
 ```
-WRITEEDITOR 'POSITION SOF'
-WRITEEDITOR 'GETCURSOR Line'
+WRITEEDITOR "POSITION SOF"
+WRITEEDITOR "GETCURSOR Line"
 total = RESULT
 DO i = 1 TO total
-  WRITEEDITOR 'GOTOLINE' i
-  WRITEEDITOR 'GETLINE'
+  WRITEEDITOR "GOTOLINE i"
+  WRITEEDITOR "GETLINE"
   SAY RESULT
 END
 ```
 
 Replace mail body with new text:
 ```
-WRITEEDITOR 'CLEAR'
-WRITEEDITOR 'TEXT Dear Sir or Madam,'
-WRITEEDITOR 'TEXT '
-WRITEEDITOR 'TEXT Please find attached the requested documents.'
+WRITEEDITOR "CLEAR"
+WRITEEDITOR "TEXT Dear Sir or Madam,*n"
+WRITEEDITOR "TEXT *n"
+WRITEEDITOR "TEXT Please find attached the requested documents."
 ```
 
 Select all text and copy to clipboard:
 ```
-WRITEEDITOR 'POSITION SOF'
-WRITEEDITOR 'MARK ON'
-WRITEEDITOR 'POSITION EOF'
-WRITEEDITOR 'COPY'
-WRITEEDITOR 'MARK OFF'
+WRITEEDITOR "POSITION SOF"
+WRITEEDITOR "MARK ON"
+WRITEEDITOR "POSITION EOF"
+WRITEEDITOR "COPY"
+WRITEEDITOR "MARK OFF"
 ```
 
 Compose and send a complete email via ARexx:
 ```
-MAILWRITE QUIET
-WRITETO 'user@example.com'
-WRITESUBJECT 'Monthly Report'
-WRITEEDITOR 'TEXT Hi,'
-WRITEEDITOR 'TEXT '
-WRITEEDITOR 'TEXT Here is the monthly report.'
-WRITEATTACH 'Work:Reports/March.pdf' 'Monthly report' b64
+MAILWRITE
+WRITETO "user@example.com"
+WRITESUBJECT "Monthly Report"
+WRITEEDITOR "TEXT Hi,*n"
+WRITEEDITOR "TEXT *n"
+WRITEEDITOR "TEXT Here is the monthly report.*n"
+WRITEATTACH "Work:Reports/March.pdf' 'Monthly report' b64"
 WRITESEND
 ```

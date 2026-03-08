@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <proto/dos.h>
+
 int claude_init(struct Claude *ctx, struct Config *cfg, struct Memory *mem)
 {
     memset(ctx, 0, sizeof(*ctx));
@@ -87,48 +89,38 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
             "This is NOT Unix/Linux! There is no bash, no cat, no grep, "
             "no ls, no cp, no rm, no mkdir, no echo, no pipe operators. "
             "Use only AmigaDOS commands: List, Type, Copy, Delete, "
-            "MakeDir, Rename, Echo, Search, Sort, Assign, etc. "
+            "MakeDir, Rename, Echo, Sort, Assign, etc. "
+            "To find files by name use: "
+            "List <dir> PAT <pattern> ALL LFORMAT \"%p%n\" "
+            "(%p=path, %n=name, clean output with full paths). "
+            "Search is ONLY for searching text INSIDE files. "
             "Use AmigaDOS paths (SYS:, WORK:, RAM:, S:, AmigaAI:, etc). "
             "AmigaAI: is an assign pointing to the application directory. "
+            "Amiga DOS, Shell and ARexx escape sequences: *n=newline, *t=tab, *\"=quote, "
+            "**=literal asterisk, *xx=hex char. Use *n for line breaks "
+            "in Amgiga DOS, Shell and ARexx strings (NOT \\n which is Unix). "
             "You have tools to execute AmigaDOS commands, send ARexx commands "
             "to running applications, and read/write files. "
             "When using identify_file: always set max_results when the user "
             "asks for a specific number of files (e.g. 'show 10 images' "
             "-> max_results=10). Always set filter when the user asks for "
             "a specific file type (e.g. 'images' -> filter='picture'). "
-            "Detailed documentation for ARexx ports and other topics is "
-            "available in AmigaAI:docs/ — use read_file to consult it "
-            "when you need more information about a specific application.";
+            "IMPORTANT: Before launching or controlling ANY program, "
+            "FIRST read AmigaAI:instructions/Programs.md to find its "
+            "path and ARexx port name. Then read the matching ARexx doc "
+            "from AmigaAI:instructions/ARexx/ (e.g. YAM.md, IBrowse.md). "
+            "Also read Shell/AmigaDOS.md for shell command reference, "
+            "ARexx/AMIGAAI.md for your own ARexx port. "
+            "Always use the full path from Programs.md to launch programs "
+            "(e.g. YAM:YAM, IBrowse:IBrowse, PageStream:PageStream). "
+            "CRITICAL: Always COMPLETE tasks fully by using your tools. "
+            "Never just describe what you would do — actually do it! "
+            "If you need to create a file, use write_file. "
+            "If you need to run a command, use shell_command. "
+            "If you need to send ARexx, use arexx_command. "
+            "Do not stop after reading documentation — proceed to execute.";
         snprintf(buf + pos, bufsize - pos, "%s", hint);
         pos += strlen(buf + pos);
-
-        /* Load instruction files into system prompt */
-        {
-            static const char *inst_files[] = {
-                "AmigaAI:instructions/Programs.md",
-                "AmigaAI:instructions/ARexx/AMIGAAI.md",
-                "AmigaAI:instructions/Shell/AmigaDOS.md",
-                NULL
-            };
-            int i;
-            for (i = 0; inst_files[i]; i++) {
-                FILE *f = fopen(inst_files[i], "r");
-                if (f) {
-                    long len;
-                    fseek(f, 0, SEEK_END);
-                    len = ftell(f);
-                    fseek(f, 0, SEEK_SET);
-                    if (len > 0 && len < 8192 && pos + len + 4 < bufsize) {
-                        buf[pos++] = '\n';
-                        buf[pos++] = '\n';
-                        fread(buf + pos, 1, len, f);
-                        pos += len;
-                        buf[pos] = '\0';
-                    }
-                    fclose(f);
-                }
-            }
-        }
     }
 
     return pos > 0 ? buf : NULL;
@@ -173,11 +165,57 @@ static char *api_call(struct Claude *ctx, char **error_msg)
         return NULL;
     }
 
-    /* Perform HTTPS POST */
-    rc = http_post(CLAUDE_API_HOST, CLAUDE_API_PATH,
-                   headers, request_json, &response);
+    /* Perform HTTPS POST with retry on rate limit */
+    {
+        int attempt;
+        int max_retries = 3;
+        int wait_secs = 30;  /* initial wait for 429 */
 
-    cJSON_free(request_json);
+        for (attempt = 0; attempt <= max_retries; attempt++) {
+            memset(&response, 0, sizeof(response));
+
+            rc = http_post(CLAUDE_API_HOST, CLAUDE_API_PATH,
+                           headers, request_json, &response);
+
+            if (rc != 0) {
+                cJSON_free(request_json);
+                if (error_msg) *error_msg = strdup("HTTPS request failed");
+                return NULL;
+            }
+
+            /* Rate limited — wait and retry */
+            if (response.status_code == 429 && attempt < max_retries) {
+                printf("  [api] Rate limited, waiting %d seconds...\n",
+                       wait_secs);
+                if (ctx->tool_cb)
+                    ctx->tool_cb("api", "executing",
+                                 "Rate limited, waiting...",
+                                 ctx->tool_cb_data);
+                free(response.body);
+                Delay(wait_secs * 50);  /* Delay() uses 1/50s ticks */
+                wait_secs *= 2;  /* exponential backoff */
+                continue;
+            }
+
+            /* Overloaded — same treatment */
+            if (response.status_code == 529 && attempt < max_retries) {
+                printf("  [api] API overloaded, waiting %d seconds...\n",
+                       wait_secs);
+                if (ctx->tool_cb)
+                    ctx->tool_cb("api", "executing",
+                                 "API overloaded, waiting...",
+                                 ctx->tool_cb_data);
+                free(response.body);
+                Delay(wait_secs * 50);
+                wait_secs *= 2;
+                continue;
+            }
+
+            break;  /* success or non-retryable error */
+        }
+
+        cJSON_free(request_json);
+    }
 
     if (rc != 0) {
         if (error_msg) *error_msg = strdup("HTTPS request failed");
@@ -317,11 +355,14 @@ char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg
                         /* Build a summary of the tool input */
                         {
                             char *inp_summary = cJSON_PrintUnformatted(inp_obj);
+                            char *inp_display = inp_summary ?
+                                json_utf8_to_iso8859(inp_summary) : NULL;
 
                             /* Notify callback with input detail */
                             if (ctx->tool_cb)
                                 ctx->tool_cb(tool_name, "executing",
-                                             inp_summary, ctx->tool_cb_data);
+                                             inp_display ? inp_display
+                                             : inp_summary, ctx->tool_cb_data);
 
                             printf("  [agent] tool_use: %s (id=%s)\n",
                                    tool_name, tool_id);
@@ -343,6 +384,7 @@ char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg
                                              : result,
                                              ctx->tool_cb_data);
 
+                            free(inp_display);
                             cJSON_free(inp_summary);
                         }
 

@@ -1805,6 +1805,7 @@ int main(int argc, char *argv[])
     http_cleanup();
     dt_cleanup();
     png_convert_cleanup();
+    tools_cleanup();
     locale_close();
     close_libraries();
     cleanup_search_path();

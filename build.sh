@@ -132,4 +132,58 @@ else
     tools/mkcatalog catalogs/deutsch.txt Catalogs/Deutsch/AmigaAI.catalog deutsch
     echo "=== Done: Catalogs/Deutsch/AmigaAI.catalog ==="
     ls -la Catalogs/Deutsch/AmigaAI.catalog
+
+
+    echo ""
+    echo "=== Creating AmigaAI.adf ==="
+    DISK=AmigaAI.adf
+    rm -f $DISK
+    xdftool $DISK format "AmigaAI"
+
+    # Installer
+    xdftool $DISK write Install_AmigaAI
+    xdftool $DISK write Install_AmigaAI.info
+
+    # Main executable
+    xdftool $DISK write AmigaAI
+    xdftool $DISK write FileType
+
+    # Catalogs
+    xdftool $DISK makedir catalogs
+    xdftool $DISK makedir catalogs/Deutsch
+    xdftool $DISK write Catalogs/Deutsch/AmigaAI.catalog catalogs/Deutsch/AmigaAI.catalog
+
+    # Instructions
+    xdftool $DISK makedir instructions
+    xdftool $DISK makedir instructions/ARexx
+    for f in instructions/ARexx/*; do
+        xdftool $DISK write "$f" "$f"
+    done
+    xdftool $DISK makedir instructions/Shell
+    for f in instructions/Shell/*; do
+        xdftool $DISK write "$f" "$f"
+    done
+
+    # Documentation
+    xdftool $DISK makedir docs
+    xdftool $DISK makedir docs/ARexx
+    for f in docs/ARexx/*.md; do
+        xdftool $DISK write "$f" "$f"
+    done
+    xdftool $DISK makedir docs/ARexx/deutsch
+    for f in docs/ARexx/deutsch/*.md; do
+        xdftool $DISK write "$f" "$f"
+    done
+
+    # ARexx Examples
+    xdftool $DISK makedir ARexx_Examples
+    xdftool $DISK write ARexx_Examples/AskClaude.rexx ARexx_Examples/AskClaude.rexx
+    xdftool $DISK makedir ARexx_Examples/tests
+    for f in ARexx_Examples/tests/*.rexx; do
+        xdftool $DISK write "$f" "$f"
+    done
+
+    echo "=== Done: AmigaAI.adf ==="
+    ls -la $DISK
+
 fi

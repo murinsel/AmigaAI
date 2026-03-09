@@ -2,6 +2,8 @@
 
 Port name: PAGESTREAM (or user-defined). Over 400 commands. Detailed docs: AmigaAI:docs/ARexx/PageStream.md
 Arguments: /i=integer, /d=decimal, /s=string, /k=keyword, /S=switch, /a=array/stem.
+
+**Quoting:** All commands sent via arexx_command MUST be wrapped in single quotes. Use double quotes inside for string arguments. Example: `'opendocument FILE "Work:doc.pgs"'`
 Common target params: PAGE number, WINDOW name, DOCUMENT name, CHAPTER name, OBJECTID number, MPG name.
 Common transform params: ROTATE angle, SKEW slant twist, SLANT angle, TWIST angle, ABOUT x y | ABOUTCENTER, CONSTRAIN|FREE, PRINT|NOPRINT, INFRONT|INBACK.
 Most draw/create commands return an object handle in RESULT.

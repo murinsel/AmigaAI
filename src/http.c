@@ -436,10 +436,32 @@ int http_post(const char *host,
     /* Log outgoing request body */
     api_log_write("REQUEST", body, 0);
 
-    /* Send request */
-    if (SSL_write(ssl, request, request_len) != request_len) {
-        printf("ERROR: SSL_write failed\n");
-        goto done;
+    /* Send request (loop for partial writes) */
+    {
+        int total_written = 0;
+        while (total_written < request_len) {
+            int n = SSL_write(ssl, request + total_written,
+                              request_len - total_written);
+            if (n <= 0) {
+                int ssl_err = SSL_get_error(ssl, n);
+                if (ssl_err == SSL_ERROR_WANT_WRITE ||
+                    ssl_err == SSL_ERROR_WANT_READ) {
+                    /* Retry after brief wait */
+                    fd_set wfds;
+                    struct timeval tv;
+                    FD_ZERO(&wfds);
+                    FD_SET(sock, &wfds);
+                    tv.tv_sec = 5;
+                    tv.tv_usec = 0;
+                    WaitSelect(sock + 1, NULL, &wfds, NULL, &tv, NULL);
+                    continue;
+                }
+                printf("ERROR: SSL_write failed (written %d/%d, ssl_err=%d)\n",
+                       total_written, request_len, ssl_err);
+                goto done;
+            }
+            total_written += n;
+        }
     }
 
     /* Read response (non-blocking with event callback) */

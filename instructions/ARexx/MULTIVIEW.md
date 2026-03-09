@@ -3,6 +3,8 @@
 Port name: MULTIVIEW.1 (incremented per instance: .2, .3, ...). Custom via PORTNAME CLI arg.
 Arguments: /A=required, /S=switch, /N=number, /K=keyword.
 
+**Quoting:** All commands sent via arexx_command MUST be wrapped in single quotes. Use double quotes inside for string arguments. Example: `'OPEN NAME "Work:picture.iff"'`
+
 ## File Operations
 - `OPEN [NAME/K] [CLIPBOARD/S] [CLIPUNIT/K/N]` -- Open file or clipboard contents
 - `RELOAD` -- Reload current object

@@ -2,6 +2,8 @@
 
 Arguments: /A=required, /S=switch, /N=number. BROWSERNR is the [ID] shown in the window title.
 
+**Quoting:** All commands sent via arexx_command MUST be wrapped in single quotes. Use double quotes inside for string arguments. Example: `'GOTOURL "http://www.example.com"'`
+
 ## Standard MUI Commands
 - `QUIT [FORCE/S]` -- Exit IBrowse (FORCE skips confirmation)
 - `SHOW` / `ACTIVATE` -- Uniconify, bring to front

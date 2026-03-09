@@ -4,6 +4,8 @@ Port name: YAM
 Arguments: /A=required, /S=switch, /N=number, /K=keyword, /M=multiple results.
 Results via: RESULT, VAR/K (named variable), or STEM/K (stem variable).
 
+**Quoting:** All commands sent via arexx_command MUST be wrapped in single quotes. Use double quotes inside for string arguments. Example: `'WRITESUBJECT "Monthly Report"'`
+
 ## Address Book
 - `ADDRNEW [TYPE] [ALIAS] [NAME] [EMAIL]` -- Create new entry (TYPE: G=group, L=list, default=person). Returns ALIAS.
 - `ADDREDIT [ALIAS] [NAME] [EMAIL] [PGP] [HOMEPAGE] [STREET] [CITY] [COUNTRY] [PHONE] [COMMENT] [BIRTHDATE/N] [IMAGE] [MEMBER/M] [ADD/S]` -- Edit current entry fields
@@ -106,52 +108,41 @@ YAM uses TextEditor.mcc for the mail body in write windows. Use `WRITEEDITOR` to
 Position codes: SOF=Start Of File, EOF=End Of File, SOL=Start Of Line, EOL=End Of Line, SOW=Start Of Word, EOW=End Of Word, SOV=Start Of View, EOV=End Of View.
 Newline is added by: *n
 
-### YAM Mail Body Examples
+### YAM Mail Body Examples (arexx_command calls)
+
+Compose and send a complete email (sequence of arexx_command calls):
+```
+'MAILWRITE'
+'WRITETO "user@example.com"'
+'WRITESUBJECT "Monthly Report"'
+'WRITEEDITOR "TEXT Hi,*n"'
+'WRITEEDITOR "TEXT *n"'
+'WRITEEDITOR "TEXT Here is the monthly report.*n"'
+'WRITEATTACH "Work:Reports/March.pdf" "Monthly report" b64'
+'WRITESEND'
+```
 
 Append signature text to mail body:
 ```
-WRITEEDITOR "POSITION EOF"
-WRITEEDITOR "TEXT --*n"
-WRITEEDITOR "TEXT Best regards, Thomas"
-```
-
-Get entire mail body line by line:
-```
-WRITEEDITOR "POSITION SOF"
-WRITEEDITOR "GETCURSOR Line"
-total = RESULT
-DO i = 1 TO total
-  WRITEEDITOR "GOTOLINE i"
-  WRITEEDITOR "GETLINE"
-  SAY RESULT
-END
+'WRITEEDITOR "POSITION EOF"'
+'WRITEEDITOR "TEXT --*n"'
+'WRITEEDITOR "TEXT Best regards, Thomas"'
 ```
 
 Replace mail body with new text:
 ```
-WRITEEDITOR "CLEAR"
-WRITEEDITOR "TEXT Dear Sir or Madam,*n"
-WRITEEDITOR "TEXT *n"
-WRITEEDITOR "TEXT Please find attached the requested documents."
+'WRITEEDITOR "CLEAR"'
+'WRITEEDITOR "TEXT Dear Sir or Madam,*n"'
+'WRITEEDITOR "TEXT *n"'
+'WRITEEDITOR "TEXT Please find attached the requested documents."'
 ```
 
 Select all text and copy to clipboard:
 ```
-WRITEEDITOR "POSITION SOF"
-WRITEEDITOR "MARK ON"
-WRITEEDITOR "POSITION EOF"
-WRITEEDITOR "COPY"
-WRITEEDITOR "MARK OFF"
+'WRITEEDITOR "POSITION SOF"'
+'WRITEEDITOR "MARK ON"'
+'WRITEEDITOR "POSITION EOF"'
+'WRITEEDITOR "COPY"'
+'WRITEEDITOR "MARK OFF"'
 ```
 
-Compose and send a complete email via ARexx:
-```
-MAILWRITE
-WRITETO "user@example.com"
-WRITESUBJECT "Monthly Report"
-WRITEEDITOR "TEXT Hi,*n"
-WRITEEDITOR "TEXT *n"
-WRITEEDITOR "TEXT Here is the monthly report.*n"
-WRITEATTACH "Work:Reports/March.pdf' 'Monthly report' b64"
-WRITESEND
-```

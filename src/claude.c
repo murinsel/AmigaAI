@@ -85,7 +85,14 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
     /* Add Amiga context hint for the agent */
     if (ctx->tools && pos < bufsize - 256) {
         const char *hint =
-            "\n\nYou are running on an Amiga computer with AmigaOS 3.x. "
+            "\n\nCRITICAL RULE: You MUST always use tool calls to complete "
+            "your tasks. NEVER end your response with a description of "
+            "what you will do next — instead, DO it by calling the "
+            "appropriate tool in the SAME response. If you say "
+            "'Now I will create a script' or 'Next I will send the mail', "
+            "you MUST include the tool call that does it. A response "
+            "without a tool call means the task STOPS.\n\n"
+            "You are running on an Amiga computer with AmigaOS 3.x. "
             "This is NOT Unix/Linux! There is no bash, no cat, no grep, "
             "no ls, no cp, no rm, no mkdir, no echo, no pipe operators. "
             "Use only AmigaDOS commands: List, Type, Copy, Delete, "
@@ -98,7 +105,7 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
             "AmigaAI: is an assign pointing to the application directory. "
             "Amiga DOS, Shell and ARexx escape sequences: *n=newline, *t=tab, *\"=quote, "
             "**=literal asterisk, *xx=hex char. Use *n for line breaks "
-            "in Amgiga DOS, Shell and ARexx strings (NOT \\n which is Unix). "
+            "in Amiga DOS, Shell and ARexx strings (NOT \\n which is Unix). "
             "You have tools to execute AmigaDOS commands, send ARexx commands "
             "to running applications, and read/write files. "
             "When using identify_file: always set max_results when the user "
@@ -112,13 +119,7 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
             "Also read Shell/AmigaDOS.md for shell command reference, "
             "ARexx/AMIGAAI.md for your own ARexx port. "
             "Always use the full path from Programs.md to launch programs "
-            "(e.g. YAM:YAM, IBrowse:IBrowse, PageStream:PageStream). "
-            "CRITICAL: Always COMPLETE tasks fully by using your tools. "
-            "Never just describe what you would do — actually do it! "
-            "If you need to create a file, use write_file. "
-            "If you need to run a command, use shell_command. "
-            "If you need to send ARexx, use arexx_command. "
-            "Do not stop after reading documentation — proceed to execute.";
+            "(e.g. YAM:YAM, IBrowse:IBrowse, PageStream:PageStream).";
         snprintf(buf + pos, bufsize - pos, "%s", hint);
         pos += strlen(buf + pos);
     }
@@ -248,6 +249,77 @@ static char *api_call(struct Claude *ctx, char **error_msg)
     return response.body;  /* caller frees */
 }
 
+/* Fix dangling tool_use blocks in conversation history.
+ * The Claude API requires that every assistant tool_use block is followed
+ * by a user message containing the matching tool_result. If a previous
+ * turn ended with unmatched tool_use blocks (e.g. due to abort or
+ * parse failure), we must add synthetic error tool_results before
+ * sending the next user message. */
+static void fix_dangling_tool_use(cJSON *messages)
+{
+    int count = cJSON_GetArraySize(messages);
+    cJSON *last_msg, *role, *content, *block, *type;
+    cJSON *tool_results;
+    int i, n, found = 0;
+
+    if (count < 1) return;
+
+    last_msg = cJSON_GetArrayItem(messages, count - 1);
+    role = cJSON_GetObjectItemCaseSensitive(last_msg, "role");
+    if (!role || !cJSON_IsString(role) ||
+        strcmp(role->valuestring, "assistant") != 0)
+        return;
+
+    content = cJSON_GetObjectItemCaseSensitive(last_msg, "content");
+    if (!content || !cJSON_IsArray(content)) return;
+
+    /* Scan for tool_use blocks */
+    n = cJSON_GetArraySize(content);
+    for (i = 0; i < n; i++) {
+        block = cJSON_GetArrayItem(content, i);
+        type = cJSON_GetObjectItemCaseSensitive(block, "type");
+        if (type && cJSON_IsString(type) &&
+            strcmp(type->valuestring, "tool_use") == 0) {
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) return;
+
+    printf("  [agent] fixing dangling tool_use blocks\n");
+
+    /* Build synthetic tool_results for each tool_use */
+    tool_results = cJSON_CreateArray();
+    for (i = 0; i < n; i++) {
+        cJSON *id_obj;
+        block = cJSON_GetArrayItem(content, i);
+        type = cJSON_GetObjectItemCaseSensitive(block, "type");
+        if (!type || !cJSON_IsString(type) ||
+            strcmp(type->valuestring, "tool_use") != 0)
+            continue;
+
+        id_obj = cJSON_GetObjectItemCaseSensitive(block, "id");
+        if (id_obj && cJSON_IsString(id_obj)) {
+            cJSON *tr = json_make_tool_result(
+                id_obj->valuestring,
+                "Operation was interrupted", 1);
+            if (tr)
+                cJSON_AddItemToArray(tool_results, tr);
+        }
+    }
+
+    if (cJSON_GetArraySize(tool_results) > 0) {
+        cJSON *tr_msg = json_make_content_message("user", tool_results);
+        if (tr_msg)
+            cJSON_AddItemToArray(messages, tr_msg);
+        else
+            cJSON_Delete(tool_results);
+    } else {
+        cJSON_Delete(tool_results);
+    }
+}
+
 char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg)
 {
     cJSON *user_msg = NULL;
@@ -264,6 +336,9 @@ char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg
         if (error_msg) *error_msg = strdup("No API key configured");
         return NULL;
     }
+
+    /* Fix any dangling tool_use from a previous interrupted turn */
+    fix_dangling_tool_use(ctx->messages);
 
     /* Remember message count so we can roll back on failure */
     initial_msg_count = cJSON_GetArraySize(ctx->messages);
@@ -318,6 +393,25 @@ char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg
             }
         }
         free(text);
+
+        printf("  [agent] stop_reason=%s, content_blocks=%d\n",
+               stop_reason ? stop_reason : "(null)",
+               cJSON_GetArraySize(content));
+
+        /* If max_tokens truncated the response, strip any incomplete
+         * tool_use blocks to prevent dangling tool_use in history */
+        if (stop_reason && strcmp(stop_reason, "max_tokens") == 0) {
+            int i = cJSON_GetArraySize(content);
+            while (i-- > 0) {
+                cJSON *block = cJSON_GetArrayItem(content, i);
+                cJSON *type = cJSON_GetObjectItemCaseSensitive(block, "type");
+                if (type && cJSON_IsString(type) &&
+                    strcmp(type->valuestring, "tool_use") == 0) {
+                    printf("  [agent] stripping truncated tool_use block\n");
+                    cJSON_DeleteItemFromArray(content, i);
+                }
+            }
+        }
 
         /* Add assistant response to conversation history */
         {
@@ -424,6 +518,9 @@ char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg
                 continue;
             }
 
+            printf("  [agent] WARNING: stop_reason=tool_use but "
+                   "has_tool_use=%d, results=%d — dangling!\n",
+                   has_tool_use, cJSON_GetArraySize(tool_results));
             cJSON_Delete(tool_results);
             break;  /* No tool use blocks found despite stop_reason */
         }
@@ -482,6 +579,9 @@ char *claude_send_image(struct Claude *ctx, const char *image_base64,
         return NULL;
     }
 
+    /* Fix any dangling tool_use from a previous interrupted turn */
+    fix_dangling_tool_use(ctx->messages);
+
     initial_msg_count = cJSON_GetArraySize(ctx->messages);
 
     /* Build user message with image content */
@@ -533,6 +633,24 @@ char *claude_send_image(struct Claude *ctx, const char *image_base64,
         }
         free(resp_text);
 
+        printf("  [agent/img] stop_reason=%s, content_blocks=%d\n",
+               stop_reason ? stop_reason : "(null)",
+               cJSON_GetArraySize(content));
+
+        /* If max_tokens truncated the response, strip incomplete tool_use */
+        if (stop_reason && strcmp(stop_reason, "max_tokens") == 0) {
+            int i = cJSON_GetArraySize(content);
+            while (i-- > 0) {
+                cJSON *block = cJSON_GetArrayItem(content, i);
+                cJSON *type = cJSON_GetObjectItemCaseSensitive(block, "type");
+                if (type && cJSON_IsString(type) &&
+                    strcmp(type->valuestring, "tool_use") == 0) {
+                    printf("  [agent/img] stripping truncated tool_use\n");
+                    cJSON_DeleteItemFromArray(content, i);
+                }
+            }
+        }
+
         /* Add assistant response */
         {
             cJSON *asst_msg = json_make_content_message("assistant",
@@ -557,6 +675,16 @@ char *claude_send_image(struct Claude *ctx, const char *image_base64,
                     cJSON *name_obj = cJSON_GetObjectItemCaseSensitive(block, "name");
                     cJSON *inp_obj  = cJSON_GetObjectItemCaseSensitive(block, "input");
 
+                    if (!(id_obj && name_obj && inp_obj &&
+                          cJSON_IsString(id_obj) && cJSON_IsString(name_obj)))
+                    {
+                        printf("  [agent/img] SKIPPED malformed tool_use "
+                               "block %d (id=%s name=%s input=%s)\n", i,
+                               id_obj ? "ok" : "MISSING",
+                               name_obj ? "ok" : "MISSING",
+                               inp_obj ? "ok" : "MISSING");
+                    }
+
                     if (id_obj && name_obj && inp_obj &&
                         cJSON_IsString(id_obj) && cJSON_IsString(name_obj))
                     {
@@ -570,8 +698,16 @@ char *claude_send_image(struct Claude *ctx, const char *image_base64,
                             ctx->tool_cb(tool_name, "executing",
                                          NULL, ctx->tool_cb_data);
 
+                        printf("  [agent/img] tool_use: %s (id=%s)\n",
+                               tool_name, tool_id);
+
                         result = tool_execute(tool_name, inp_obj,
                                               &is_error, &has_image);
+
+                        printf("  [agent/img] result: %s%s\n",
+                               is_error ? "ERROR: " : "",
+                               has_image ? "(image data)"
+                               : (result ? result : "(null)"));
 
                         if (ctx->tool_cb)
                             ctx->tool_cb(tool_name,
@@ -611,6 +747,9 @@ char *claude_send_image(struct Claude *ctx, const char *image_base64,
                 continue;
             }
 
+            printf("  [agent/img] WARNING: stop_reason=tool_use but "
+                   "has_tool_use=%d, results=%d — dangling!\n",
+                   has_tool_use, cJSON_GetArraySize(tool_results));
             cJSON_Delete(tool_results);
             break;
         }

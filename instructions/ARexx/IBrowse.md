@@ -2,7 +2,10 @@
 
 Arguments: /A=required, /S=switch, /N=number. BROWSERNR is the [ID] shown in the window title.
 
-**Quoting:** All commands sent via arexx_command MUST be wrapped in single quotes. Use double quotes inside for string arguments. Example: `'GOTOURL "http://www.example.com"'`
+**CRITICAL Quoting rule:** Every command sent to the IBROWSE port MUST be enclosed in single quotes — both when using arexx_command and when writing ARexx scripts. Without single quotes, ARexx interprets the words as variable names instead of sending them as commands. Use double quotes inside for string arguments.
+- arexx_command: `'GOTOURL "http://www.example.com"'`
+- ARexx script: `ADDRESS 'IBROWSE'` then `'GOTOURL "http://www.example.com"'`
+- WRONG (will fail): `GOTOURL "http://www.example.com"` (missing single quotes!)
 
 ## Standard MUI Commands
 - `QUIT [FORCE/S]` -- Exit IBrowse (FORCE skips confirmation)

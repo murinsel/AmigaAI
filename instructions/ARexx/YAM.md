@@ -4,7 +4,10 @@ Port name: YAM
 Arguments: /A=required, /S=switch, /N=number, /K=keyword, /M=multiple results.
 Results via: RESULT, VAR/K (named variable), or STEM/K (stem variable).
 
-**Quoting:** All commands sent via arexx_command MUST be wrapped in single quotes. Use double quotes inside for string arguments. Example: `'WRITESUBJECT "Monthly Report"'`
+**CRITICAL Quoting rule:** Every command sent to the YAM port MUST be enclosed in single quotes — both when using arexx_command and when writing ARexx scripts. Without single quotes, ARexx interprets the words as variable names instead of sending them as commands. Use double quotes inside for string arguments.
+- arexx_command: `'WRITESUBJECT "Monthly Report"'`
+- ARexx script: `ADDRESS 'YAM'` then `'WRITESUBJECT "Monthly Report"'`
+- WRONG (will fail): `WRITESUBJECT "Monthly Report"` (missing single quotes!)
 
 ## Address Book
 - `ADDRNEW [TYPE] [ALIAS] [NAME] [EMAIL]` -- Create new entry (TYPE: G=group, L=list, default=person). Returns ALIAS.
@@ -108,10 +111,22 @@ YAM uses TextEditor.mcc for the mail body in write windows. Use `WRITEEDITOR` to
 Position codes: SOF=Start Of File, EOF=End Of File, SOL=Start Of Line, EOL=End Of Line, SOW=Start Of Word, EOW=End Of Word, SOV=Start Of View, EOV=End Of View.
 Newline is added by: *n
 
-### YAM Mail Body Examples (arexx_command calls)
+### IMPORTANT: Always use ARexx scripts for mail operations
 
-Compose and send a complete email (sequence of arexx_command calls):
+When composing or sending emails, ALWAYS write an ARexx script file and execute it — do NOT use multiple individual arexx_command calls. Reasons:
+- A script runs as one atomic sequence — no risk of commands getting lost between calls
+- Easier to handle errors with RC checking
+- The mail body can contain multiple lines naturally
+
+**Workflow:** Use write_file to create a .rexx script in T: (RAM temp), then use shell_command `rx T:scriptname.rexx` to execute it.
+
+### Examples (ARexx scripts)
+
+Compose and send a complete email:
 ```
+/* SendMail.rexx */
+OPTIONS RESULTS
+ADDRESS 'YAM'
 'MAILWRITE'
 'WRITETO "user@example.com"'
 'WRITESUBJECT "Monthly Report"'
@@ -124,25 +139,21 @@ Compose and send a complete email (sequence of arexx_command calls):
 
 Append signature text to mail body:
 ```
+/* AppendSig.rexx */
+OPTIONS RESULTS
+ADDRESS 'YAM'
 'WRITEEDITOR "POSITION EOF"'
-'WRITEEDITOR "TEXT --*n"'
+'WRITEEDITOR "TEXT *n--*n"'
 'WRITEEDITOR "TEXT Best regards, Thomas"'
 ```
 
-Replace mail body with new text:
+Check for new mail and report count:
 ```
-'WRITEEDITOR "CLEAR"'
-'WRITEEDITOR "TEXT Dear Sir or Madam,*n"'
-'WRITEEDITOR "TEXT *n"'
-'WRITEEDITOR "TEXT Please find attached the requested documents."'
-```
-
-Select all text and copy to clipboard:
-```
-'WRITEEDITOR "POSITION SOF"'
-'WRITEEDITOR "MARK ON"'
-'WRITEEDITOR "POSITION EOF"'
-'WRITEEDITOR "COPY"'
-'WRITEEDITOR "MARK OFF"'
+/* CheckMail.rexx */
+OPTIONS RESULTS
+ADDRESS 'YAM'
+'MAILCHECK'
+downloaded = RESULT
+SAY "Downloaded:" downloaded "messages"
 ```
 

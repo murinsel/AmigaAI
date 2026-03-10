@@ -11,7 +11,7 @@ void config_defaults(struct Config *cfg)
 {
     memset(cfg, 0, sizeof(*cfg));
     strncpy(cfg->model, "claude-sonnet-4-6", CONFIG_MAX_MODEL_LEN - 1);
-    cfg->max_tokens = 1024;
+    cfg->max_tokens = 4096;
     cfg->system_prompt[0] = '\0';
     cfg->api_key[0] = '\0';
 }
@@ -71,8 +71,11 @@ int config_load(struct Config *cfg)
 
     if (read_file_string(CONFIG_DIR_ENV "/max_tokens", buf, sizeof(buf))) {
         int val = atoi(buf);
-        if (val > 0 && val <= 8192)
+        if (val > 0 && val <= 16384) {
+            /* Enforce minimum of 4096 for tool use to work properly */
+            if (val < 4096) val = 4096;
             cfg->max_tokens = val;
+        }
     }
 
     /* Check if we have an API key */

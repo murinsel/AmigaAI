@@ -3,7 +3,10 @@
 Port name: MULTIVIEW.1 (incremented per instance: .2, .3, ...). Custom via PORTNAME CLI arg.
 Arguments: /A=required, /S=switch, /N=number, /K=keyword.
 
-**Quoting:** All commands sent via arexx_command MUST be wrapped in single quotes. Use double quotes inside for string arguments. Example: `'OPEN NAME "Work:picture.iff"'`
+**CRITICAL Quoting rule:** Every command sent to the MULTIVIEW port MUST be enclosed in single quotes — both when using arexx_command and when writing ARexx scripts. Without single quotes, ARexx interprets the words as variable names instead of sending them as commands. Use double quotes inside for string arguments.
+- arexx_command: `'OPEN NAME "Work:picture.iff"'`
+- ARexx script: `ADDRESS 'MULTIVIEW.1'` then `'OPEN NAME "Work:picture.iff"'`
+- WRONG (will fail): `OPEN NAME "Work:picture.iff"` (missing single quotes!)
 
 ## File Operations
 - `OPEN [NAME/K] [CLIPBOARD/S] [CLIPUNIT/K/N]` -- Open file or clipboard contents

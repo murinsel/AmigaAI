@@ -134,7 +134,16 @@
 /* API key hint */
 #define MSG_APIKEY_HINT            90
 
-#define MSG_COUNT                  91
+/* API Endpoint settings */
+#define MSG_MENU_ENDPOINT          91
+#define MSG_ENDPOINT_HOST          92
+#define MSG_ENDPOINT_PORT          93
+#define MSG_ENDPOINT_SAVED         94
+#define MSG_ENDPOINT_ANTHROPIC     95
+#define MSG_ENDPOINT_PATH          96
+#define MSG_ENDPOINT_OPENROUTER    97
+
+#define MSG_COUNT                  98
 
 /* Locale functions */
 void locale_open(void);

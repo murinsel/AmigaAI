@@ -22,6 +22,12 @@ This file lists programs installed on this Amiga. Use this to know what software
 | YAM | YAM:YAM | YAM | E-mail client (POP3/SMTP). Startup takes up to 60 seconds — be patient. ARexx docs: AmigaAI:instructions/ARexx/YAM.md |
 | IBrowse | IBrowse:IBrowse | IBROWSE | Web browser (HTTP/HTTPS). ARexx docs: AmigaAI:instructions/ARexx/IBrowse.md |
 
+## Music
+
+| Program | Path | ARexx Port | Description |
+|---------|------|------------|-------------|
+| Deluxe Music | Work:DeluxeMusic/DMusic2 | DMUSIC | Music notation and playback (Deluxe Music 2.0). ARexx docs: AmigaAI:instructions/ARexx/DMusic.md |
+
 ## Graphics & DTP
 
 | Program | Path | ARexx Port | Description |

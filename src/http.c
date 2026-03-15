@@ -175,6 +175,120 @@ static int tcp_connect(const char *host, int port)
     return sock;
 }
 
+/* Parse Content-Length from HTTP headers (looks within first 'len' bytes).
+ * Returns -1 if not found. */
+static long parse_content_length(const char *buf, long len)
+{
+    const char *p, *end;
+    end = buf + len;
+
+    /* Search for Content-Length header (case-insensitive first char) */
+    for (p = buf; p < end - 16; p++) {
+        if ((*p == 'C' || *p == 'c') &&
+            strncasecmp(p, "Content-Length:", 15) == 0)
+        {
+            return atol(p + 15);
+        }
+    }
+    return -1;
+}
+
+/* Read all data from a plain (non-SSL) socket into a growing buffer.
+ * Handles both Connection: close and Content-Length based framing.
+ * Same interface as ssl_read_all but uses recv() instead of SSL_read(). */
+static char *plain_read_all(int sock, long *out_len, int *aborted)
+{
+    char *buf;
+    long  buf_size = HTTP_INITIAL_BUF_SIZE;
+    long  total    = 0;
+    int   n;
+    long  one = 1;
+    int   headers_done = 0;
+    long  content_length = -1;
+    long  body_offset = 0;
+
+    if (aborted) *aborted = 0;
+
+    buf = malloc(buf_size);
+    if (!buf) return NULL;
+
+    IoctlSocket(sock, FIONBIO, (char *)&one);
+
+    for (;;) {
+        if (total + HTTP_READ_CHUNK_SIZE >= buf_size) {
+            char *new_buf;
+            buf_size *= 2;
+            new_buf = realloc(buf, buf_size);
+            if (!new_buf) { free(buf); return NULL; }
+            buf = new_buf;
+        }
+
+        n = recv(sock, buf + total, HTTP_READ_CHUNK_SIZE, 0);
+        if (n > 0) {
+            total += n;
+            buf[total] = '\0';
+
+            /* Once we see end of headers, determine expected length */
+            if (!headers_done) {
+                const char *hdr_end = strstr(buf, "\r\n\r\n");
+                if (!hdr_end) hdr_end = strstr(buf, "\n\n");
+                if (hdr_end) {
+                    headers_done = 1;
+                    body_offset = (hdr_end - buf) +
+                                  (hdr_end[0] == '\r' ? 4 : 2);
+                    content_length = parse_content_length(buf, body_offset);
+                }
+            }
+
+            /* If we know the content length, stop when we have enough */
+            if (headers_done && content_length >= 0) {
+                long body_received = total - body_offset;
+                if (body_received >= content_length)
+                    break;
+            }
+            continue;
+        }
+
+        if (n == 0) break;  /* Connection closed */
+
+        {
+            /* EAGAIN / EWOULDBLOCK — no data yet */
+            int err = Errno();
+            if (err == EAGAIN || err == EWOULDBLOCK || err == 0) {
+                fd_set rfds;
+                struct timeval tv;
+
+                if (http_event_cb &&
+                    http_event_cb(http_event_data))
+                {
+                    if (aborted) *aborted = 1;
+                    free(buf);
+                    one = 0;
+                    IoctlSocket(sock, FIONBIO, (char *)&one);
+                    return NULL;
+                }
+
+                FD_ZERO(&rfds);
+                FD_SET(sock, &rfds);
+                tv.tv_sec  = 1;
+                tv.tv_usec = 0;
+                WaitSelect(sock + 1, &rfds, NULL, NULL, &tv, NULL);
+                continue;
+            }
+
+            /* Real error */
+            break;
+        }
+    }
+
+    one = 0;
+    IoctlSocket(sock, FIONBIO, (char *)&one);
+
+    buf[total] = '\0';
+    if (out_len) *out_len = total;
+    return buf;
+}
+
 /* Read all data from SSL connection into a dynamically growing buffer.
  * Uses non-blocking I/O with WaitSelect to allow periodic event
  * processing (GUI updates, abort checking). */
@@ -327,6 +441,8 @@ static int is_chunked(const char *response)
 }
 
 int http_post(const char *host,
+              int port,
+              int use_ssl,
               const char *path,
               const char **headers,
               const char *body,
@@ -373,62 +489,61 @@ int http_post(const char *host,
     request_len += strlen(body);
 
     /* TCP connect */
-    sock = tcp_connect(host, HTTPS_PORT);
+    sock = tcp_connect(host, port);
     if (sock < 0) goto done;
 
-    /* SSL handshake */
-    ssl = SSL_new(ssl_ctx);
-    if (!ssl) {
-        printf("ERROR: SSL_new failed\n");
-        goto done;
-    }
+    if (use_ssl) {
+        /* SSL handshake */
+        ssl = SSL_new(ssl_ctx);
+        if (!ssl) {
+            printf("ERROR: SSL_new failed\n");
+            goto done;
+        }
 
-    SSL_set_fd(ssl, sock);
-    SSL_set_tlsext_host_name(ssl, host);
+        SSL_set_fd(ssl, sock);
+        SSL_set_tlsext_host_name(ssl, host);
 
-    {
-        int ssl_rc = SSL_connect(ssl);
-        if (ssl_rc <= 0) {
-            int ssl_err = SSL_get_error(ssl, ssl_rc);
-            unsigned long ossl_err = ERR_get_error();
-            char err_buf[256];
-            ERR_error_string_n(ossl_err, err_buf, sizeof(err_buf));
-            printf("ERROR: SSL handshake failed (ssl_err=%d)\n", ssl_err);
-            printf("  OpenSSL: %s\n", err_buf);
+        {
+            int ssl_rc = SSL_connect(ssl);
+            if (ssl_rc <= 0) {
+                int ssl_err = SSL_get_error(ssl, ssl_rc);
+                unsigned long ossl_err = ERR_get_error();
+                char err_buf[256];
+                ERR_error_string_n(ossl_err, err_buf, sizeof(err_buf));
+                printf("ERROR: SSL handshake failed (ssl_err=%d)\n", ssl_err);
+                printf("  OpenSSL: %s\n", err_buf);
 
-            /* If certificate verification failed, retry without verify */
-            if (ssl_err == SSL_ERROR_SSL) {
-                printf("  Retrying without certificate verification...\n");
-                SSL_free(ssl);
-                ssl = NULL;
+                /* If certificate verification failed, retry without verify */
+                if (ssl_err == SSL_ERROR_SSL) {
+                    printf("  Retrying without certificate verification...\n");
+                    SSL_free(ssl);
+                    ssl = NULL;
 
-                /* Create a new context without verification for this connection */
-                SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, NULL);
+                    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, NULL);
 
-                ssl = SSL_new(ssl_ctx);
-                if (ssl) {
-                    SSL_set_fd(ssl, sock);
-                    SSL_set_tlsext_host_name(ssl, host);
-                    ssl_rc = SSL_connect(ssl);
-                    if (ssl_rc <= 0) {
-                        ssl_err = SSL_get_error(ssl, ssl_rc);
-                        ossl_err = ERR_get_error();
-                        ERR_error_string_n(ossl_err, err_buf, sizeof(err_buf));
-                        printf("ERROR: SSL retry also failed (ssl_err=%d)\n", ssl_err);
-                        printf("  OpenSSL: %s\n", err_buf);
-                        /* Restore verify */
+                    ssl = SSL_new(ssl_ctx);
+                    if (ssl) {
+                        SSL_set_fd(ssl, sock);
+                        SSL_set_tlsext_host_name(ssl, host);
+                        ssl_rc = SSL_connect(ssl);
+                        if (ssl_rc <= 0) {
+                            ssl_err = SSL_get_error(ssl, ssl_rc);
+                            ossl_err = ERR_get_error();
+                            ERR_error_string_n(ossl_err, err_buf, sizeof(err_buf));
+                            printf("ERROR: SSL retry also failed (ssl_err=%d)\n", ssl_err);
+                            printf("  OpenSSL: %s\n", err_buf);
+                            SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, NULL);
+                            goto done;
+                        }
+                        printf("  SSL connected (without cert verify)\n");
+                    } else {
                         SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, NULL);
                         goto done;
                     }
-                    printf("  SSL connected (without cert verify)\n");
-                } else {
                     SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, NULL);
+                } else {
                     goto done;
                 }
-                /* Restore verify for future connections */
-                SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, NULL);
-            } else {
-                goto done;
             }
         }
     }
@@ -436,8 +551,9 @@ int http_post(const char *host,
     /* Log outgoing request body */
     api_log_write("REQUEST", body, 0);
 
-    /* Send request (loop for partial writes) */
-    {
+    /* Send request */
+    if (use_ssl) {
+        /* SSL write loop for partial writes */
         int total_written = 0;
         while (total_written < request_len) {
             int n = SSL_write(ssl, request + total_written,
@@ -446,7 +562,6 @@ int http_post(const char *host,
                 int ssl_err = SSL_get_error(ssl, n);
                 if (ssl_err == SSL_ERROR_WANT_WRITE ||
                     ssl_err == SSL_ERROR_WANT_READ) {
-                    /* Retry after brief wait */
                     fd_set wfds;
                     struct timeval tv;
                     FD_ZERO(&wfds);
@@ -462,12 +577,28 @@ int http_post(const char *host,
             }
             total_written += n;
         }
+    } else {
+        /* Plain socket write loop */
+        int total_written = 0;
+        while (total_written < request_len) {
+            int n = send(sock, request + total_written,
+                         request_len - total_written, 0);
+            if (n <= 0) {
+                printf("ERROR: send() failed (written %d/%d)\n",
+                       total_written, request_len);
+                goto done;
+            }
+            total_written += n;
+        }
     }
 
     /* Read response (non-blocking with event callback) */
     {
         int aborted = 0;
-        raw_response = ssl_read_all(ssl, sock, &raw_len, &aborted);
+        if (use_ssl)
+            raw_response = ssl_read_all(ssl, sock, &raw_len, &aborted);
+        else
+            raw_response = plain_read_all(sock, &raw_len, &aborted);
         if (aborted) {
             printf("  [http] Request aborted by user\n");
             ret = -2;  /* Distinguish abort from error */

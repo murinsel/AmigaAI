@@ -77,6 +77,11 @@ static int  assign_ok = 0;  /* Non-zero if AmigaAI: assign was created */
 /* API log path (set via CLI APILOG= or ToolType APILOG=) */
 static char api_log_file[256] = "";
 
+/* CLI/ToolType overrides for API endpoint (applied after config_load) */
+static char *tt_apihost = NULL;
+static int   tt_apiport = 0;
+static int   tt_nossl   = 0;
+
 /* BPTR to the original cli_CommandDir, so we can restore it on exit */
 static BPTR orig_cmd_dir = 0;
 static int  path_setup_done = 0;
@@ -691,6 +696,273 @@ static const char *model_list[] = {
     "claude-opus-4-6",
     NULL
 };
+
+static void handle_endpoint_settings(void)
+{
+    Object *win, *str_host, *str_port, *str_path, *chk_ssl;
+    Object *ok_btn, *cancel_btn, *anthropic_btn, *openrouter_btn, *hgrp, *vgrp;
+    ULONG open, sigs;
+    int done = 0;
+    struct IClass *wincl;
+    char port_buf[16];
+
+    snprintf(port_buf, sizeof(port_buf), "%d", app_config.api_port);
+
+    {
+        ULONG p[1];
+        p[0] = (ULONG)GetString(MSG_BTN_OK);
+        ok_btn = MUI_MakeObjectA(MUIO_Button, p);
+    }
+    {
+        ULONG p[1];
+        p[0] = (ULONG)GetString(MSG_BTN_CANCEL);
+        cancel_btn = MUI_MakeObjectA(MUIO_Button, p);
+    }
+    {
+        ULONG p[1];
+        p[0] = (ULONG)GetString(MSG_ENDPOINT_ANTHROPIC);
+        anthropic_btn = MUI_MakeObjectA(MUIO_Button, p);
+    }
+    {
+        ULONG p[1];
+        p[0] = (ULONG)GetString(MSG_ENDPOINT_OPENROUTER);
+        openrouter_btn = MUI_MakeObjectA(MUIO_Button, p);
+    }
+    if (!ok_btn || !cancel_btn || !anthropic_btn || !openrouter_btn) return;
+
+    /* Host string gadget */
+    {
+        struct TagItem tags[] = {
+            { MUIA_Frame, MUIV_Frame_String },
+            { MUIA_String_Contents, (ULONG)app_config.api_host },
+            { MUIA_String_MaxLen, CONFIG_MAX_HOST_LEN },
+            { MUIA_CycleChain, (ULONG)TRUE },
+            { TAG_DONE, 0 }
+        };
+        str_host = MUI_NewObjectA((CONST_STRPTR)MUIC_String, tags);
+    }
+
+    /* Port string gadget */
+    {
+        struct TagItem tags[] = {
+            { MUIA_Frame, MUIV_Frame_String },
+            { MUIA_String_Contents, (ULONG)port_buf },
+            { MUIA_String_Accept, (ULONG)"0123456789" },
+            { MUIA_String_MaxLen, 6 },
+            { MUIA_CycleChain, (ULONG)TRUE },
+            { TAG_DONE, 0 }
+        };
+        str_port = MUI_NewObjectA((CONST_STRPTR)MUIC_String, tags);
+    }
+
+    /* Path string gadget */
+    {
+        struct TagItem tags[] = {
+            { MUIA_Frame, MUIV_Frame_String },
+            { MUIA_String_Contents, (ULONG)app_config.api_path },
+            { MUIA_String_MaxLen, CONFIG_MAX_PATH_LEN },
+            { MUIA_CycleChain, (ULONG)TRUE },
+            { TAG_DONE, 0 }
+        };
+        str_path = MUI_NewObjectA((CONST_STRPTR)MUIC_String, tags);
+    }
+
+    /* SSL checkmark */
+    {
+        struct TagItem tags[] = {
+            { MUIA_InputMode, MUIV_InputMode_Toggle },
+            { MUIA_Image_Spec, MUII_CheckMark },
+            { MUIA_Image_FreeVert, TRUE },
+            { MUIA_Selected, (ULONG)app_config.api_ssl },
+            { MUIA_Background, MUII_ButtonBack },
+            { MUIA_ShowSelState, FALSE },
+            { MUIA_CycleChain, (ULONG)TRUE },
+            { TAG_DONE, 0 }
+        };
+        chk_ssl = MUI_NewObjectA((CONST_STRPTR)MUIC_Image, tags);
+    }
+
+    if (!str_host || !str_port || !str_path || !chk_ssl) return;
+
+    /* Buttons row */
+    {
+        struct TagItem tags[] = {
+            { MUIA_Group_Horiz, TRUE },
+            { MUIA_Group_Child, (ULONG)ok_btn },
+            { MUIA_Group_Child, (ULONG)anthropic_btn },
+            { MUIA_Group_Child, (ULONG)openrouter_btn },
+            { MUIA_Group_Child, (ULONG)cancel_btn },
+            { TAG_DONE, 0 }
+        };
+        hgrp = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, tags);
+    }
+
+    /* Vertical layout: labels + fields */
+    {
+        ULONG lbl_p[1];
+        Object *lbl_host, *lbl_port, *lbl_path, *lbl_ssl;
+        Object *row_host, *row_port, *row_path, *row_ssl;
+
+        lbl_p[0] = (ULONG)GetString(MSG_ENDPOINT_HOST);
+        lbl_host = MUI_MakeObjectA(MUIO_Label, lbl_p);
+        lbl_p[0] = (ULONG)GetString(MSG_ENDPOINT_PORT);
+        lbl_port = MUI_MakeObjectA(MUIO_Label, lbl_p);
+        lbl_p[0] = (ULONG)GetString(MSG_ENDPOINT_PATH);
+        lbl_path = MUI_MakeObjectA(MUIO_Label, lbl_p);
+        lbl_p[0] = (ULONG)"SSL/TLS";
+        lbl_ssl = MUI_MakeObjectA(MUIO_Label, lbl_p);
+
+        {
+            struct TagItem t[] = {
+                { MUIA_Group_Horiz, TRUE },
+                { MUIA_Group_Child, (ULONG)lbl_host },
+                { MUIA_Group_Child, (ULONG)str_host },
+                { TAG_DONE, 0 }
+            };
+            row_host = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, t);
+        }
+        {
+            struct TagItem t[] = {
+                { MUIA_Group_Horiz, TRUE },
+                { MUIA_Group_Child, (ULONG)lbl_port },
+                { MUIA_Group_Child, (ULONG)str_port },
+                { TAG_DONE, 0 }
+            };
+            row_port = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, t);
+        }
+        {
+            struct TagItem t[] = {
+                { MUIA_Group_Horiz, TRUE },
+                { MUIA_Group_Child, (ULONG)lbl_path },
+                { MUIA_Group_Child, (ULONG)str_path },
+                { TAG_DONE, 0 }
+            };
+            row_path = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, t);
+        }
+        {
+            struct TagItem t[] = {
+                { MUIA_Group_Horiz, TRUE },
+                { MUIA_Group_Child, (ULONG)lbl_ssl },
+                { MUIA_Group_Child, (ULONG)chk_ssl },
+                { TAG_DONE, 0 }
+            };
+            row_ssl = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, t);
+        }
+        {
+            struct TagItem tags[] = {
+                { MUIA_Group_Child, (ULONG)row_host },
+                { MUIA_Group_Child, (ULONG)row_port },
+                { MUIA_Group_Child, (ULONG)row_path },
+                { MUIA_Group_Child, (ULONG)row_ssl },
+                { MUIA_Group_Child, (ULONG)hgrp },
+                { TAG_DONE, 0 }
+            };
+            vgrp = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, tags);
+        }
+    }
+    if (!vgrp) return;
+
+    wincl = MUI_GetClass((CONST_STRPTR)MUIC_Window);
+    {
+        struct TagItem tags[] = {
+            { MUIA_Window_Title, (ULONG)GetString(MSG_MENU_ENDPOINT) },
+            { MUIA_Window_ID, MAKE_ID('E','N','D','P') },
+            { MUIA_Window_RootObject, (ULONG)vgrp },
+            { TAG_DONE, 0 }
+        };
+        win = NewObjectA(wincl, NULL, tags);
+    }
+    if (!win) { MUI_FreeClass(wincl); return; }
+
+    DoMethodA(app_gui.app, (Msg)&(struct { ULONG id; ULONG obj; }){
+        OM_ADDMEMBER, (ULONG)win });
+
+    /* Notifications */
+    DoMethod(ok_btn, MUIM_Notify, MUIA_Pressed, FALSE,
+             (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 100);
+    DoMethod(cancel_btn, MUIM_Notify, MUIA_Pressed, FALSE,
+             (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 101);
+    DoMethod(anthropic_btn, MUIM_Notify, MUIA_Pressed, FALSE,
+             (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 102);
+    DoMethod(openrouter_btn, MUIM_Notify, MUIA_Pressed, FALSE,
+             (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 103);
+    DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE,
+             (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 101);
+
+    xset(win, MUIA_Window_Open, TRUE);
+    open = xget(win, MUIA_Window_Open);
+    if (!open) goto cleanup;
+
+    while (!done) {
+        ULONG id = DoMethod(app_gui.app, MUIM_Application_NewInput,
+                            (ULONG)&sigs);
+        switch (id) {
+        case 100: { /* OK */
+            const char *host_str = NULL;
+            const char *port_str = NULL;
+            ULONG ssl_val = 0;
+            int port_val;
+
+            const char *path_str = NULL;
+
+            host_str = (const char *)xget(str_host, MUIA_String_Contents);
+            port_str = (const char *)xget(str_port, MUIA_String_Contents);
+            path_str = (const char *)xget(str_path, MUIA_String_Contents);
+            ssl_val = xget(chk_ssl, MUIA_Selected);
+
+            if (host_str && host_str[0]) {
+                strncpy(app_config.api_host, host_str,
+                        CONFIG_MAX_HOST_LEN - 1);
+                app_config.api_host[CONFIG_MAX_HOST_LEN - 1] = '\0';
+            }
+
+            if (path_str && path_str[0]) {
+                strncpy(app_config.api_path, path_str,
+                        CONFIG_MAX_PATH_LEN - 1);
+                app_config.api_path[CONFIG_MAX_PATH_LEN - 1] = '\0';
+            }
+
+            port_val = port_str ? atoi(port_str) : 0;
+            if (port_val > 0 && port_val <= 65535)
+                app_config.api_port = port_val;
+
+            app_config.api_ssl = ssl_val ? 1 : 0;
+
+            config_save(&app_config, 1);
+            gui_set_status(&app_gui, GetString(MSG_ENDPOINT_SAVED));
+            done = 1;
+            break;
+        }
+        case 101: /* Cancel */
+            done = 1;
+            break;
+        case 102: /* Anthropic preset */
+            xset(str_host, MUIA_String_Contents, (ULONG)"api.anthropic.com");
+            xset(str_port, MUIA_String_Contents, (ULONG)"443");
+            xset(str_path, MUIA_String_Contents, (ULONG)"/v1/messages");
+            xset(chk_ssl, MUIA_Selected, TRUE);
+            break;
+        case 103: /* OpenRouter preset */
+            xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
+            xset(str_port, MUIA_String_Contents, (ULONG)"443");
+            xset(str_path, MUIA_String_Contents, (ULONG)"/api/v1/messages");
+            xset(chk_ssl, MUIA_Selected, TRUE);
+            break;
+        case MUIV_Application_ReturnID_Quit:
+            done = 1;
+            break;
+        }
+        if (sigs && !done)
+            sigs = Wait(sigs);
+    }
+
+cleanup:
+    xset(win, MUIA_Window_Open, FALSE);
+    DoMethodA(app_gui.app, (Msg)&(struct { ULONG id; ULONG obj; }){
+        OM_REMMEMBER, (ULONG)win });
+    MUI_DisposeObject(win);
+    MUI_FreeClass(wincl);
+}
 
 static void handle_model_select(void)
 {
@@ -1531,6 +1803,18 @@ int main(int argc, char *argv[])
                                 sizeof(api_log_file) - 1);
                         api_log_file[sizeof(api_log_file) - 1] = '\0';
                     }
+                    tt = (char *)FindToolType(
+                            (CONST_STRPTR *)dobj->do_ToolTypes,
+                            (CONST_STRPTR)"APIHOST");
+                    if (tt) tt_apihost = strdup(tt);
+                    tt = (char *)FindToolType(
+                            (CONST_STRPTR *)dobj->do_ToolTypes,
+                            (CONST_STRPTR)"APIPORT");
+                    if (tt) tt_apiport = atoi(tt);
+                    tt = (char *)FindToolType(
+                            (CONST_STRPTR *)dobj->do_ToolTypes,
+                            (CONST_STRPTR)"NOSSL");
+                    if (tt) tt_nossl = 1;
                     FreeDiskObject(dobj);
                 }
                 CloseLibrary(IconBase);
@@ -1544,10 +1828,10 @@ int main(int argc, char *argv[])
     } else {
         /* CLI mode: parse arguments with ReadArgs */
         {
-            /* Template: CREATEICON/S,APILOG/K */
-            #define TEMPLATE "CREATEICON/S,APILOG/K"
-            enum { ARG_CREATEICON, ARG_APILOG, ARG_COUNT };
-            LONG args[ARG_COUNT] = { 0, 0 };
+            #define TEMPLATE "CREATEICON/S,APILOG/K,APIHOST/K,APIPORT/N,NOSSL/S"
+            enum { ARG_CREATEICON, ARG_APILOG, ARG_APIHOST,
+                   ARG_APIPORT, ARG_NOSSL, ARG_COUNT };
+            LONG args[ARG_COUNT] = { 0, 0, 0, 0, 0 };
             struct RDArgs *rda;
 
             rda = ReadArgs((CONST_STRPTR)TEMPLATE, args, NULL);
@@ -1564,6 +1848,12 @@ int main(int argc, char *argv[])
                             sizeof(api_log_file) - 1);
                     api_log_file[sizeof(api_log_file) - 1] = '\0';
                 }
+                if (args[ARG_APIHOST])
+                    tt_apihost = strdup((char *)args[ARG_APIHOST]);
+                if (args[ARG_APIPORT])
+                    tt_apiport = (int)*(LONG *)args[ARG_APIPORT];
+                if (args[ARG_NOSSL])
+                    tt_nossl = 1;
                 FreeArgs(rda);
             }
         }
@@ -1641,6 +1931,24 @@ int main(int argc, char *argv[])
     if (!config_load(&app_config)) {
         printf("WARNING: No API key found.\n");
         printf("Set it with: echo \"sk-ant-...\" > ENV:AmigaAI/api_key\n");
+    }
+    /* Apply CLI/ToolType overrides for API endpoint */
+    if (tt_apihost) {
+        strncpy(app_config.api_host, tt_apihost,
+                CONFIG_MAX_HOST_LEN - 1);
+        app_config.api_host[CONFIG_MAX_HOST_LEN - 1] = '\0';
+        free(tt_apihost);
+        tt_apihost = NULL;
+    }
+    if (tt_apiport > 0 && tt_apiport <= 65535)
+        app_config.api_port = tt_apiport;
+    if (tt_nossl)
+        app_config.api_ssl = 0;
+
+    if (!app_config.api_ssl || app_config.api_port != 443) {
+        printf("  API endpoint: %s:%d (%s)\n",
+               app_config.api_host, app_config.api_port,
+               app_config.api_ssl ? "HTTPS" : "HTTP");
     }
     dbg_step(6, "Config OK");
 
@@ -1749,6 +2057,10 @@ int main(int argc, char *argv[])
         case GUI_ID_SYSTEM:
             /* TODO: Open system prompt editor */
             gui_set_status(&app_gui, GetString(MSG_SYSTEM_COMING_SOON));
+            break;
+
+        case GUI_ID_ENDPOINT:
+            handle_endpoint_settings();
             break;
 
         /* Memory menu */

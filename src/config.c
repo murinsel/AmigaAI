@@ -14,6 +14,10 @@ void config_defaults(struct Config *cfg)
     cfg->max_tokens = 4096;
     cfg->system_prompt[0] = '\0';
     cfg->api_key[0] = '\0';
+    strncpy(cfg->api_host, "api.anthropic.com", CONFIG_MAX_HOST_LEN - 1);
+    cfg->api_port = 443;
+    cfg->api_ssl = 1;
+    strncpy(cfg->api_path, "/v1/messages", CONFIG_MAX_PATH_LEN - 1);
 }
 
 /* Read a single line from a file, strip trailing newline */
@@ -78,6 +82,21 @@ int config_load(struct Config *cfg)
         }
     }
 
+    /* API endpoint settings */
+    read_file_string(CONFIG_DIR_ENV "/api_host", cfg->api_host, CONFIG_MAX_HOST_LEN);
+
+    if (read_file_string(CONFIG_DIR_ENV "/api_port", buf, sizeof(buf))) {
+        int val = atoi(buf);
+        if (val > 0 && val <= 65535)
+            cfg->api_port = val;
+    }
+
+    if (read_file_string(CONFIG_DIR_ENV "/api_ssl", buf, sizeof(buf))) {
+        cfg->api_ssl = atoi(buf) ? 1 : 0;
+    }
+
+    read_file_string(CONFIG_DIR_ENV "/api_path", cfg->api_path, CONFIG_MAX_PATH_LEN);
+
     /* Check if we have an API key */
     return cfg->api_key[0] != '\0';
 }
@@ -108,6 +127,18 @@ static int save_to_dir(const struct Config *cfg, const char *dir)
         snprintf(path, sizeof(path), "%s/system_prompt", dir);
         write_file_string(path, cfg->system_prompt);
     }
+
+    snprintf(path, sizeof(path), "%s/api_host", dir);
+    write_file_string(path, cfg->api_host);
+
+    snprintf(path, sizeof(path), "%s/api_port", dir);
+    write_file_int(path, cfg->api_port);
+
+    snprintf(path, sizeof(path), "%s/api_ssl", dir);
+    write_file_int(path, cfg->api_ssl);
+
+    snprintf(path, sizeof(path), "%s/api_path", dir);
+    write_file_string(path, cfg->api_path);
 
     return 1;
 }

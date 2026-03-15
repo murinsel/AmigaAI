@@ -20,6 +20,7 @@
 #define GUI_ID_CHATLOAD 11
 #define GUI_ID_QUIT     12
 #define GUI_ID_STOP     13
+#define GUI_ID_ENDPOINT 14
 
 struct Gui {
     Object *app;

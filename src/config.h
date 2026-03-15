@@ -6,6 +6,8 @@
 
 #define CONFIG_MAX_KEY_LEN     128
 #define CONFIG_MAX_MODEL_LEN    64
+#define CONFIG_MAX_HOST_LEN    128
+#define CONFIG_MAX_PATH_LEN    128
 #define CONFIG_MAX_PROMPT_LEN 2048
 
 struct Config {
@@ -13,6 +15,10 @@ struct Config {
     char model[CONFIG_MAX_MODEL_LEN];
     char system_prompt[CONFIG_MAX_PROMPT_LEN];
     int  max_tokens;
+    char api_host[CONFIG_MAX_HOST_LEN];
+    int  api_port;
+    int  api_ssl;         /* 1 = HTTPS, 0 = plain HTTP (proxy) */
+    char api_path[CONFIG_MAX_PATH_LEN];  /* API path, e.g. /v1/messages */
 };
 
 /* Load config from ENV:AmigaAI/ */

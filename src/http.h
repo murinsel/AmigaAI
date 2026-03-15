@@ -27,14 +27,18 @@ int http_init(void);
 /* Cleanup the HTTP subsystem. Call at shutdown. */
 void http_cleanup(void);
 
-/* Perform an HTTPS POST request.
+/* Perform an HTTP/HTTPS POST request.
  * host:     Hostname (e.g. "api.anthropic.com")
+ * port:     Port number (e.g. 443 for HTTPS, 3456 for proxy)
+ * use_ssl:  1 = HTTPS with AmiSSL, 0 = plain HTTP (for local proxy)
  * path:     Request path (e.g. "/v1/messages")
  * headers:  Array of "Key: Value" strings, NULL-terminated
  * body:     POST body (JSON string)
  * response: Output structure (caller must free response->body)
  * Returns 0 on success, negative on error. */
 int http_post(const char *host,
+              int port,
+              int use_ssl,
               const char *path,
               const char **headers,
               const char *body,

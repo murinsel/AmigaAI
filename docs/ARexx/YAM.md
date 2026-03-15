@@ -617,7 +617,7 @@ MAILWRITE [VAR/K] [STEM/K] [WINDOW/N] [QUIET/S] => WINDOW/N
 Sets the "To" field.
 
 ```
-WRITETO ADDRESS/A/M [ADD/S]
+‘WRITETO "ADDRESS/A/M" [ADD/S]‘
 ```
 
 Without ADD, existing addresses are overwritten.
@@ -667,7 +667,7 @@ WRITEREPLYTO ADDRESS/A
 Sets the subject.
 
 ```
-WRITESUBJECT SUBJECT/A
+'WRITESUBJECT "SUBJECT/A"'
 ```
 
 ```rexx
@@ -717,7 +717,7 @@ WRITEOPTIONS [DELETE/S] [RECEIPT/S] [NOTIF/S] [ADDINFO/S]
 Passes an ARexx command to the internal TextEditor (TextEditor.mcc).
 
 ```
-WRITEEDITOR COMMAND/A
+‘WRITEEDITOR "COMMAND/A"‘
 ```
 
 #### TextEditor.mcc ARexx Commands
@@ -776,30 +776,30 @@ Position abbreviations: SOF=Start Of File, EOF=End Of File, SOL=Start Of Line, E
 
 ```rexx
 /* Insert text at cursor position */
-WRITEEDITOR 'TEXT Hello World'
+WRITEEDITOR "TEXT Hello World"
 
 /* Go to beginning of file */
-WRITEEDITOR 'POSITION SOF'
+WRITEEDITOR "POSITION SOF"
 
 /* Go to line 10, column 5 */
-WRITEEDITOR 'GOTOLINE 10'
-WRITEEDITOR 'GOTOCOLUMN 5'
+WRITEEDITOR "GOTOLINE 10"
+WRITEEDITOR "GOTOCOLUMN 5"
 
 /* Select and copy a line */
-WRITEEDITOR 'POSITION SOL'
-WRITEEDITOR 'MARK ON'
-WRITEEDITOR 'POSITION EOL'
-WRITEEDITOR 'COPY'
-WRITEEDITOR 'MARK OFF'
+WRITEEDITOR "POSITION SOL"
+WRITEEDITOR "MARK ON"
+WRITEEDITOR "POSITION EOL"
+WRITEEDITOR "COPY"
+WRITEEDITOR "MARK OFF"
 
 /* Get the current line text */
-WRITEEDITOR 'GETLINE'
+WRITEEDITOR "GETLINE"
 SAY RESULT
 
 /* Get cursor position */
-WRITEEDITOR 'GETCURSOR Line'
+WRITEEDITOR "GETCURSOR Line"
 line = RESULT
-WRITEEDITOR 'GETCURSOR Column'
+WRITEEDITOR "GETCURSOR Column"
 col = RESULT
 SAY 'Cursor at line' line 'column' col
 ```
@@ -1008,7 +1008,7 @@ window = RESULT
 'WRITETO "recipient@example.com"'
 'WRITESUBJECT "Test message"'
 'WRITEATTACH "WORK:dokument.pdf" DESC "Document" ENCMODE b64'
-'WRITESEND'
+WRITESEND
 ```
 
 ### Mailbox Statistics

@@ -10,7 +10,7 @@
 ; ============================================================
 
 (welcome
-    "Welcome to the AmigaAI installer.\n\n"
+    "Welcome to the AmigaAI 0.9 installer.\n\n"
     "AmigaAI is a native Claude AI agent\n"
     "for AmigaOS 3.x (68020+)."
 )
@@ -265,6 +265,14 @@
 ; ============================================================
 ; Copy Instructions
 ; ============================================================
+
+(if (exists "instructions/Programs.md")
+    (copyfiles
+        (prompt "Copying Programs list...")
+        (source "instructions/Programs.md")
+        (dest (tackon #installdir "instructions"))
+    )
+)
 
 (copyfiles
     (prompt "Copying ARexx instructions...")

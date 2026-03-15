@@ -85,14 +85,7 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
     /* Add Amiga context hint for the agent */
     if (ctx->tools && pos < bufsize - 256) {
         const char *hint =
-            "\n\nCRITICAL RULE: You MUST always use tool calls to complete "
-            "your tasks. NEVER end your response with a description of "
-            "what you will do next — instead, DO it by calling the "
-            "appropriate tool in the SAME response. If you say "
-            "'Now I will create a script' or 'Next I will send the mail', "
-            "you MUST include the tool call that does it. A response "
-            "without a tool call means the task STOPS.\n\n"
-            "You are running on an Amiga computer with AmigaOS 3.x. "
+            "\n\nYou are running on an Amiga computer with AmigaOS 3.x. "
             "This is NOT Unix/Linux! There is no bash, no cat, no grep, "
             "no ls, no cp, no rm, no mkdir, no echo, no pipe operators. "
             "Use only AmigaDOS commands: List, Type, Copy, Delete, "
@@ -101,11 +94,11 @@ static const char *build_system_prompt(struct Claude *ctx, char *buf, int bufsiz
             "List <dir> PAT <pattern> ALL LFORMAT \"%p%n\" "
             "(%p=path, %n=name, clean output with full paths). "
             "Search is ONLY for searching text INSIDE files. "
-            "Use AmigaDOS paths (SYS:, WORK:, RAM:, S:, AmigaAI:, etc). "
+            "Use AmigaDOS volumes (SYS:, WORK:, RAM:, S:, AmigaAI:, etc). "
             "AmigaAI: is an assign pointing to the application directory. "
             "Amiga DOS, Shell and ARexx escape sequences: *n=newline, *t=tab, *\"=quote, "
             "**=literal asterisk, *xx=hex char. Use *n for line breaks "
-            "in Amiga DOS, Shell and ARexx strings (NOT \\n which is Unix). "
+            "in AmigaDOS, Shell and ARexx strings (NOT \\n which is Unix). "
             "You have tools to execute AmigaDOS commands, send ARexx commands "
             "to running applications, and read/write files. "
             "When using identify_file: always set max_results when the user "
@@ -175,7 +168,10 @@ static char *api_call(struct Claude *ctx, char **error_msg)
         for (attempt = 0; attempt <= max_retries; attempt++) {
             memset(&response, 0, sizeof(response));
 
-            rc = http_post(CLAUDE_API_HOST, CLAUDE_API_PATH,
+            rc = http_post(ctx->config->api_host,
+                           ctx->config->api_port,
+                           ctx->config->api_ssl,
+                           ctx->config->api_path,
                            headers, request_json, &response);
 
             if (rc != 0) {

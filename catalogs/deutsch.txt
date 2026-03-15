@@ -57,7 +57,7 @@ Sende ARexx-Befehl...
 26
 Kein API-Schl\xfcssel - in Einstellungen konfigurieren
 27
-Willkommen bei AmigaAI 0.2
+Willkommen bei AmigaAI 0.3
 28
 Nachricht eingeben und Enter dr\xfccken oder Senden klicken.
 29
@@ -184,3 +184,17 @@ Systemvorgabe-Editor - kommt bald
 Claude KI-Agent f\xfcr AmigaOS
 90
 API-Schl\xfcssel setzen: echo "key" > ENV:AmigaAI/api_key
+91
+API-Endpunkt...
+92
+Host:
+93
+Port:
+94
+API-Endpunkt gespeichert
+95
+_Anthropic
+96
+Pfad:
+97
+Open_Router

@@ -87,6 +87,7 @@ char *json_build_request(const char *model,
 
     cJSON_AddStringToObject(root, "model", model);
     cJSON_AddNumberToObject(root, "max_tokens", max_tokens);
+    cJSON_AddFalseToObject(root, "stream");
 
     if (system && system[0]) {
         char *sys_utf8 = iso8859_to_utf8(system);

@@ -107,6 +107,13 @@ static const char * const default_strings[MSG_COUNT] = {
     /* MSG_SYSTEM_COMING_SOON */  "System prompt editor - coming soon",
     /* MSG_APP_DESCRIPTION    */  "Claude AI Agent for AmigaOS",
     /* MSG_APIKEY_HINT        */  "Set API key via: echo \"key\" > ENV:AmigaAI/api_key",
+    /* MSG_MENU_ENDPOINT      */  "API Endpoint...",
+    /* MSG_ENDPOINT_HOST      */  "Host:",
+    /* MSG_ENDPOINT_PORT      */  "Port:",
+    /* MSG_ENDPOINT_SAVED     */  "API endpoint saved",
+    /* MSG_ENDPOINT_ANTHROPIC */  "_Anthropic",
+    /* MSG_ENDPOINT_PATH      */  "Path:",
+    /* MSG_ENDPOINT_OPENROUTER*/  "Open_Router",
 };
 
 const char *GetString(int id)

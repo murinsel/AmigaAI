@@ -26,7 +26,7 @@ This file lists programs installed on this Amiga. Use this to know what software
 
 | Program | Path | ARexx Port | Description |
 |---------|------|------------|-------------|
-| Deluxe Music | Work:DeluxeMusic/DMusic2 | DMUSIC | Music notation and playback (Deluxe Music 2.0). ARexx docs: AmigaAI:instructions/ARexx/DMusic.md |
+| Deluxe Music | Work:DeluxeMusic/DMusic | DMUSIC | Music notation and playback (Deluxe Music 2.0). ARexx docs: AmigaAI:instructions/ARexx/DMusic.md |
 
 ## Graphics & DTP
 

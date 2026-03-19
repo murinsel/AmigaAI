@@ -1,0 +1,681 @@
+## QUIT
+QUIT FORCE/S
+
+Quit DeluxeMusic.
+- FORCE -- Quit without asking to save unsaved changes
+
+## NEW
+NEW
+
+Open a new blank score document.
+
+## OPEN
+OPEN FILENAME,FORCE/S
+
+Open an existing score file.
+- FILENAME -- Path to the score file (CMUS, DMCS, or MIDI format)
+- FORCE -- Discard unsaved changes without asking
+
+Example: OPEN "Work:Scores/MySong.CMUS"
+
+## CLOSE
+CLOSE FORCE/S
+
+Close the current score.
+- FORCE -- Close without asking to save
+
+## SAVE
+SAVE
+
+Save the current score to its existing filename.
+
+## SAVEAS
+SAVEAS FILENAME,FORMAT/K,EMBEDSAMPLES/K,FORCE/S
+
+Save the current score with options.
+- FILENAME -- Destination path
+- FORMAT -- File format: CMUS (default), DMCS, MIDI
+- EMBEDSAMPLES -- YES or NO. Embed instrument samples in the file (for distribution)
+- FORCE -- Overwrite without asking
+
+Example: SAVEAS "Work:Scores/Song.CMUS" FORMAT CMUS EMBEDSAMPLES YES
+
+## REVERT
+REVERT FORCE/S
+
+Revert to previously saved version of the score.
+- FORCE -- Revert without confirmation
+
+## PRINT
+PRINT OPTIONS/S
+
+Print the score.
+- OPTIONS -- Open the Print As... dialog instead of printing directly
+
+## UNDO
+UNDO
+
+Undo the last operation.
+
+## COPY
+COPY
+
+Copy selected items to the clipboard.
+
+## CUT
+CUT
+
+Cut selected items to the clipboard.
+
+## PASTE
+PASTE
+
+Paste from clipboard into the score at the cursor position.
+
+## PLAY
+PLAY SECTION/S
+
+Play the score.
+- SECTION -- Play only the currently selected section (between section bars)
+
+## STOP
+STOP
+
+Stop playback.
+
+## RESUME
+RESUME
+
+Resume playback from where it was last stopped.
+
+## CHANGEWINDOW
+CHANGEWINDOW LEFT/N,TOP/N,WIDTH/N,HEIGHT/N
+
+Move and resize the current window.
+- LEFT -- X position in pixels
+- TOP -- Y position in pixels
+- WIDTH -- Width in pixels
+- HEIGHT -- Height in pixels
+
+## SIZEWINDOW
+SIZEWINDOW WIDTH/N,HEIGHT/N
+
+Resize the main document window.
+- WIDTH -- New width in pixels
+- HEIGHT -- New height in pixels
+
+## WINDOW
+WINDOW NAMES/M,OPEN/S,CLOSE/S,SNAPSHOT/S,ACTIVATE/S,MIN/S,MAX/S,FRONT/S,BACK/S,PREV/S,NEXT/S
+
+Open, close, activate, or resize named command windows.
+- NAMES -- Window name(s): TOOL, INSTRUMENT, PALETTE, TEMPO, etc.
+- OPEN/CLOSE -- Open or close the window
+- SNAPSHOT -- Save current position/size
+- ACTIVATE -- Bring to front and make active
+- MIN/MAX -- Minimize or maximize
+- FRONT/BACK -- Move in front of or behind other windows
+- PREV/NEXT -- Cycle through open document windows
+
+Example: WINDOW TOOL OPEN
+Example: WINDOW INSTRUMENT CLOSE
+
+## MOVEWINDOW
+MOVEWINDOW LEFT/N,TOP/N
+
+Move a window to a new position.
+- LEFT -- X position in pixels
+- TOP -- Y position in pixels
+
+## SCREENTOFRONT
+SCREENTOFRONT
+
+Move the DeluxeMusic screen to the front.
+
+## SCREENTOBACK
+SCREENTOBACK
+
+Move the DeluxeMusic screen to the back.
+
+## LOCKDISPLAY
+LOCKDISPLAY
+
+Inhibit screen refreshes. Use during batch ARexx operations for speed.
+Always pair with UNLOCKDISPLAY.
+
+## UNLOCKDISPLAY
+UNLOCKDISPLAY
+
+Re-enable screen refreshes after LOCKDISPLAY.
+
+## UPDATEDISPLAY
+UPDATEDISPLAY FORCE/S
+
+Refresh the display.
+- FORCE -- Force complete redraw
+
+## LOCKGUI
+LOCKGUI
+
+Inhibit all keyboard and mouse input. Use during batch ARexx operations.
+Always pair with UNLOCKGUI.
+
+## UNLOCKGUI
+UNLOCKGUI
+
+Re-enable keyboard and mouse input after LOCKGUI.
+
+## BEEPSCREEN
+BEEPSCREEN
+
+Beep or flash the screen.
+
+## SETSTATUSBAR
+SETSTATUSBAR TITLE
+
+Place a message in the program's title bar.
+- TITLE -- Text to display
+
+Example: SETSTATUSBAR "Processing..."
+
+## SAVESETTINGS
+SAVESETTINGS
+
+Save the GUI settings (window positions, macro assignments, etc.) to tooltypes.
+
+## SETTOOL
+SETTOOL TOOL/A
+
+Select a tool in the tool window.
+- TOOL -- Tool name: NOTE, REST, TIE, TEXT, DYNAMIC, TEMPO, CLEF, KEY, TIME, BAR, STAFF, BEAM, TUPLET, SLUR, CRESCENDO, DECRESCENDO, 8VA, 8VB, PEDAL, REHEARSAL
+
+Example: SETTOOL NOTE
+
+## SETACCIDENTAL
+SETACCIDENTAL VALUE/A,UPDATE/S
+
+Change the accidental setting in the tool window.
+- VALUE -- NATURAL, SHARP, FLAT, DOUBLESHARP, DOUBLEFLAT, NONE
+- UPDATE -- Also update any currently selected notes
+
+## SETDIVISION
+SETDIVISION VALUE/A,UPDATE/S
+
+Change the note duration setting.
+- VALUE -- WHOLE, HALF, QUARTER, EIGHTH, SIXTEENTH, THIRTYSECOND, SIXTYFOURTH
+- UPDATE -- Also update any currently selected notes
+
+Example: SETDIVISION QUARTER
+
+## SETDOT
+SETDOT VALUE/A,UPDATE/S
+
+Change the dotted note setting.
+- VALUE -- NONE, DOT, DOUBLEDOT
+- UPDATE -- Also update any currently selected notes
+
+## SETDYNAMIC
+SETDYNAMIC VALUE/A,UPDATE/S
+
+Change the dynamics setting.
+- VALUE -- Numeric value 0-127 (MIDI velocity), or PPP, PP, P, MP, MF, F, FF, FFF
+- UPDATE -- Also update any currently selected notes
+
+## SETTUPLET
+SETTUPLET VALUE/A,UPDATE/S
+
+Change the tuplet setting.
+- VALUE -- NONE, TRIPLET, or a numeric ratio
+- UPDATE -- Also update any currently selected notes
+
+## REQUESTNOTIFY
+REQUESTNOTIFY TITLE/K,PROMPT
+
+Open a 1-button (OK) requester to display a message.
+- TITLE -- Window title
+- PROMPT -- Message text
+
+Example: REQUESTNOTIFY TITLE "Info" "Score has 42 measures"
+
+## REQUESTRESPONSE
+REQUESTRESPONSE TITLE/K,PROMPT,DEFAULT/K/N,BUTTONS/K
+
+Open a 2-button requester for yes/no questions. Returns 1 or 0 in RESULT.
+- TITLE -- Window title
+- PROMPT -- Question text
+- DEFAULT -- Default button (1=left, 0=right)
+- BUTTONS -- Button labels separated by |
+
+Example: REQUESTRESPONSE TITLE "Confirm" "Transpose all?" BUTTONS "Yes|No"
+
+## REQUESTNUM
+REQUESTNUM TITLE/K,PROMPT,DEFAULT/K/N,BUTTONS/K
+
+Prompt the user for a number. Returns the number in RESULT.
+- TITLE -- Window title
+- PROMPT -- Prompt text
+- DEFAULT -- Default value
+- BUTTONS -- Button labels
+
+## REQUESTSTRING
+REQUESTSTRING TITLE/K,PROMPT,DEFAULT/K,BUTTONS/K
+
+Prompt the user for a string. Returns the string in RESULT.
+- TITLE -- Window title
+- PROMPT -- Prompt text
+- DEFAULT -- Default string value
+- BUTTONS -- Button labels
+
+## REQUESTFILE
+REQUESTFILE TITLE/K,PATH/K,FILE/K,PATTERN/K
+
+Prompt the user for a filename. Returns the full path in RESULT.
+- TITLE -- Requester title
+- PATH -- Initial directory
+- FILE -- Initial filename
+- PATTERN -- AmigaDOS pattern filter (e.g. #?.CMUS)
+
+Example: REQUESTFILE TITLE "Open Score" PATH "Work:Scores" PATTERN "#?.CMUS"
+
+## GOTO
+GOTO TRACK/K/N,STAFF/K/N,MEASURE/K/N,CHORD/K/N,CLOCK/K/N,HIDDEN/S
+
+Move the cursor to a specified location.
+- TRACK -- Track number (1-based)
+- STAFF -- Staff number within track (1-based)
+- MEASURE -- Measure number (1-based)
+- CHORD -- Chord position within measure
+- CLOCK -- Clock tick position within measure
+- HIDDEN -- Allow moving to hidden items
+
+Example: GOTO MEASURE 5 STAFF 1
+Example: GOTO TRACK 2 MEASURE 1
+
+## POSITION
+POSITION SOF/S,EOF/S,SOM/S,EOM/S,HIDDEN/S
+
+Move cursor to a boundary position.
+- SOF -- Start of file (first item in score)
+- EOF -- End of file (last item in score)
+- SOM -- Start of current measure
+- EOM -- End of current measure
+- HIDDEN -- Allow positioning at hidden items
+
+Example: POSITION SOF
+
+## NEXT
+NEXT EVENT/S,NOTE/S,INTERVAL/S,CHORD/S,MEASURE/S,STAFF/S,TRACK/S,SELECTED/N,HIDDEN/S,COUNT/N
+
+Move cursor to the next item.
+- EVENT -- Next event of any type
+- NOTE -- Next note
+- INTERVAL -- Next interval/note within a chord
+- CHORD -- Next chord position
+- MEASURE -- Next measure
+- STAFF -- Next staff
+- TRACK -- Next track
+- SELECTED -- Move to next selected (1) or unselected (0) item
+- HIDDEN -- Include hidden items
+- COUNT -- Number of steps to move
+
+Example: NEXT NOTE
+Example: NEXT MEASURE COUNT 4
+
+## PREVIOUS
+PREVIOUS EVENT/S,NOTE/S,INTERVAL/S,CHORD/S,MEASURE/S,STAFF/S,TRACK/S,SELECTED/N,HIDDEN/S,COUNT/N
+
+Move cursor to the previous item. Same parameters as NEXT.
+
+Example: PREVIOUS MEASURE
+
+## SELECTITEM
+SELECTITEM ADD/S,REMOVE/S,TOGGLE/S
+
+Select the item after the cursor.
+- ADD -- Add to current selection (don't deselect others)
+- REMOVE -- Remove from selection
+- TOGGLE -- Toggle selection state
+
+## SELECTALL
+SELECTALL
+
+Select all items in the score.
+
+## DESELECTALL
+DESELECTALL
+
+Deselect all selected items.
+
+## INSERTITEM
+INSERTITEM TYPE,TRACK/K/N,DURATION/K,CLOCKS/K/N,DOTS/K/N,TUPLET/K/N,ACCIDENTAL/K,OCTAVE/K/N,LINE/K/N,PITCH/K/N,LETTER/K,NOTESTEM/K,LOUDNESS/K/N,FONT/K,RATE/K/N,SELECTED/N,HIDDEN/S,NOFIX/S
+
+Add an item to the score at the cursor position.
+- TYPE -- Item type: NOTE, REST, BAR, TEXT, DYNAMIC, TEMPO, CLEF, KEY, TIME, REHEARSAL
+- TRACK -- Target track number
+- DURATION -- WHOLE, HALF, QUARTER, EIGHTH, SIXTEENTH, THIRTYSECOND, SIXTYFOURTH
+- CLOCKS -- Duration in clock ticks (alternative to DURATION)
+- DOTS -- Number of dots (0, 1, or 2)
+- TUPLET -- Tuplet ratio (e.g. 3 for triplet)
+- ACCIDENTAL -- NATURAL, SHARP, FLAT, DOUBLESHARP, DOUBLEFLAT, NONE
+- OCTAVE -- Octave number (0-9, middle C = octave 4)
+- LINE -- Staff line position
+- PITCH -- MIDI pitch number (0-127, middle C = 60)
+- LETTER -- Note letter: C, D, E, F, G, A, B
+- NOTESTEM -- UP, DOWN, or AUTO
+- LOUDNESS -- MIDI velocity (0-127)
+- FONT -- Text font name (for TEXT type)
+- RATE -- Tempo in BPM (for TEMPO type)
+- SELECTED -- 1 to create as selected
+- HIDDEN -- Create as hidden item
+- NOFIX -- Disable re-sorting (use with RESORTEVENTS for batch operations)
+
+Example: INSERTITEM NOTE LETTER C OCTAVE 4 DURATION QUARTER
+Example: INSERTITEM REST DURATION HALF
+Example: INSERTITEM TEMPO RATE 120
+
+## INSERTMEASURE
+INSERTMEASURE
+
+Add a new empty measure after the current measure.
+
+## CLEAR
+CLEAR FORCE/S
+
+Delete all data from the score.
+- FORCE -- Clear without confirmation
+
+## ERASE
+ERASE
+
+Delete all currently selected items.
+
+## CLEARMOD
+CLEARMOD
+
+Remove all accidentals and tuplets from selected items.
+
+## DELBACKWD
+DELBACKWD
+
+Delete the item before the cursor.
+
+## DELFWD
+DELFWD
+
+Delete the item after the cursor.
+
+## DELETEMEASURE
+DELETEMEASURE COUNT/N
+
+Delete measure(s) starting from the current measure.
+- COUNT -- Number of measures to delete (default: 1)
+
+## CHANGEITEM
+CHANGEITEM TYPE,TRACK/K/N,DURATION/K,CLOCKS/K/N,DOTS/K/N,TUPLET/K/N,ACCIDENTAL/K,OCTAVE/K/N,LINE/K/N,PITCH/K/N,LETTER/K,NOTESTEM/K,LOUDNESS/K/N,FONT/K,RATE/K/N,SELECTED/N,HIDDEN/S,NOFIX/S
+
+Modify the item after the cursor. Same parameters as INSERTITEM.
+Only specified parameters are changed; others remain as they are.
+- NOFIX -- Disable re-sorting during batch edits (use with RESORTEVENTS)
+
+Example: CHANGEITEM DURATION HALF
+Example: CHANGEITEM LETTER D OCTAVE 5
+
+## CHANGESELECTED
+CHANGESELECTED TYPE,TRACK/K/N,DURATION/K,CLOCKS/K/N,DOTS/K/N,TUPLET/K/N,ACCIDENTAL/K,OCTAVE/K/N,LINE/K/N,PITCH/K/N,LETTER/K,NOTESTEM/K,LOUDNESS/K/N,FONT/K,RATE/K/N,SELECTED/N,HIDDEN/S,NOFIX/S
+
+Modify all currently selected items. Same parameters as CHANGEITEM.
+
+Example: CHANGESELECTED LOUDNESS 100
+
+## CHANGETONE
+CHANGETONE HALFSTEP/K/N,LEVEL/K/N,OCTAVE/K/N
+
+Change the pitch of selected notes.
+- HALFSTEP -- Transpose by N half steps (positive=up, negative=down)
+- LEVEL -- Transpose by N staff levels (diatonic steps)
+- OCTAVE -- Transpose by N octaves
+
+Example: CHANGETONE HALFSTEP 7 (transpose up a fifth)
+Example: CHANGETONE OCTAVE -1 (transpose down one octave)
+
+## FLIPNOTESTEM
+FLIPNOTESTEM DIRECTION
+
+Flip the direction of selected note stems.
+- DIRECTION -- UP, DOWN, or AUTO
+
+## GROUPITEM
+GROUPITEM ACTION/A,TYPE/A,DIRECTION
+
+Add or remove grouping (ties, beams, 8va's, etc.)
+- ACTION -- ADD or REMOVE
+- TYPE -- TIE, BEAM, SLUR, 8VA, 8VB, CRESCENDO, DECRESCENDO, PEDAL
+- DIRECTION -- OPEN or CLOSE (start or end of the group)
+
+Example: GROUPITEM ADD TIE OPEN (start a tie)
+Example: GROUPITEM ADD TIE CLOSE (end the tie)
+Example: GROUPITEM ADD BEAM OPEN (start a beam group)
+
+## DOUBLETIME
+DOUBLETIME
+
+Double the duration of all selected notes (e.g. quarter -> half).
+
+## HALFTIME
+HALFTIME
+
+Halve the duration of all selected notes (e.g. quarter -> eighth).
+
+## JOINMEASURE
+JOINMEASURE
+
+Join the current measure with the next measure into one.
+
+## SPLITMEASURE
+SPLITMEASURE
+
+Split the current measure into two at the cursor position.
+
+## REALIGNMEASURE
+REALIGNMEASURE
+
+Realign note spacing in the current measure.
+
+## SETBARATTR
+SETBARATTR BEGINSECTION/S,ENDSECTION/S,ENDING1/K,ENDING2/K,BEGINREPEAT/K,ENDREPEAT/K,DOUBLEBAR/K
+
+Change bar line attributes for the current measure.
+- BEGINSECTION/ENDSECTION -- Mark section boundaries
+- ENDING1 -- First ending bracket: OPEN, CLOSE, or NONE
+- ENDING2 -- Second ending bracket: OPEN, CLOSE, or NONE
+- BEGINREPEAT -- Begin repeat: YES or NO
+- ENDREPEAT -- End repeat: YES or NO
+- DOUBLEBAR -- Double bar line: YES or NO
+
+Example: SETBARATTR BEGINREPEAT YES
+Example: SETBARATTR ENDING1 OPEN
+
+## SETCLEF
+SETCLEF TYPE/A,STAFF/N/A,START/N,END/N
+
+Change the clef for a staff.
+- TYPE -- TREBLE, BASS, ALTO, TENOR, PERCUSSION
+- STAFF -- Staff number (1-based)
+- START -- Starting measure number
+- END -- Ending measure number
+
+Example: SETCLEF TREBLE 1 1 999
+
+## SETKEYSIGNATURE
+SETKEYSIGNATURE TYPE/A,STAFF/N/A,START/N,END/N,TRANSPOSE/K
+
+Change the key signature.
+- TYPE -- Key name: C, G, D, A, E, B, F#, C#, F, Bb, Eb, Ab, Db, Gb, Cb, Am, Em, Bm, F#m, C#m, G#m, D#m, A#m, Dm, Gm, Cm, Fm, Bbm, Ebm, Abm
+- STAFF -- Staff number (1-based)
+- START -- Starting measure
+- END -- Ending measure
+- TRANSPOSE -- YES or NO. Transpose existing notes to match new key
+
+Example: SETKEYSIGNATURE G 1 1 999
+Example: SETKEYSIGNATURE Bb 1 5 999 TRANSPOSE YES
+
+## SETTIMESIGNATURE
+SETTIMESIGNATURE BEATS/N/A,DURATION/N/A,MEASURE/N
+
+Change the time signature.
+- BEATS -- Number of beats per measure
+- DURATION -- Beat duration (4=quarter, 8=eighth, 2=half, etc.)
+- MEASURE -- Starting measure number (default: current measure)
+
+Example: SETTIMESIGNATURE 3 4 (3/4 time)
+Example: SETTIMESIGNATURE 6 8 1 (6/8 from measure 1)
+
+## SETSTAFF
+SETSTAFF STAFF/N/A,ATTR/A,VALUE/A
+
+Change staff attributes.
+- STAFF -- Staff number (1-based)
+- ATTR -- Attribute name: NAME, CHANNEL, INSTRUMENT, TRANSPOSE, VOLUME, PAN, VISIBLE
+- VALUE -- New value for the attribute
+
+Example: SETSTAFF 1 NAME "Piano"
+Example: SETSTAFF 2 CHANNEL 2
+Example: SETSTAFF 1 VISIBLE YES
+
+## GETATTR
+GETATTR OBJECT/A,NAME,FIELD
+
+Get information about DeluxeMusic's status. Returns value in RESULT.
+- OBJECT -- Object type: APPLICATION, DOCUMENT, SCORE, WINDOW
+- NAME -- Object name (if applicable)
+- FIELD -- Specific field to query: FILENAME, MODIFIED, TRACKS, STAVES, MEASURES, etc.
+
+Example: GETATTR DOCUMENT "" FILENAME
+Example: GETATTR SCORE "" MEASURES
+
+## GETERRORINFO
+GETERRORINFO ERROR/N/A
+
+Get a text description of an error number. Returns description in RESULT.
+- ERROR -- Error number to look up
+
+## GETPOSITION
+GETPOSITION FIELD
+
+Get current cursor position. Returns value in RESULT.
+- FIELD -- TRACK, STAFF, MEASURE, CHORD, CLOCK, EVENT
+
+Example: GETPOSITION MEASURE
+
+## GETITEMATTR
+GETITEMATTR FIELD
+
+Get information about the item at/after the cursor. Returns value in RESULT.
+- FIELD -- TYPE, DURATION, CLOCKS, DOTS, TUPLET, ACCIDENTAL, OCTAVE, LINE, PITCH, LETTER, NOTESTEM, LOUDNESS, FONT, RATE, SELECTED, HIDDEN
+
+Example: GETITEMATTR TYPE
+Example: GETITEMATTR PITCH
+
+## GETCLEF
+GETCLEF STAFF/N/A,MEASURE/N,EFFECTIVE/S
+
+Get clef information. Returns clef type in RESULT.
+- STAFF -- Staff number (1-based)
+- MEASURE -- Measure number (default: current)
+- EFFECTIVE -- Return the clef in effect at that point (may be set in an earlier measure)
+
+## GETKEYSIGNATURE
+GETKEYSIGNATURE STAFF/N/A,MEASURE/N,EFFECTIVE/S
+
+Get key signature. Returns key name in RESULT.
+- STAFF -- Staff number
+- MEASURE -- Measure number
+- EFFECTIVE -- Return the key in effect at that point
+
+## GETSTAFF
+GETSTAFF STAFF/N/A,ATTR/A
+
+Get staff attribute value. Returns value in RESULT.
+- STAFF -- Staff number (1-based)
+- ATTR -- Attribute: NAME, CHANNEL, INSTRUMENT, TRANSPOSE, VOLUME, PAN, VISIBLE
+
+Example: GETSTAFF 1 NAME
+
+## GETTIMESIGNATURE
+GETTIMESIGNATURE MEASURE/N,EFFECTIVE/S
+
+Get time signature. Returns "beats/duration" in RESULT (e.g. "4/4").
+- MEASURE -- Measure number
+- EFFECTIVE -- Return the time signature in effect at that point
+
+## RESORTEVENTS
+RESORTEVENTS
+
+Re-sort all events after batch editing with NOFIX.
+Recommended batch editing pattern:
+1. LOCKGUI
+2. LOCKDISPLAY
+3. Edit items with NOFIX flag
+4. RESORTEVENTS
+5. UNLOCKDISPLAY
+6. UNLOCKGUI
+
+## RX
+RX CONSOLE/S,ASYNC/S,COMMAND/F
+
+Execute an ARexx script file.
+- CONSOLE -- Open a console window for the script
+- ASYNC -- Run asynchronously (don't wait for completion)
+- COMMAND -- Script filename and arguments (rest of line)
+
+Example: RX "Rexx:Transpose.rexx"
+
+## RXS
+RXS CONSOLE/S,ASYNC/S,COMMAND/F
+
+Execute an ARexx command string directly.
+- CONSOLE -- Open a console window
+- ASYNC -- Run asynchronously
+- COMMAND -- ARexx code to execute (rest of line)
+
+Example: RXS "say 'Hello from DMusic'"
+
+## ABORTSCRIPTS
+ABORTSCRIPTS
+
+Abort all currently executing ARexx scripts.
+
+## CMDSHELL
+CMDSHELL
+
+Open the interactive ARexx command shell window.
+
+## HELP
+HELP COMMAND
+
+Display usage information for an ARexx command. Returns help text in RESULT.
+- COMMAND -- Command name to get help for (omit for list of all commands)
+
+Example: HELP INSERTITEM
+
+## LEARN
+LEARN FILE/K,STOP/S
+
+Start or stop recording a macro.
+- FILE -- Save macro to this file
+- STOP -- Stop recording
+
+Example: LEARN FILE "Rexx:MyMacro.rexx" (start recording)
+Example: LEARN STOP (stop recording)
+
+## PLAYMACRO
+PLAYMACRO
+
+Execute the last recorded macro.
+
+## SAVEMACRO
+SAVEMACRO FILE/K
+
+Save the last recorded macro to a file.
+- FILE -- Destination filename
+
+Example: SAVEMACRO FILE "Rexx:MyMacro.rexx"

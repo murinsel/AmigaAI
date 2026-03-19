@@ -449,7 +449,45 @@ cJSON *tools_build_json(void)
         cJSON_AddItemToArray(tools, tool);
     }
 
-    /* Tool 7: mouse_move */
+    /* Tool 7: arexx_help */
+    {
+        cJSON *tool = cJSON_CreateObject();
+        cJSON *schema = cJSON_CreateObject();
+        cJSON *props = cJSON_CreateObject();
+        cJSON *prog_prop = cJSON_CreateObject();
+        cJSON *cmd_prop = cJSON_CreateObject();
+        cJSON *req = cJSON_CreateArray();
+
+        cJSON_AddStringToObject(tool, "name", "arexx_help");
+        cJSON_AddStringToObject(tool, "description",
+            "Look up detailed ARexx command documentation for an Amiga program. "
+            "Returns parameter details, allowed values, and usage examples "
+            "for a specific command. Use this BEFORE sending complex ARexx "
+            "commands to understand the exact syntax. "
+            "Available programs: DMusic, YAM, PageStream, IBrowse, and others "
+            "with .help files in AmigaAI:instructions/ARexx/.");
+
+        cJSON_AddStringToObject(prog_prop, "type", "string");
+        cJSON_AddStringToObject(prog_prop, "description",
+            "Program name (e.g. DMusic, YAM, PageStream)");
+        cJSON_AddItemToObject(props, "program", prog_prop);
+
+        cJSON_AddStringToObject(cmd_prop, "type", "string");
+        cJSON_AddStringToObject(cmd_prop, "description",
+            "ARexx command name to look up (e.g. INSERTITEM, OPEN, SETCLEF)");
+        cJSON_AddItemToObject(props, "command", cmd_prop);
+
+        cJSON_AddStringToObject(schema, "type", "object");
+        cJSON_AddItemToObject(schema, "properties", props);
+        cJSON_AddItemToArray(req, cJSON_CreateString("program"));
+        cJSON_AddItemToArray(req, cJSON_CreateString("command"));
+        cJSON_AddItemToObject(schema, "required", req);
+
+        cJSON_AddItemToObject(tool, "input_schema", schema);
+        cJSON_AddItemToArray(tools, tool);
+    }
+
+    /* Tool 8: mouse_move */
     {
         cJSON *tool = cJSON_CreateObject();
         cJSON *schema = cJSON_CreateObject();
@@ -1598,6 +1636,134 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
     return b64;
 }
 
+/* ===================== ARexx help lookup ===================== */
+
+/* Look up a command section in a .help file.
+ * File format: sections separated by "## COMMANDNAME" headers.
+ * Returns the section text (caller must free), or NULL if not found. */
+static char *tool_exec_arexx_help(cJSON *input, int *is_error)
+{
+    cJSON *prog_json, *cmd_json;
+    const char *program, *command;
+    char path[256];
+    FILE *f;
+    char line[512];
+    char header[128];
+    char *result = NULL;
+    int result_len = 0;
+    int result_cap = 0;
+    int found = 0;
+    int i;
+
+    prog_json = cJSON_GetObjectItemCaseSensitive(input, "program");
+    cmd_json = cJSON_GetObjectItemCaseSensitive(input, "command");
+
+    if (!prog_json || !cJSON_IsString(prog_json) || !prog_json->valuestring[0]) {
+        *is_error = 1;
+        return strdup("Missing 'program' parameter");
+    }
+    if (!cmd_json || !cJSON_IsString(cmd_json) || !cmd_json->valuestring[0]) {
+        *is_error = 1;
+        return strdup("Missing 'command' parameter");
+    }
+
+    program = prog_json->valuestring;
+    command = cmd_json->valuestring;
+
+    printf("  [tool] arexx_help: %s %s\n", program, command);
+
+    /* Build path: PROGDIR:instructions/ARexx/<program>.help */
+    snprintf(path, sizeof(path), "PROGDIR:instructions/ARexx/%s.help", program);
+    f = fopen(path, "r");
+    if (!f) {
+        /* Try AmigaAI: assign as fallback */
+        snprintf(path, sizeof(path), "AmigaAI:instructions/ARexx/%s.help", program);
+        f = fopen(path, "r");
+    }
+    if (!f) {
+        *is_error = 1;
+        {
+            char buf[256];
+            snprintf(buf, sizeof(buf),
+                "No help file found for '%s'. "
+                "Looked for: PROGDIR:instructions/ARexx/%s.help and "
+                "AmigaAI:instructions/ARexx/%s.help",
+                program, program, program);
+            return strdup(buf);
+        }
+    }
+
+    /* Build header to search for: "## COMMAND" (case-insensitive) */
+    snprintf(header, sizeof(header), "## %s", command);
+    /* Convert header to uppercase for comparison */
+    for (i = 3; header[i]; i++)
+        header[i] = (header[i] >= 'a' && header[i] <= 'z')
+                   ? header[i] - 32 : header[i];
+
+    /* Scan file for matching section */
+    while (fgets(line, sizeof(line), f)) {
+        if (line[0] == '#' && line[1] == '#' && line[2] == ' ') {
+            if (found) {
+                /* We were collecting - hit next section, stop */
+                break;
+            }
+            /* Check if this header matches (case-insensitive) */
+            {
+                char upper_line[128];
+                int j;
+                for (j = 0; j < (int)sizeof(upper_line) - 1 && line[j] && line[j] != '\n'; j++)
+                    upper_line[j] = (line[j] >= 'a' && line[j] <= 'z')
+                                   ? line[j] - 32 : line[j];
+                upper_line[j] = '\0';
+
+                if (strncmp(upper_line, header, strlen(header)) == 0) {
+                    found = 1;
+                    /* Don't include the header line itself */
+                    continue;
+                }
+            }
+        }
+
+        if (found) {
+            int line_len = strlen(line);
+            /* Grow buffer if needed */
+            if (result_len + line_len + 1 > result_cap) {
+                int new_cap = result_cap ? result_cap * 2 : 1024;
+                char *new_buf;
+                if (new_cap < result_len + line_len + 1)
+                    new_cap = result_len + line_len + 1;
+                new_buf = realloc(result, new_cap);
+                if (!new_buf) {
+                    free(result);
+                    fclose(f);
+                    *is_error = 1;
+                    return strdup("Out of memory");
+                }
+                result = new_buf;
+                result_cap = new_cap;
+            }
+            memcpy(result + result_len, line, line_len);
+            result_len += line_len;
+        }
+    }
+
+    fclose(f);
+
+    if (!found || !result) {
+        free(result);
+        *is_error = 1;
+        {
+            char buf[256];
+            snprintf(buf, sizeof(buf),
+                "Command '%s' not found in %s.help", command, program);
+            return strdup(buf);
+        }
+    }
+
+    result[result_len] = '\0';
+    return result;
+}
+
 /* ===================== Dispatcher ===================== */
 
 char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image)
@@ -1626,6 +1792,9 @@ char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image
 
     if (strcmp(name, "identify_file") == 0)
         return tool_exec_identify(input, is_error);
+
+    if (strcmp(name, "arexx_help") == 0)
+        return tool_exec_arexx_help(input, is_error);
 
     if (strcmp(name, "mouse_move") == 0)
         return tool_exec_mouse_move(input, is_error);

@@ -1,6 +1,7 @@
 # PAGESTREAM ARexx Port
 
-Port name: PAGESTREAM (or user-defined). Over 400 commands. Detailed docs: AmigaAI:docs/ARexx/PageStream.md
+Port name: PAGESTREAM (or user-defined). Over 400 commands.
+For detailed parameter docs and examples, use the arexx_help tool: arexx_help program=PageStream command=DRAWBOX
 Arguments: /i=integer, /d=decimal, /s=string, /k=keyword, /S=switch, /a=array/stem.
 
 **CRITICAL Quoting rule:** Every command sent to the PAGESTREAM port MUST be enclosed in single quotes — both when using arexx_command and when writing ARexx scripts. Without single quotes, ARexx interprets the words as variable names instead of sending them as commands. Use double quotes inside for string arguments.

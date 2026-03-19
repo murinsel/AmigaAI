@@ -1,0 +1,2566 @@
+## OPENDOCUMENT
+opendocument [ASK | FILE "file"] [FILTER filtername] [STATUS | NOSTATUS]
+
+Opens a document.
+- ASK -- Opens file selection dialog
+- FILE -- File name and path
+- FILTER -- Filter: IFFDOC, PAGESTREAM2, PROPAGE, WORDWORTHDOC
+- STATUS/NOSTATUS -- Progress indicator (default: NOSTATUS)
+
+Example: opendocument FILE "Work:Documents/Newsletter.doc"
+
+## OPEN
+open [file] [FILTER ""] [optional module parameters]
+
+Opens a document and creates a window.
+- file -- File path (omit for file selection dialog, since v5.0.3.4)
+- FILTER -- Filter specification
+
+Example: open "PageStream:documents/Project.doc"
+
+## CLOSEDOCUMENT
+closedocument [mode] [DOCUMENT name | WINDOW name]
+
+Closes all views of a document and the document itself.
+- mode -- FORCE (without save prompt), ALERT (dialog if changes exist), QUIET (default: silent, error on unsaved changes)
+- DOCUMENT -- Document name (default: current)
+- WINDOW -- Window name (default: current)
+
+Example: closedocument force document "project.doc"
+
+## CLOSEWINDOW
+closewindow [WINDOW name]
+
+Closes a single view. The document remains open.
+
+Example: closewindow window "Untitled~View.1"
+
+## SAVEDOCUMENT
+savedocument [ASK | FILE "file" | DEFAULT] [FILTER filtername]
+            [STATUS | NOSTATUS] [QUIET | FORCE | ALERT]
+            [TEMPLATE] [DOCUMENT document | WINDOW windowspec]
+
+Saves an open document.
+- ASK -- File selection dialog
+- FILE -- File name and path
+- DEFAULT -- Default save location
+- FILTER -- Filter (default: IFFDOC)
+- STATUS/NOSTATUS -- Progress indicator
+- QUIET/FORCE/ALERT -- Overwrite behavior
+- TEMPLATE -- Save as template
+
+Example: savedocument file "Work:Documents/Project.doc" force
+
+## REVERTDOCUMENT
+revertdocument [STATUS | NOSTATUS] [FORCE | ALERT]
+              [FILTER filtername]
+              [DOCUMENT document | WINDOW windowspec]
+
+Reloads the last saved version of a document.
+- STATUS/NOSTATUS -- Progress indicator (default: NOSTATUS)
+- FORCE/ALERT -- Confirmation mode (default: ALERT)
+- FILTER -- Filter: IFFDOC, PAGESTREAM2, PROPAGE, WORDWORTHDOC
+
+Example: revertdocument status quiet
+
+## NEWDOCUMENT
+newdocument [name]
+
+Creates a new document. Returns the document name in RESULT. Does not create a default master page and does not open a window.
+
+Example: newdocument "My Project"
+
+## COLLECTOUTPUT
+collectoutput [ASK | FILE "file"] [STATUS | NOSTATUS]
+             [QUIET | FORCE | ALERT]
+             [DOCUMENT document | WINDOW windowspec]
+
+Collects all files for output (since PageStream 4.0).
+
+## CHECKEXTERNALLINKS
+checkexternallinks
+
+Checks external links in the document.
+
+## PLACEGRAPHIC
+placegraphic [FILE "file"] [FILTER filtername]
+            [STATUS | NOSTATUS]
+            [ASIS | AT x y | USER]
+            [PAGE pagespec | MPG masterpagespec | DOCUMENT document | WINDOW windowspec]
+
+Places a graphic file in a document.
+- FILE -- File name and path (omit for file selection dialog)
+- FILTER -- PICT, TIFF, IFFILBM, GIF, BMP, IFFDR2D, IFFILUS, JPEG, MACPAINT, PRODRAW, PCX, ILLUSTRATOREPS, FREEHANDEPS, ARTEXPRESSIONEPS, EPS, PNG
+- STATUS/NOSTATUS -- Progress indicator (default: NOSTATUS)
+- ASIS -- Original size and position
+- AT x y -- Center at position (default: window center)
+- USER -- User places manually
+
+Example: placegraphic file "Work:Pictures/Logo.iff" filter iffilbm at 4.0 2.0
+
+## INSERTTEXT
+inserttext [FILE filepath] [FILTER name] [progress] [charset]
+          [CONVERTQUOTE toggle] [CONVERTDASH toggle]
+          [LINEHASLF toggle] [RETAINFORMAT toggle]
+          [TEXTCODE code]
+          [DOCUMENT name | WINDOW name]
+
+Inserts text from a file at the cursor position.
+- FILE -- Path to text file
+- FILTER -- ASCII, IFFCTXT, IFFFTXT, WORDWORTH
+- CONVERTQUOTE -- Convert typographic quotation marks
+- CONVERTDASH -- Convert em dashes
+- LINEHASLF -- Line break handling
+- RETAINFORMAT -- Retain formatting
+
+## EXPORTGRAPHIC
+exportgraphic [FILE "file"] [FILTER filtername]
+             [STATUS | NOSTATUS] [QUIET | FORCE | ALERT]
+             [DOCUMENT document | WINDOW windowspec | ID id]
+
+Exports a graphic object.
+- FILE -- File name (omit for file selection dialog)
+- FILTER -- PICT, TIFF, IFFILBM, GIF, BMP, IFFDR2D, IFFILUS, JPEG, PNG, JPEG2000
+- STATUS/NOSTATUS -- Progress indicator
+- QUIET/FORCE/ALERT -- Overwrite behavior
+- ID -- Object ID (default: current)
+
+Example: exportgraphic file "Ram:Snapshot" filter iffilbm status
+
+## EXPORTTEXT
+exporttext [FILE "file"] [FILTER filtername]
+          [STATUS | NOSTATUS] [QUIET | FORCE | ALERT]
+          [DOCUMENT document | WINDOW windowspec]
+
+Exports the selected text.
+- FILTER -- ASCII, IFFFTXT, IFFCTXT, WORDWORTH, RTF
+
+## EXPORTPDF
+exportpdf [FILE "file"] [DOCUMENT document | WINDOW windowspec]
+
+Exports as PDF.
+
+## SETDOCUMENTPATH
+setdocumentpath [filepath] [SAVE]
+
+Sets the default document path.
+- filepath -- The file path
+- SAVE -- Save to settings file
+
+Example: setdocumentpath "PageStream3:Documents"
+
+## SETGRAPHICPATH
+setgraphicpath [graphicpath] [SAVE]
+
+Sets the default graphic path.
+
+Example: setgraphicpath "Brilliance:Pictures"
+
+## SETTEXTPATH
+settextpath [filepath] [SAVE]
+
+Sets the default text path.
+
+Example: settextpath "Work:Wordworth5/Documents"
+
+## SETSCRATCHPATH
+setscratchpath [scratchpath] [SAVE]
+
+Sets the default scratch path.
+
+## SETSCRIPTPATH
+setscriptpath [filepath] [SAVE]
+
+Sets the default script path (Amiga only).
+
+Example: setscriptpath "Rexx:"
+
+## SETBACKUP
+setbackup [AUTOBACKUP status [COUNT number]]
+         [AUTOSAVE status [INTERVAL time]]
+         [PATH filepath] [SAVE]
+
+Configures backup and autosave settings.
+- AUTOBACKUP -- ON, OFF, TOGGLE
+- COUNT -- Number of backup copies
+- AUTOSAVE -- ON, OFF, TOGGLE
+- INTERVAL -- Autosave interval in minutes
+- PATH -- Backup directory
+- SAVE -- Save to settings file
+
+Note: TOGGLE must not be used together with SAVE.
+
+Example: setbackup autobackup on autosave on interval 5 save
+
+## SETAUTOCOLUMNS
+setautocolumns [ON | OFF | TOGGLE] [LIKE MASTERPAGE | PREVIOUS] [SAVE]
+
+Sets the auto columns mode.
+
+## SELECTONPASTE
+selectonpaste [status] [SAVE]
+
+Automatically selects imported/pasted text.
+- status -- ON, OFF, TOGGLE
+- SAVE -- Save to settings file
+
+## USESCRATCH
+usescratch [TRUE | FALSE] [SAVE]
+
+Enables or disables the scratch path.
+
+## FILEFILTER
+filefilter [TRUE | FALSE] [SAVE]
+
+Enables or disables file filtering.
+
+## GETDOCUMENTPATH
+getdocumentpath
+
+Returns the current document path in RESULT.
+
+## GETGRAPHICPATH
+getgraphicpath
+
+Returns the current graphic path in RESULT.
+
+## GETTEXTPATH
+gettextpath
+
+Returns the current text path in RESULT.
+
+## GETSCRATCHPATH
+getscratchpath
+
+Returns the current scratch path in RESULT.
+
+## GETSCRIPTPATH
+getscriptpath
+
+Returns the current script path in RESULT.
+
+## GETAUTOCOLUMNS
+getautocolumns [LIKE &flag]
+
+Returns ON or OFF in RESULT. LIKE receives MASTERPAGE or PREVIOUS.
+
+## GETSELECTONPASTE
+getselectonpaste
+
+Returns ON or OFF in RESULT.
+
+## GETPASTEINCENTER
+getpasteincenter
+
+Returns the paste-in-center status in RESULT.
+
+## GETWINDOWS
+getwindows stem [DOCUMENT document | WINDOW windowspec]
+
+Returns window count in RESULT. Window names in stem.0, stem.1, etc.
+
+## DRAWBOX
+drawbox <left top right bottom> [type]
+       [CORNER radius | ECORNER radiusx radiusy]
+       [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+       [ABOUT pointx pointy | ABOUTCENTER]
+       [constraint] [printable] [stack]
+       [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Draws a new rectangle. Returns object handle in RESULT.
+- left top right bottom -- Box coordinates (required)
+- type -- NORMAL, ROUND, SCALLOP, BEVEL, INSET
+- CORNER -- Corner radius (default: 0)
+- ECORNER -- Elliptical corner radius (radiusx radiusy, default: 0)
+
+Example: drawbox 1.75 1.5 2.75 2.5
+Example: drawbox 3 3 6 6 inback page "project.doc~8"
+
+## DRAWELLIPSE
+drawellipse <centerx centery radiusx radiusy> [type]
+           [ANGLES startangle endangle]
+           [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+           [ABOUT pointx pointy | ABOUTCENTER]
+           [constraint] [printable] [stack]
+           [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Draws a new ellipse. Returns object handle in RESULT.
+- centerx centery -- Center coordinates (required)
+- radiusx radiusy -- Radius dimensions (required)
+- type -- ELLIPSE (default), PIE, ARC
+- ANGLES -- Start and end angles (for PIE/ARC)
+
+Example: drawellipse 3 3 1.5 1.5
+Example: drawellipse 5.25 6.125 1.5 2.5 pie angles 45 90 print
+
+## DRAWLINE
+drawline <left top right bottom>
+        [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+        [ABOUT pointx pointy | ABOUTCENTER]
+        [constraint] [printable] [stack]
+        [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Draws a new line. Returns object handle in RESULT.
+- left top right bottom -- Line endpoint coordinates (required)
+
+Example: drawline 1 1 5 5
+Example: drawline 2 1.25 8.5 11 page "project.doc~6" noprint
+
+## DRAWPOLYGON
+drawpolygon <centerx centery radiusx radiusy> [type]
+           [SIDES number] [OFFSETANGLE angle]
+           [DEFLECTION amount] [ANGLEDEFLECTION amount]
+           [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+           [ABOUT pointx pointy | ABOUTCENTER]
+           [constraint] [printable] [stack]
+           [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Draws a regular polygon. Returns object handle in RESULT.
+- centerx centery -- Center point (required)
+- radiusx radiusy -- Polygon radius (required)
+- type -- NORMAL (default), STAR, PUFFY, SCALLOP, WAVY
+- SIDES -- Number of sides (default: 5, must be >2)
+- OFFSETANGLE -- Pre-rotation angle (default: 0)
+- DEFLECTION -- Spike depth (default: 40%)
+- ANGLEDEFLECTION -- Spike angle (default: 0%)
+
+Example: drawpolygon 4.0 5.0 2.0 2.0 STAR SIDES 6
+
+## DRAWSPIRAL
+drawspiral x1 y1 ROUNDS n SPACING dist STARTANGLE angle
+          [frame] [CONTENTOFFSET x y] [CONTENTSCALE x y]
+          [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+          [ABOUT pointx pointy | ABOUTCENTER]
+          [constraint] [printable] [stack]
+          [PAGE pagespec | MPG masterpagespec | DOCUMENT document | WINDOW windowspec]
+
+Draws a spiral.
+- x1 y1 -- Start coordinates
+- ROUNDS -- Number of revolutions
+- SPACING -- Spacing between spiral arms
+- STARTANGLE -- Start angle
+
+## DRAWGRID
+drawgrid <pointx1 pointy1 pointx2 pointy2 |
+         POINTS pointx1 pointy1 pointx2 pointy2 pointx3 pointy3 pointx4 pointy4>
+        [DIVISIONS horz vert]
+        [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+        [ABOUT pointx pointy | ABOUTCENTER]
+        [constraint] [printable] [stack]
+        [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Creates a grid object. Returns object handle in RESULT.
+- pointx1 pointy1 pointx2 pointy2 -- Rectangular grid (2 corner points)
+- POINTS -- Non-rectangular grid (4 corner points, counterclockwise)
+- DIVISIONS -- Grid subdivisions horizontal/vertical (default: 4x4)
+
+Example: drawgrid 2 2 6 6 divisions 5 10
+Example: drawgrid points 1 1 1 3 5 6 2 3 page "MyDoc~6"
+
+## DRAWTABLE
+drawtable <left top right bottom> [ROWS rows] [COLUMNS columns]
+         [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+         [ABOUT pointx pointy | ABOUTCENTER]
+         [constraint] [printable] [stack]
+         [PAGE pagespec | MPG masterpagespec | DOCUMENT document | WINDOW windowspec]
+
+Creates a table object. Returns object handle in RESULT.
+- left top right bottom -- Table coordinates (required)
+- ROWS -- Number of rows
+- COLUMNS -- Number of columns
+
+## DRAWCOLUMN
+drawcolumn <left top right bottom> [COLUMNS number] [GUTTER space]
+          [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+          [ABOUT pointx pointy | ABOUTCENTER]
+          [constraint] [printable] [stack]
+          [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Draws a new text frame with one or more columns.
+- left top right bottom -- Frame coordinates (required)
+- COLUMNS -- Number of columns
+- GUTTER -- Column spacing
+
+Note: For multi-page or size-dependent columns, use CreateColumns.
+
+Example: drawcolumn 1 1 7.5 10 columns 2 gutter 0.25
+
+## DRAWTEXTOBJ
+drawtextobj <left top>
+           [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+           [ABOUT pointx pointy | ABOUTCENTER]
+           [constraint] [printable] [stack]
+           [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Creates a new text block. Returns object handle in RESULT.
+- left top -- Top-left corner of the text block (required)
+
+Example: drawtextobj 1 1
+Example: drawtextobj 1 1 rotate 45 inback page "project.doc~8"
+
+## DRAWPICTURE
+drawpicture <left top right bottom>
+           [CONTENTOFFSET offsetx offsety] [CONTENTSCALE scalex scaley]
+           [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+           [ABOUT pointx pointy | ABOUTCENTER]
+           [constraint] [printable] [stack]
+           [DPI xdpi ydpi] [frame] [stored]
+           [FILE filepath]
+           [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+           [FPO {DEFAULT|FINE|MEDIUM|COARSE|CUSTOM xdpi ydpi}]
+
+Places a picture frame. Returns object handle in RESULT.
+- left top right bottom -- Frame coordinates (required)
+- CONTENTOFFSET -- Offset within the frame (default: 0,0)
+- CONTENTSCALE -- Scale within the frame (default: 100%)
+- DPI -- Resolution (xdpi ydpi)
+- frame -- FRAMED or FRAMELESS
+- stored -- INTERNAL (default) or EXTERNAL
+- FILE -- Image file path
+- FPO -- Resolution: DEFAULT, FINE, MEDIUM, COARSE, CUSTOM xdpi ydpi
+
+Example: drawpicture 0.5 0.5 2.5 3 dpi 150 150 external
+
+## DRAWEPS
+draweps <left top right bottom>
+       [CONTENTOFFSET offsetx offsety] [CONTENTSCALE scalex scaley]
+       [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+       [ABOUT pointx pointy | ABOUTCENTER]
+       [constraint] [printable] [stack] [frame] [stored]
+       [FILE filepath]
+       [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Places an EPS frame. Returns object handle in RESULT.
+- left top right bottom -- Frame coordinates (required)
+- CONTENTOFFSET -- Offset (default: 0,0)
+- CONTENTSCALE -- Scale (default: 100%)
+- frame -- FRAMED or FRAMELESS
+- stored -- INTERNAL (default) or EXTERNAL
+- FILE -- EPS file path
+
+Example: draweps 1.75 1.5 2.75 2.5
+Example: draweps 3 3 6 6 offset -2 2 contentscale 80 constrain
+
+## CREATEPATH
+createpath <left top right bottom>
+          [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+          [ABOUT pointx pointy | ABOUTCENTER]
+          [constraint] [printable] [stack]
+          [PAGE number | WINDOW name]
+
+Creates a new path. Returns object handle in RESULT.
+
+Example: createpath 1.5 2.5 3.25 6.457
+
+## ADDPOINT
+addpoint <MOVETO pointx pointy [join] |
+         LINETO pointx pointy [join] |
+         CURVETO curvex1 curvey1 curvex2 curvey2 pointx pointy [join] |
+         CLOSEPATH>
+        [PAGE number | WINDOW name | OBJECTID number]
+
+Adds a point to the current path.
+- MOVETO -- First point of a new path/subpath
+- LINETO -- Line to the specified point
+- CURVETO -- Bezier curve (control point 1, control point 2, endpoint)
+- CLOSEPATH -- Closes the open path
+- join -- CORNERJOIN (default) or SMOOTHJOIN
+
+Note: The join type only affects interaction with the Reshape tool, not the coordinates.
+
+Example: addpoint moveto 1.0 2.0
+Example: addpoint lineto 5.0 2.0
+Example: addpoint curveto 5.0 4.0 3.0 6.0 1.0 4.0 smoothjoin
+Example: addpoint closepath
+
+## CREATEPOINT
+createpoint <NEAR x y> [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Adds a point to an existing path at the nearest location.
+
+Example: createpoint near 5.1 6.25
+
+## EDITPOINT
+editpoint [ANCHOR x y] [CONTROLBEFORE x y] [CONTROLAFTER x y]
+         [join] [POINTINDEX point]
+         [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Edits the coordinates of a path point.
+- ANCHOR -- Point coordinates
+- CONTROLBEFORE -- Curve handle before the point
+- CONTROLAFTER -- Curve handle after the point
+- join -- CORNERJOIN or SMOOTHJOIN
+- POINTINDEX -- Point number (default: selected). Numbering starts at 0 from the first MOVETO.
+
+## MOVEPOINT
+movepoint [OFFSET x y] [POINTINDEX point]
+         [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Moves selected path points.
+
+## NUDGEPOINT
+nudgepoint <[horz] [vert]> [TAP] [POINTINDEX point]
+          [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Moves path points by the configured nudge value.
+- horz -- LEFT or RIGHT
+- vert -- UP or DOWN
+- TAP -- 1/10 of the normal nudge value
+
+## DELETEPOINT
+deletepoint [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Deletes the selected path point.
+
+## SPLITPOINT
+splitpoint [POINTINDEX point] [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Splits a path at a point. For open paths: two subpaths; for closed paths: an open path.
+
+Example: splitpoint pointindex 23
+
+## CLOSEPATH
+closepath [PAGE number | WINDOW name | OBJECTID number]
+
+Closes the selected open path.
+
+## MERGESUBPATHS
+mergesubpaths [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Merges subpaths within a path object.
+
+## SNAPTOGRID
+snaptogrid [status] [WINDOW name]
+
+Changes the grid snap status.
+- status -- ON, OFF, TOGGLE
+
+Note: Grid snapping only affects the user interface, not script commands.
+
+## EDITPICTURE
+editpicture [POSITION left top right bottom [SCALECONTENT]]
+           [CONTENTOFFSET offsetx offsety] [CONTENTSCALE scalex scaley]
+           [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+           [ABOUT pointx pointy | ABOUTCENTER]
+           [constraint] [printable] [frame] [stored]
+           [FILE filepath] [DPI xdpi ydpi]
+           [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sets coordinates and options of a picture frame.
+
+## EDITEPS
+editeps [POSITION left top right bottom [SCALECONTENT]]
+       [CONTENTOFFSET offsetx offsety] [CONTENTSCALE scalex scaley]
+       [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+       [ABOUT pointx pointy | ABOUTCENTER]
+       [constraint] [printable] [frame] [stored]
+       [FILE filepath]
+       [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sets coordinates and options of an EPS frame.
+
+Example: editeps position 1.75 1.5 2.75 2.5
+Example: editeps offset -2 -2 contentscale 80 constrain
+
+## EDITLINE
+editline [POSITION x1 y1 x2 y2 [ADJUST]]
+        [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+        [ABOUT pointx pointy | ABOUTCENTER]
+        [constraint] [printable]
+        [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Sets coordinates of a line.
+
+## DISSOLVEEPS
+dissolveeps [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Separates an EPS object and its bitmap preview into two separate objects.
+
+## SETEPS
+seteps [NAME name] [DESC description]
+      [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sets the name and description of an EPS object.
+
+Example: seteps name "CorporateLogo"
+
+## GETEPS
+geteps [POSITION &coord] [NAME &name] [DESC &desc]
+      [AUTHOR &author] [COPYRIGHT &copyright]
+      [FILEINFO &filestem] [FRAME &flag]
+      [CONTENTOFFSET &offset] [CONTENTSCALE &scale]
+      [CONTENTROTATION &rotation] [ROTATION &rotation]
+      [ABOUT &mode] [CONSTRAIN &flag] [PRINT &flag]
+      [DRAWPAGE &n] [DRAWPAGECOUNT &n]
+      [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Queries properties of an EPS object.
+- POSITION -- stem: .LEFT, .TOP, .RIGHT, .BOTTOM
+- FILEINFO -- stem: .MODE (INTERNAL|EXTERNAL), .FILE, .FORMAT, .DATE, .TIME
+- FRAME -- ON or OFF
+- CONTENTOFFSET -- stem: .X, .Y
+- CONTENTSCALE -- stem: .H, .V
+- ROTATION -- stem: .SLANT, .TWIST
+- ABOUT -- stem: .MODE (POINT|CENTER), .X, .Y
+
+## CREATECOMPOUND
+createcompound [POSITION left top right bottom]
+              [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+              [ABOUT pointx pointy | ABOUTCENTER]
+              [constraint] [printable] [stack]
+              [DOCUMENT name | WINDOW name]
+
+Combines selected shapes into a compound object. Returns object handle in RESULT.
+
+Example: createcompound
+Example: createcompound position 1.5 2.5 3.25 6.4 constrain
+
+## CREATEDRAWING
+createdrawing [POSITION left top right bottom]
+             [CONTENTOFFSET offsetx offsety] [CONTENTSCALE scalex scaley]
+             [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+             [ABOUT pointx pointy | ABOUTCENTER]
+             [constraint] [printable] [stack] [frame]
+             [DOCUMENT name | WINDOW name]
+             [DRAWING | LAYER] [VISIBLE | INVISIBLE] [EDITABLE | NONEDITABLE]
+
+Creates a new drawing object. Returns object handle in RESULT.
+- DRAWING/LAYER -- Drawing type
+- VISIBLE/INVISIBLE -- Layer visibility (when LAYER)
+- EDITABLE/NONEDITABLE -- Layer editability (when LAYER)
+
+Example: createdrawing
+Example: createdrawing position 1.5 2.5 3.25 6.457 contentscale 80.5 constrain
+
+## APPLYATTRIBUTES
+applyattributes <AT pointx pointy [stack] | RANGE left top right bottom [stack]>
+               [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Applies recorded attributes to a paragraph or object.
+- AT -- Apply attributes to paragraph at position
+- RANGE -- Apply attributes to all paragraphs in range
+- stack -- FRONTMOST (default) or BACKMOST
+
+Example: applyattributes at 1.25 3.3 backmost
+Example: applyattributes range 1.25 3.3 1.75 5.25
+
+## INSERTPAGE
+insertpage [where] [PAGE number | DOCUMENT name | WINDOW name]
+          [COUNT number] [INSPREAD [type]]
+
+Inserts page(s).
+- where -- BEFORE (default) or AFTER
+- COUNT -- Number of pages (default: 1)
+- INSPREAD -- DEFAULT, HORIZONTAL, VERTICAL
+
+## DELETEPAGE
+deletepage [PAGE number] [TO number] [mode]
+
+Deletes page(s).
+- PAGE -- First page to delete (default: current)
+- TO -- Last page of a range
+- mode -- FORCE, ALERT, QUIET (default)
+
+Example: deletepage page 5 to 7 force
+
+## MOVEPAGE
+movepage [PAGE number | DOCUMENT name | WINDOW name]
+        [TO pagenum] <BEFORE document:...-pagenum | AFTER document:...-pagenum>
+        [INSPREAD [DEFAULT | HORIZONTAL | VERTICAL]]
+
+Moves page(s) within a document. Pages cannot be moved outside their chapter or document.
+
+## MAKEPAGESPREAD
+makepagespread [PAGE number | DOCUMENT name | WINDOW name]
+              [TO number] [INSPREAD [HORIZONTAL | VERTICAL]]
+
+Creates a page spread from two or more pages. To dissolve a spread, omit TO.
+
+Example: makepagespread page 1 to 3 vertical
+Example: makepagespread page 1
+
+## SETPAGEDESC
+setpagedesc text [PAGE number]
+
+Sets the description of a page.
+
+## SETPAGENAME
+setpagename newname [PAGE name]
+
+Sets the name of a page.
+
+## SETPAGENUMBERING
+setpagenumbering [START] [MASTERPAGE name] [FORMAT type] [LANGUAGE name]
+                [PREFIX string] [DOCUMENT name | CHAPTER name | WINDOW name]
+
+Sets page numbering options.
+- FORMAT -- DEFAULT, SLONG, ARABIC, ROMANUPPER, ROMANLOWER, ALPHAUPPER, ALPHALOWER
+- LANGUAGE -- DEFAULT, AMERICAN, ENGLISH, FRANCAIS, DEUTSCH
+
+## NEWCHAPTER
+newchapter chaptername chapter# [PAGESFROMDOCUMENT]
+          [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Creates a new chapter. Returns the new chapter name in RESULT.
+
+Example: newchapter "Part Three" 7
+
+## DELETECHAPTER
+deletechapter [CHAPTER name | WINDOW name] [ALERT]
+
+Deletes a chapter.
+
+## MOVECHAPTER
+movechapter [CHAPTER name | WINDOW name] <BEFORE newchap# | AFTER newchap# | ATEND>
+           [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Moves a chapter within a document.
+
+## SETCHAPTERDESC
+setchapterdesc newdesc [CHAPTER document:... | WINDOW document-window]
+
+Sets the description of a chapter.
+
+## SETCHAPTERNAME
+setchaptername name [CHAPTER name | WINDOW name]
+
+Sets the name of a chapter.
+
+## SETCHAPTERNUMBERING
+setchapternumbering [START] [MASTERPAGE name] [FORMAT type] [LANGUAGE name]
+                   [PREFIX string] [DOCUMENT name | CHAPTER name | WINDOW name]
+
+Sets chapter numbering options.
+
+## NEWMASTERPAGE
+newmasterpage masterpagename pagew pageh [PORTRAIT | LANDSCAPE]
+            [SINGLE | DOUBLE] [FACING | INDIVIDUAL]
+            [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Creates a new master page.
+
+Example: newmasterpage "Columnar" 8.5 11 landscape double
+
+## DELETEMASTERPAGE
+deletemasterpage [MASTERPAGE name]
+
+Deletes a master page.
+
+## MOVEMASTERPAGE
+movemasterpage [MASTERPAGE name] [CHAPTER name]
+
+Moves a master page to a different chapter.
+
+## SELECTMASTERPAGE
+selectmasterpage [NAME masterpagename] [PAGE number] [stack] [status]
+                [RIPPLE | TO number]
+                [DOCUMENT document | WINDOW document-window]
+
+Assigns a master page to a page or page range.
+- NAME -- Master page name
+- stack -- INFRONT or INBACK
+- status -- SHOW or HIDE
+- RIPPLE -- Apply to all following pages
+- TO -- Up to page
+
+Example: selectmasterpage name "Default MPage" page 5 inback
+Example: selectmasterpage name "2 Column Layout" ripple
+
+## SETMASTERPAGEDESC
+setmasterpagedesc text [MASTERPAGE name]
+
+Sets the description of a master page.
+
+## SETMASTERPAGENAME
+setmasterpagename newname [MASTERPAGE oldname]
+
+Renames a master page.
+
+## SETDIMENSIONS
+setdimensions pagew pageh [PORTRAIT | LANDSCAPE] [SINGLE | DOUBLE]
+             [FACING | INDIVIDUAL] [SAVE]
+             [MASTERPAGE document:...-masterpage | DOCUMENT document | WINDOW document-window]
+
+Sets page dimensions.
+
+## SETBLEED
+setbleed bleedh bleedv [SAVE]
+        [MASTERPAGE document:...-masterpage | DOCUMENT document | WINDOW document-window]
+
+Sets bleed values.
+
+## SETCOLUMNGUIDES
+setcolumnguides columns gutter [SAVE] [MASTERPAGE name]
+
+Sets column guides.
+
+Example: setcolumnguides 3 0.25 masterpage "3 Column Layout"
+
+## SETMARGINGUIDES
+setmarginguides inside outside top bottom [SAVE] [MASTERPAGE name]
+
+Sets margin guides.
+- inside -- Inside/left margin
+- outside -- Outside/right margin
+- top -- Top margin
+- bottom -- Bottom margin
+
+Example: setmarginguides 1 0.75 1 1.25 masterpage "Layout2"
+
+## ADDGUIDES
+addguides [type] <AT position> [MPG name]
+
+Adds guide(s).
+- type -- HORIZONTAL, VERTICAL, BOTH
+- AT -- Position(s) of the guide(s)
+- MPG -- Master page name and page
+
+Example: addguides vertical at 2.5 mpg left
+Example: addguides horizontal at 2.5 3.5
+
+## DELETEGUIDES
+deleteguides [type] <AT position> [MPG name]
+
+Deletes guide(s) at specified positions.
+
+## SETGUIDES
+setguides <VERTICAL | HORIZONTAL | BOTH> [MPG name] AT position1 position2 ...
+
+Sets guide positions.
+
+## SETGUIDE
+setguide [SNAPALL | SNAPRANGE rangex rangey] [MASTERPAGE name]
+
+Sets guide snap settings.
+
+## SNAPTOGUIDES
+snaptoguides [status] [PAGE status] [RULER status] [WINDOW name]
+
+Sets guide snapping.
+
+## SETGRID
+setgrid [SNAP gridh gridv] [SNAPOFFSET gridxoffset gridyoffset]
+       [SNAPALL | SNAPRANGE rangex rangey]
+       [DISPLAYINTERVAL gridh gridv] [DISPLAYOFFSET gridxoffset gridyoffset]
+       [SAVE]
+       [MASTERPAGE document:...-masterpage | DOCUMENT document | WINDOW document-window]
+
+Sets grid properties.
+
+## DISPLAYGRID
+displaygrid <status> [stack] [COLOR red green blue] [WINDOW name]
+
+Controls grid display.
+- status -- SHOW, HIDE, TOGGLE (required)
+- stack -- INFRONT or INBACK (default: INBACK)
+- COLOR -- RGB values, 0-255
+
+Example: displaygrid show infront
+
+## DISPLAYGUIDES
+displayguides <status> [stack] [RULER status] [RULERCOLOR r g b]
+             [PAGE status] [PAGECOLOR r g b] [WINDOW name]
+
+Controls guide display.
+
+## DISPLAYRULER
+displayruler <status> [OFFSET offsetx offsety] [ZERO zerox zeroy]
+            [MSYS horzunits vertunits] [DIRECTION horz vert] [WINDOW name]
+
+Controls ruler display.
+- status -- SHOW, HIDE, TOGGLE (required)
+- OFFSET -- Ruler offset in pixels
+- ZERO -- Zero point coordinates
+- MSYS -- INCHES, CENTIMETERS, MILLIMETERS, PICAS, POINTS, PRINTERPICAS, PRINTERPOINTS, CICEROS, DIDOTPOINTS, FEET, METERS, SAMEAS
+- DIRECTION -- Horizontal: LEFT|RIGHT, Vertical: UP|DOWN
+
+Example: displayruler show offset 30 120 msys inches inches
+
+## LOGREVISION
+logrevision [DESCRIPTION text] [VERSION major minor | BUMPREV]
+           [USER username] [CHAPTER name | PAGE number | MASTERPAGE name]
+
+Logs a revision entry.
+
+Example: logrevision bumprev
+Example: logrevision description "Fixed colors" user "Colleen"
+
+## SETREVISION
+setrevision [DESCRIPTION description] [BUMPMINOR | BUMPMAJOR | VERSION major minor]
+           [CREATED | MODIFIED] [USER username] [REVISION revh]
+
+Sets revision properties (since v5.0.3.4).
+
+## DELETEREVISION
+deleterevision [REVISION revh]
+
+Deletes a revision entry (since v5.0.3.4).
+
+## SETREVISIONTRACKING
+setrevisiontracking [ON | OFF | TOGGLE] [SAVE]
+
+Enables or disables revision tracking.
+
+## SETDOCUMENTSTATUS
+setdocumentstatus [CHANGED | UNCHANGED] [DOCUMENT document | WINDOW document-window]
+
+Sets the document's changed status.
+
+## REFRESH
+refresh [ON | OFF | WAIT | CONTINUE] [ALL | DOCUMENT document | WINDOW document-window]
+
+Toggles screen refresh for faster script execution.
+- OFF -- Refresh off, without tracking changes
+- WAIT -- Refresh off, tracks what needs to be refreshed
+- ON -- Refresh on, discards all tracked refreshes
+- CONTINUE -- Refresh on, performs tracked refreshes
+
+Typically used together with LockInterface for better performance.
+
+## CURRENTDOCUMENT
+currentdocument [WINDOW name]
+
+Returns the current document name in RESULT.
+
+## CURRENTWINDOW
+currentwindow [WINDOW name]
+
+Returns the current window name in RESULT.
+
+## CURRENTPAGE
+currentpage [WINDOW name]
+
+Returns the current page number in RESULT.
+
+## CURRENTCHAPTER
+currentchapter [DOCUMENT name | WINDOW name]
+
+Returns the current chapter name in RESULT.
+
+## CURRENTMASTERPAGE
+currentmasterpage [DOCUMENT name | WINDOW name]
+
+Returns the current master page name in RESULT.
+
+## CURRENTWINDOWPATH
+currentwindowpath
+
+Returns the full window path in RESULT (format: documentname~windowname).
+
+## CURRENTPAGEPATH
+currentpagepath
+
+Returns the full page path in RESULT (format: document[:chapter]~pagenum).
+
+## CURRENTCHAPTERPATH
+currentchapterpath
+
+Returns the full chapter path in RESULT (format: document[:chapter[:subchapter]]).
+
+## CURRENTMASTERPAGEPATH
+currentmasterpagepath
+
+Returns the full master page path in RESULT (format: document[:chapter~]masterpage).
+
+## GETDOCUMENTS
+getdocuments stem
+
+Returns document count in RESULT. Names in stem.0, stem.1, etc.
+
+## GETDOCUMENTDESC
+getdocumentdesc [DOCUMENT name]
+
+Returns the document description in RESULT.
+
+## GETDOCUMENTAUTHOR
+getdocumentauthor [DOCUMENT document | WINDOW document-window]
+
+Returns the document author in RESULT.
+
+## GETDOCUMENTCOPYRIGHT
+getdocumentcopyright [DOCUMENT document | WINDOW document-window]
+
+Returns the document copyright in RESULT.
+
+## GETDOCUMENTSTATUS
+getdocumentstatus [DOCUMENT name]
+
+Returns "changed" or "unchanged" in RESULT.
+
+## GETCHAPTERS
+getchapters stem [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Returns chapter count in RESULT. Names in stem.0, stem.1, etc.
+
+## GETCHAPTERDESC
+getchapterdesc [DOCUMENT name | CHAPTER name]
+
+Returns the chapter description in RESULT.
+
+## GETCHAPTERNUMBER
+getchapternumber [DOCUMENT name | CHAPTER name]
+
+Returns the chapter number in RESULT.
+
+## GETCHAPTERNUMBERING
+getchapternumbering stem [DOCUMENT name | CHAPTER name | WINDOW name]
+
+Returns chapter numbering info. Results: stem.startmode, stem.start, stem.format, stem.language, stem.prefix.
+
+## GETMASTERPAGES
+getmasterpages stem [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Returns master page count in RESULT. Names in stem.0, stem.1, etc.
+
+## GETMASTERPAGEDESC
+getmasterpagedesc [MASTERPAGE name]
+
+Returns the master page description in RESULT.
+
+## GETPAGEDESC
+getpagedesc [PAGE number]
+
+Returns the page description in RESULT.
+
+## GETPAGENAME
+getpagename [PAGE number]
+
+Returns the page name in RESULT.
+
+## GETPAGENUMBER
+getpagenumber [PAGE document:...-pagenum | DOCUMENT document | WINDOW document-window]
+
+Returns the page number in RESULT.
+
+## GETPAGEMASTERPAGE
+getpagemasterpage [MASTERPAGE name] [SIDE name] [DEPTH level]
+                 [PAGE number | DOCUMENT name | WINDOW name]
+
+Returns the master page assigned to a page.
+
+## GETPAGENUMBERING
+getpagenumbering stem [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Returns page numbering info. Results: stem.startmode, stem.start, stem.lengthmode, stem.length, stem.masterpage, stem.format, stem.language, stem.prefix.
+
+## GETDIMENSIONS
+getdimensions stem [MASTERPAGE document:...-masterpage | DOCUMENT document | WINDOW document-window]
+
+Returns page dimensions. Results: stem.width, stem.height, stem.orientation (PORTRAIT|LANDSCAPE), stem.spreads (FACING|INDIVIDUAL), stem.sides (SINGLE|DOUBLE).
+
+## GETDEFAULTPAGESIZES
+getdefaultpagesizes namestem [measurement] [custom]
+                   [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Returns default page size list.
+- measurement -- STANDARD (default) or USER
+- custom -- NOCUSTOM (default) or CUSTOM
+
+Results: Each entry has .name, .width, .height.
+
+## GETBLEED
+getbleed stem [MASTERPAGE document:...-masterpage | DOCUMENT document | WINDOW document-window]
+
+Returns bleed values. Results: stem.H, stem.V.
+
+## GETCOLUMNGUIDES
+getcolumnguides stem [MASTERPAGE name]
+
+Returns column guide info. Results: stem.count, stem.gutter.
+
+## GETMARGINGUIDES
+getmarginguides stem [MASTERPAGE name]
+
+Returns margin guide info. Results: stem.inside, stem.outside, stem.top, stem.bottom.
+
+Example: getmarginguides info
+
+## GETGRID
+getgrid stem [MASTERPAGE document:...-masterpage | DOCUMENT document | WINDOW document-window]
+
+Returns grid settings. Results: stem.h, stem.v, stem.x, stem.y, stem.snap (ALL|RANGE), stem.rangeh, stem.rangev, stem.displayh, stem.displayv, stem.displayx, stem.displayy.
+
+## GETGRIDDISPLAY
+getgriddisplay [DEPTH layer] [COLOR stem] [WINDOW name]
+
+Returns grid display settings.
+
+## GETGRIDSNAP
+getgridsnap [WINDOW name]
+
+Returns grid snap status.
+
+## GETGUIDE
+getguide stem [MASTERPAGE name]
+
+Returns guide snap settings. Results: stem.snap, stem.rangeh, stem.rangev.
+
+## GETGUIDES
+getguides stem [type] [MPG name]
+
+Returns guide positions. Results in stem.0, stem.1, etc.
+
+## GETGUIDEDISPLAY
+getguidedisplay [DEPTH layer] [PAGE flag] [PAGECOLOR stem] [RULER flag] [RULERCOLOR stem] [WINDOW name]
+
+Returns guide display settings.
+
+## GETGUIDESNAP
+getguidesnap [WINDOW name]
+
+Returns guide snap status.
+
+## GETRULERDISPLAY
+getrulerdisplay [OFFSET stem] [ZERO stem] [MSYS stem] [DIRECTION stem] [WINDOW name]
+
+Returns ruler display settings. OFFSET: .x, .y; ZERO: .x, .y; MSYS: .h, .v; DIRECTION: .h (LEFT|RIGHT), .v (UP|DOWN).
+
+## GETREVISIONS
+getrevisions revhlist [DOCUMENT document | CHAPTER document:... | PAGE ... | MASTERPAGE ... | WINDOW ...]
+
+Returns revision handle list (since v5.0.3.4).
+
+## GETREVISION
+getrevision [DESCRIPTION &desc] [VERSION &version] [TYPE &type] [USER &username] [REVISION revh]
+
+Returns revision properties (since v5.0.3.4).
+
+## SELECTOBJECT
+selectobject <AT pointx pointy [stack] | RANGE left top right bottom [stack] |
+             ALL | NONE | INVERT | NEXT | PREVIOUS |
+             LINKS | CHAINFIRST | CHAINLAST>
+            [PAGE number | MPG name | DOCUMENT name | WINDOW name | OBJECTID number]
+
+Selects an object.
+- AT -- Object at position
+- RANGE -- All objects in range
+- ALL -- All objects
+- NONE -- Deselect
+- INVERT -- Invert selection
+- NEXT/PREVIOUS -- Next/previous object
+- LINKS -- Linked objects
+- CHAINFIRST/CHAINLAST -- First/last element of the chain
+- stack -- FRONTMOST (default) or BACKMOST
+
+Example: selectobject at 3.5 5.0
+Example: selectobject range 1 1 7 10
+Example: selectobject all
+
+## SELECTPOINT
+selectpoint <AT pointx pointy | ALL | NONE | INVERT | NEXT | PREVIOUS>
+           [POINTINDEX point]
+           [PAGE number | DOCUMENT name | WINDOW name | OBJECTID number]
+
+Selects a path point.
+
+## SELECTCELL
+selectcell [ROW row] [COLUMN column]
+          [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Selects a table cell.
+
+## SELECTACTIVELAYER
+selectactivelayer [layerindex | layername]
+                 [DOCUMENT name | WINDOW name]
+
+Selects the active layer.
+
+## GETSELECTEDOBJECTS
+getselectedobjects stem [DOCUMENT document | WINDOW document-window]
+
+Returns count in RESULT. Object IDs in stem.0, stem.1, etc.
+
+## MOVE
+move <OFFSET offsetx offsety | TO x y>
+    [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Moves an object by offset or to an absolute position.
+
+## NUDGE
+nudge <[horz] [vert]> [TAP]
+     [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Nudges an object.
+- horz -- LEFT or RIGHT
+- vert -- UP or DOWN
+- TAP -- 1/10 of the normal nudge value
+
+## ROTATE
+rotate angle [ABOUT pointx pointy | ABOUTCENTER]
+            [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Rotates an object.
+
+## SCALEOBJECT
+scaleobject <SCALE scalex scaley | SIZE newwidth newheight>
+           [ABOUT pointx pointy | ABOUTCENTER]
+           [CONSTRAIN | FREE]
+           [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Scales an object.
+
+## SKEW
+skew <SLANT angle | TWIST angle | SKEW slant twist>
+    [ABOUT pointx pointy | ABOUTCENTER]
+    [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Skews an object.
+
+## TRANSFORM
+transform [POSITION left top right bottom]
+         [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+         [ABOUT pointx pointy | ABOUTCENTER]
+         [DOCUMENT name | WINDOW name | OBJECTID number]
+
+General transformation command.
+
+## ALIGN
+align [horz] [vert] [scope]
+     [DOCUMENT name | WINDOW name]
+
+Aligns objects.
+- horz -- LEFTALIGN, CENTERALIGN, RIGHTALIGN
+- vert -- TOPALIGN, MIDDLEALIGN, BOTTOMALIGN
+- scope -- TOPAGE (default), TOMARGINS, TOSELECTION
+
+## DISTRIBUTE
+distribute [HORZEVEN | HORZSPACE space | HORZNONE]
+          [VERTEVEN | VERTSPACE space | VERTNONE]
+          [DOCUMENT name | WINDOW name]
+
+Distributes objects evenly.
+
+## DUPLICATE
+duplicate [OFFSET offsetx offsety] [COPIES number]
+         [ROTATE angle] [SCALE scalex scaley]
+         [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Duplicates an object.
+
+## MOVETOPAGE
+movetopage [PAGE number | DOCUMENT name | WINDOW name]
+
+Moves an object to a different page.
+
+## BRINGTOFRONT
+bringtofront [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Brings an object to the front of the stacking order.
+
+## BRINGFORWARD
+bringforward [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Brings an object one step forward in the stacking order.
+
+## SENDTOBACK
+sendtoback [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sends an object to the back of the stacking order.
+
+## SENDBACKWARD
+sendbackward [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sends an object one step backward in the stacking order.
+
+## COPYOBJECT
+copyobject [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Copies the selected object to the clipboard.
+
+## CUTOBJECT
+cutobject [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Cuts the selected object to the clipboard.
+
+## PASTEOBJECT
+pasteobject [PAGE number | MPG name | DOCUMENT name | WINDOW name]
+
+Pastes an object from the clipboard.
+
+## DELETEOBJECT
+deleteobject [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Deletes the selected object.
+
+## EDITOBJECT
+editobject [POSITION left top right bottom [SCALECONTENT | ADJUST]]
+          [ROTATE angle | SKEW slantangle twistangle | SLANT angle | TWIST angle]
+          [ABOUT pointx pointy | ABOUTCENTER]
+          [constraint] [printable]
+          [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Edits object properties.
+
+## LOCK
+lock [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Locks an object.
+
+## UNLOCK
+unlock [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Unlocks an object.
+
+## CREATEGROUP
+creategroup [DOCUMENT name | WINDOW name]
+
+Groups selected objects.
+
+## DISSOLVEGROUP
+dissolvegroup [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Dissolves a group.
+
+## CREATECOLUMNS
+createcolumns [COLUMNS number] [GUTTER space]
+             [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Creates columns in a text frame.
+
+## EDITCOMPOUND
+editcompound [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Enters a compound object for editing.
+
+## DISSOLVECOMPOUND
+dissolvecompound [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Dissolves a compound object.
+
+## DISSOLVEOBJECT
+dissolveobject [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Dissolves an object.
+
+## DISSOLVEDRAWING
+dissolvedrawing [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Dissolves a drawing object.
+
+## CONVERTTOPATH
+converttopath [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Converts an object to a path.
+
+## MERGEPATHS
+mergepaths [DOCUMENT name | WINDOW name]
+
+Merges selected paths into one.
+
+## SPLITPATHS
+splitpaths [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Splits a path into separate paths.
+
+## FLATTENPATH
+flattenpath [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Flattens curves in a path to line segments.
+
+## SMOOTHPATH
+smoothpath [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Smooths a path.
+
+## SIMPLIFYPATH
+simplifypath [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Simplifies a path by removing unnecessary points.
+
+## REVERSEPATH
+reversepath [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Reverses the direction of a path.
+
+## ANDPATHS
+andpaths [DOCUMENT name | WINDOW name]
+
+Boolean intersection of selected paths.
+
+## ORPATHS
+orpaths [DOCUMENT name | WINDOW name]
+
+Boolean union of selected paths.
+
+## SUBPATHS
+subpaths [DOCUMENT name | WINDOW name]
+
+Boolean subtraction of selected paths.
+
+## XORPATHS
+xorpaths [DOCUMENT name | WINDOW name]
+
+Boolean exclusive or of selected paths.
+
+## MAKEMASK
+makemask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Creates a mask from the selected object.
+
+## RELEASEMASK
+releasemask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Releases a mask.
+
+## CLEARMASK
+clearmask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Clears a mask.
+
+## MAKEDRAWINGMASK
+makedrawingmask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Creates a drawing mask.
+
+## RELEASEDRAWINGMASK
+releasedrawingmask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Releases a drawing mask.
+
+## CLEARDRAWINGMASK
+cleardrawingmask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Clears a drawing mask.
+
+## MAKEPICTUREMASK
+makepicturemask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Creates a picture mask.
+
+## RELEASEPICTUREMASK
+releasepicturemask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Releases a picture mask.
+
+## CLEARPICTUREMASK
+clearpicturemask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Clears a picture mask.
+
+## MAKEEPSMASK
+makeepsmask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Creates an EPS mask.
+
+## RELEASEEPSMASK
+releaseepsmask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Releases an EPS mask.
+
+## CLEAREPSMASK
+clearepsmask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Clears an EPS mask.
+
+## GENERATEMASK
+generatemask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Generates a mask automatically.
+
+## GENERATEPICTUREMASK
+generatepicturemask [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Generates a picture mask automatically.
+
+## SETTEXTWRAP
+settextwrap [WRAP mode] [OFFSET offset]
+           [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sets the text wrap mode for an object.
+
+## GETTEXTWRAP
+gettextwrap [WRAP &mode] [OFFSET &offset]
+           [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Returns the text wrap mode of an object.
+
+## SETTABLE
+settable [ROWS rows] [COLUMNS columns] [CELLGUTTER gutter]
+        [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sets table properties.
+
+## GETTABLE
+gettable [ROWS &rows] [COLUMNS &columns] [CELLGUTTER &gutter]
+        [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Returns table properties.
+
+## SETCELL
+setcell [ROW row] [COLUMN column] [COLSPAN columns] [ROWSPAN rows]
+       [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sets cell properties.
+
+## GETCELL
+getcell [ROW row] [COLUMN column] [COLSPAN &columns] [ROWSPAN &rows]
+       [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Returns cell properties.
+
+## INSERTCELLCOLUMN
+insertcellcolumn [COLUMN column] [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Inserts a table column.
+
+## DELETECELLCOLUMN
+deletecellcolumn [COLUMN column] [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Deletes a table column.
+
+## INSERTCELLROW
+insertcellrow [ROW row] [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Inserts a table row.
+
+## DELETECELLROW
+deletecellrow [ROW row] [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Deletes a table row.
+
+## JOINCELL
+joincell [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Joins selected table cells.
+
+## BREAKCELL
+breakcell [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Breaks a joined table cell.
+
+## CLEARCELL
+clearcell [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Clears the content of a table cell.
+
+## GETOBJECT
+getobject [TYPE &type] [POSITION &coord] [NAME &name]
+         [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns object type, position (stem: .LEFT, .TOP, .RIGHT, .BOTTOM) and name.
+
+## GETPATH
+getpath [POINTS &count] [SUBPATHS &count] [CLOSED &flag]
+       [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns path properties.
+
+## GETPATHPOINT
+getpathpoint stem [POINTINDEX point]
+            [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns path point properties.
+
+## GETPATHPOINTS
+getpathpoints stem [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns all path points.
+
+## GETBOX
+getbox [TYPE &type] [CORNER &radius] [ECORNER &stem]
+      [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns box properties.
+
+## GETELLIPSE
+getellipse [TYPE &type] [ANGLES &stem] [CENTER &stem] [RADIUS &stem]
+          [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns ellipse properties.
+
+## GETLINE
+getline [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns line properties.
+
+## GETPOLYGON
+getpolygon [TYPE &type] [SIDES &sides] [OFFSETANGLE &angle]
+          [DEFLECTION &amount] [ANGLEDEFLECTION &amount]
+          [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns polygon properties.
+
+## GETGRIDOBJECT
+getgridobject [ROWS &rows] [COLUMNS &columns]
+             [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns grid object properties.
+
+## GETPICTURE
+getpicture [POSITION &coord] [FILEINFO &stem] [DPI &stem] [FRAME &flag]
+          [CONTENTOFFSET &stem] [CONTENTSCALE &stem] [FPO &stem]
+          [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns picture properties.
+
+## GETDRAWING
+getdrawing [POSITION &coord] [CONTENTOFFSET &stem] [CONTENTSCALE &stem]
+          [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns drawing properties.
+
+## GETGROUP
+getgroup [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns group properties.
+
+## GETCOMPOUND
+getcompound [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns compound object properties.
+
+## GETCOLUMN
+getcolumn [COLUMNS &n] [GUTTER &gutter]
+         [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns column properties.
+
+## GETTEXTOBJ
+gettextobj [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns text object properties.
+
+## GETTEXTFRAME
+gettextframe [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns text frame properties.
+
+## GETROTATION
+getrotation [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns the rotation of an object.
+
+## GETOBJECTLOCK
+getobjectlock [DOCUMENT document | WINDOW windowspec | OBJECTID objectid]
+
+Returns the lock status of an object.
+
+## EDITTEXT
+edittext [AT pointx pointy [stack] | OBJECTID number]
+        [PAGE number | DOCUMENT name | WINDOW name]
+
+Places the cursor in a text frame.
+
+## INSERT
+insert <text> [CHARACTERSET csetname]
+      [DOCUMENT document | WINDOW document~window]
+
+Inserts text at the cursor position.
+
+Example: insert "Hello PageStream!"
+
+## COPYTEXT
+copytext [DOCUMENT name | WINDOW name]
+
+Copies selected text to the clipboard.
+
+## CUTTEXT
+cuttext [DOCUMENT name | WINDOW name]
+
+Cuts selected text to the clipboard.
+
+## PASTETEXT
+pastetext [DOCUMENT name | WINDOW name]
+
+Pastes text from the clipboard.
+
+## DELETETEXT
+deletetext [DOCUMENT name | WINDOW name]
+
+Deletes the selected text.
+
+## DROPTEXT
+droptext [DOCUMENT name | WINDOW name]
+
+Drops text.
+
+## SELECTTEXT
+selecttext <AT pointx pointy [stack] | WORD | LINE | PARAGRAPH | CHAPTER | ALL | NONE>
+          [DOCUMENT name | WINDOW name]
+
+Selects text.
+
+## TEXTCURSOR
+textcursor <direction> [SELECT]
+          [DOCUMENT name | WINDOW name]
+
+Positions the text cursor.
+- direction -- LEFT, RIGHT, UP, DOWN, WORDLEFT, WORDRIGHT, LINESTART, LINEEND, PARASTART, PARAEND, CHAPTERSTART, CHAPTEREND, ARTICLESTART, ARTICLEEND
+- SELECT -- Select text during movement
+
+## FINDTEXT
+findtext <text> [CASESENSITIVE] [WHOLEWORD] [WRAPAROUND]
+        [DOCUMENT name | WINDOW name]
+
+Finds text.
+
+## REPLACETEXT
+replacetext <text> <replacement> [CASESENSITIVE] [WHOLEWORD] [WRAPAROUND] [ALL]
+           [DOCUMENT name | WINDOW name]
+
+Finds and replaces text.
+
+## SETFONT
+setfont fontname [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets the font.
+
+Example: setfont "Times"
+
+## SETTYPESIZE
+settypesize size [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets the type size.
+
+Example: settypesize 12
+
+## SETTYPEWIDTH
+settypewidth width [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets the type width.
+
+## SETTYPEANGLE
+settypeangle angle [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets the type angle.
+
+## SETBOLD
+setbold [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets bold text style.
+
+## SETITALIC
+setitalic [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets italic text style.
+
+## SETUNDERLINE
+setunderline [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets underline text style.
+
+## SETOUTLINE
+setoutline [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets outline text style.
+
+## SETSHADOW
+setshadow [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets shadow text style.
+
+## SETREVERSE
+setreverse [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets reverse text style.
+
+## SETNORMAL
+setnormal [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Removes all text styles.
+
+## SETSMALLCAPS
+setsmallcaps [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets small caps text style.
+
+## SETSUPERSCRIPT
+setsuperscript [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets superscript text style.
+
+## SETSUBSCRIPT
+setsubscript [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets subscript text style.
+
+## SETSCRIPT
+setscript [NONE | SUPERSCRIPT | SUBSCRIPT] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets script mode (superscript or subscript).
+
+## SETCASE
+setcase [NORMAL | UPPER | LOWER | TITLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets text case.
+
+## SETKERNING
+setkerning amount [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets kerning amount.
+
+## SETTRACKING
+settracking amount [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets tracking amount.
+
+## SETBASELINE
+setbaseline amount [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets baseline shift amount.
+
+## GETFONT
+getfont [DOCUMENT name | WINDOW name]
+
+Returns the current font name in RESULT.
+
+## GETTYPESIZE
+gettypesize [DOCUMENT name | WINDOW name]
+
+Returns the current type size in RESULT.
+
+## GETTYPEWIDTH
+gettypewidth [DOCUMENT name | WINDOW name]
+
+Returns the current type width in RESULT.
+
+## GETBASELINE
+getbaseline [DOCUMENT name | WINDOW name]
+
+Returns the current baseline shift in RESULT.
+
+## SETALIGNMENT
+setalignment [LEFT | RIGHT | CENTER | JUSTIFY | FORCELEFT | FORCERIGHT | FORCECENTER | FORCEJUSTIFY]
+            [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets paragraph alignment.
+
+## SETLEADING
+setleading <FIXED amount | AUTO percent | RELATIVE percent>
+          [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets line leading.
+
+## SETBASELINELEADING
+setbaselineleading <FIXED amount | AUTO percent | RELATIVE percent>
+                  [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets baseline leading.
+
+## SETPARAGRAPHLEADING
+setparagraphleading <BEFORE amount> <AFTER amount>
+                   [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets paragraph leading (space before/after).
+
+## SETINDENT
+setindent left right [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets paragraph indentation.
+
+## SETFIRSTLINE
+setfirstline amount [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets first line indent.
+
+## SETHANGING
+sethanging amount [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets hanging indent.
+
+## SETTABRULER
+settabruler [CLEAR | TAB position [type] [FILL fillchar] [ALIGN alignchar]]
+           [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets tab stops.
+- CLEAR -- Delete all tab stops
+- position -- Tab position
+- type -- LEFT, RIGHT, CENTER, DECIMAL
+- FILL -- Fill character
+- ALIGN -- Alignment character (for DECIMAL)
+
+## SETHYPHENATION
+sethyphenation [ON | OFF | TOGGLE] [MINWORD length] [MINBEFORE length]
+              [MINAFTER length] [MAXROWS rows]
+              [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets hyphenation options.
+
+## SETWIDOWORPHAN
+setwidoworphan [WIDOW lines] [ORPHAN lines]
+              [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets widow and orphan control.
+
+## SETLASTLINEFLUSH
+setlastlineflush [ON | OFF | TOGGLE]
+                [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets last line flush justification.
+
+## SETBULLET
+setbullet [ON | OFF | TOGGLE] [CHAR character]
+         [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets bullet list formatting.
+
+## SETNUMBERED
+setnumbered [ON | OFF | TOGGLE] [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets numbered list formatting.
+
+## SETDROPCAP
+setdropcap [ON | OFF | TOGGLE] [LINES lines]
+          [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets drop cap formatting.
+
+## INSERTBREAK
+insertbreak [COLUMN | PAGE | SECTION | FRAME]
+           [DOCUMENT name | WINDOW name]
+
+Inserts a break (column, page, section, or frame).
+
+## INSERTCHAR
+insertchar charcode [DOCUMENT name | WINDOW name]
+
+Inserts a character by code.
+
+## INSERTCONTROL
+insertcontrol [PAGENUMBER | CHAPTERSTART | SECTIONSTART | ...]
+             [DOCUMENT name | WINDOW name]
+
+Inserts a control element (page number, chapter start, etc.).
+
+## INSERTDASH
+insertdash [EM | EN | DISCRETIONARY | NONBREAKING]
+          [DOCUMENT name | WINDOW name]
+
+Inserts a dash.
+
+## INSERTDATE
+insertdate [FORMAT format] [DOCUMENT name | WINDOW name]
+
+Inserts the current date.
+
+## INSERTTIME
+inserttime [FORMAT format] [DOCUMENT name | WINDOW name]
+
+Inserts the current time.
+
+## INSERTBOOKMARK
+insertbookmark name [DOCUMENT name | WINDOW name]
+
+Inserts a bookmark.
+
+## DELETEBOOKMARK
+deletebookmark name [DOCUMENT name | WINDOW name]
+
+Deletes a bookmark.
+
+## EDITBOOKMARK
+editbookmark oldname newname [DOCUMENT name | WINDOW name]
+
+Renames a bookmark.
+
+## INSERTFIGUREMARK
+insertfiguremark [DOCUMENT name | WINDOW name]
+
+Inserts a figure mark.
+
+## INSERTINDEXMARK
+insertindexmark topic [DOCUMENT name | WINDOW name]
+
+Inserts an index mark.
+
+## INSERTINLINEOBJECT
+insertinlineobject [DOCUMENT name | WINDOW name]
+
+Inserts an inline object.
+
+## INSERTNONBREAKING
+insertnonbreaking [SPACE | HYPHEN]
+                 [DOCUMENT name | WINDOW name]
+
+Inserts a non-breaking space or hyphen.
+
+## BREAKTEXTROUTING
+breaktextrouting [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Breaks text routing (chaining) for a text frame.
+
+## SETTEXTROUTING
+settextrouting [DOCUMENT name | WINDOW name | OBJECTID number]
+
+Sets text routing (chaining) for a text frame.
+
+## GENERATEINDEX
+generateindex [DOCUMENT document | WINDOW document-window]
+
+Generates an index.
+
+## GENERATETOC
+generatetoc [DOCUMENT document | WINDOW document-window]
+
+Generates a table of contents.
+
+## GENERATETOF
+generatetof [DOCUMENT document | WINDOW document-window]
+
+Generates a table of figures.
+
+## SETCOLOR
+setcolor colorname [ALL | FILL | STROKENUMBER n]
+        [OBJECT | TEXT | SHADOW | OUTLINE | REVERSE | UNDERLINE |
+         RULEABOVE | RULEBELOW | CELLFILL | CELLTOP | CELLBOTTOM |
+         CELLLEFT | CELLRIGHT | DROPCAP | BULLET | NUMBERED]
+        [DOCUMENT name | WINDOW name | OBJECTID number | STYLETAG name]
+
+Sets the color of an attribute.
+- colorname -- Color name
+- ALL -- Fill and stroke (default)
+- FILL -- Fill only
+- STROKENUMBER -- Specific stroke (starting at 0)
+
+Example: setcolor "Red" fill text
+
+## GETCOLORS
+getcolors [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Returns color count and names.
+
+## NEWSTYLETAG
+newstyletag name type [NEXTSTYLETAG tagname]
+           [DOCUMENT name | WINDOW name | CHAPTER name]
+
+Creates a new style tag.
+- name -- Name of the new style
+- type -- CHARACTER, PARAGRAPH, OBJECT, COLOR, FPATTERN, LPATTERN
+- NEXTSTYLETAG -- Following style
+
+## DELETESTYLETAG
+deletestyletag [REPLACEWITH name] <STYLETAG name>
+
+Deletes a style tag.
+
+Example: deletestyletag replacewith "SubHeadline" styletag "Headline"
+
+## SETSTYLETAG
+setstyletag [NEXTSTYLETAG nexttagname] [UNLOCKED | LOCKED]
+           [INTERNAL | DRAWING] [NOTOC | TOC]
+           [STYLETAG document:...-tagname]
+
+Sets style tag properties.
+
+## SETSTYLETAGNAME
+setstyletagname name [STYLETAG name]
+
+Renames a style tag.
+
+Example: setstyletagname "Body Text" styletag "paragraph text"
+
+## BEGINSTYLETAG
+beginstyletag [STYLETAG name]
+
+Begins modification of a style tag. Must be paired with EndStyleTag.
+
+## ENDSTYLETAG
+endstyletag [STYLETAG name]
+
+Ends modification of a style tag. Must be paired with BeginStyleTag.
+
+## APPENDSTYLETAGS
+appendstyletags <FILE filepath | ASK> [type] [progress]
+               [DOCUMENT name | WINDOW name | CHAPTER name]
+
+Loads a style file and appends its styles.
+- FILE -- Style file path
+- ASK -- File selection dialog
+- type -- ALL (default), TEXT, PARAGRAPH, CHARACTER, OBJECT, COLOR
+- progress -- STATUS or NOSTATUS
+
+Example: appendstyletags file "Work:Newsletter10" text
+
+## SAVESTYLETAGS
+savestyletags [ASK | FILE "file"] [ALL | TEXT | PARAGRAPH | CHARACTER | OBJECT | COLOR]
+             [STATUS | NOSTATUS] [QUIET | FORCE | ALERT]
+             [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Saves style tags to a file.
+
+## SETOBJECTSTYLE
+setobjectstyle style [DOCUMENT name | WINDOW name | OBJECTID number | STYLETAG name]
+
+Sets the object style.
+
+## SETCHARACTERSTYLE
+setcharacterstyle style [DOCUMENT name | WINDOW name | STYLETAG name]
+
+Sets the character style.
+
+## SETPARAGRAPHSTYLE
+setparagraphstyle tagname [DOCUMENT document | WINDOW document-window | STYLETAG document:...-tagname]
+
+Sets the paragraph style.
+
+Example: setparagraphstyle "Body Text"
+
+## SETSTROKESTYLE
+setstrokestyle dash [ALL | FILL | STROKENUMBER number] [what]
+              [DOCUMENT name | WINDOW name | OBJECTID number | STYLETAG name]
+
+Sets the stroke style.
+
+## SETFPATTERNSTYLE
+setfpatternstyle tagname [ALL | FILL | STROKENUMBER n] [what]
+               [DOCUMENT name | WINDOW name | ID id | STYLETAG document:...-tagname]
+
+Sets the fill pattern style. Note: STROKENUMBER counts from 0 (unlike the UI, which counts from 1).
+
+## GETSTYLETAGSS
+getstyletagss liststem [mode] [DOCUMENT document | CHAPTER document:... | WINDOW document-window]
+
+Returns style tag list.
+- mode -- ALL (default), TEXT, PARAGRAPH, CHARACTER, OBJECT, COLOR
+
+## GETSTYLETAG
+getstyletag [TYPE &type] [NEXTSTYLETAG &nexttagname]
+           [LOCKED &flag] [USAGE &flag] [INTOC &flag]
+           [STYLETAG document:...-tagname]
+
+Returns style tag properties.
+
+## GETSTYLETAGDATA
+getstyletagdata [TYPEFONT &font] [TYPESIZE &size] [TYPEWIDTH &width]
+               [RGBCOLOR &r &g &b] [CMYKCOLOR &c &m &y &k]
+               [STYLETAG document:...-tagname]
+
+Returns style tag data.
+
+## GETCHARACTERSTYLE
+getcharacterstyle [DOCUMENT document | WINDOW document-window]
+
+Returns the current character style name or MIXED.
+
+## GETPARAGRAPHSTYLE
+getparagraphstyle [DOCUMENT document | WINDOW document-window]
+
+Returns the current paragraph style name or MIXED.
+
+## OPENWINDOW
+openwindow [DOCUMENT name]
+
+Opens a new window for a document.
+
+## HIDEWINDOW
+hidewindow [WINDOW name]
+
+Hides a window.
+
+## REVEALWINDOW
+revealwindow [WINDOW name]
+
+Reveals a hidden window.
+
+## SETWINDOWPOS
+setwindowpos [AT x y] [SIZE width height] [WINDOW name]
+
+Sets the window position and size.
+
+Example: setwindowpos at 0 -1 size 640 10000
+
+## DISPLAY
+display [PAGE <number | shortcut>] [SCALE <custom | preset>]
+       [OFFSET offsetx offsety] [WINDOW name]
+
+Changes page, zoom, and offset of a view.
+- PAGE -- Page number or: LASTUSED, PREVIOUS, NEXT, UP, DOWN, START, END; or MPG name
+- SCALE -- Percentage or: FULLPAGE, FULLPAGEWIDTH, FULLPAGEHEIGHT, FULLPASTEBOARD, FULLPASTEBOARDWIDTH, FULLPASTEBOARDHEIGHT, LASTUSED, ZOOMIN, ZOOMOUT
+- OFFSET -- Horizontal and vertical offset
+
+Example: display page 7 scale fullpage
+Example: display page previous
+
+## SETTOOLMODE
+settoolmode tool [WINDOW name]
+
+Sets the active tool.
+- tool -- OBJECT, RESHAPE, CROP, MAGNIFY, TEXT, EYEDROPPER, COLUMN, LINE, BOX, RBOX, ELLIPSE, ARC, PEN, FREEHAND, GRID, ROUTETEXT, LASTUSED, PREVIOUS, NEXT
+
+## MAINTOOLBOX
+maintoolbox [OPEN | CLOSE]
+
+Opens or closes the main toolbox.
+
+## SETTOOLBAR
+settoolbar [SHOW | HIDE | TOGGLE] [WINDOW name]
+
+Shows or hides the toolbar.
+
+## COLORPALETTE
+colorpalette [OPEN | CLOSE]
+
+Opens or closes the color palette.
+
+## LOADSETTINGS
+loadsettings [FILE "file" | ASK]
+
+Loads settings from a file.
+
+## SAVESETTINGS
+savesettings [FILE "file" | ASK]
+
+Saves settings to a file.
+
+## LOADFONTPREFS
+loadfontprefs [FILE "file" | ASK]
+
+Loads font preferences from a file.
+
+## SAVEFONTPREFS
+savefontprefs [FILE "file" | ASK]
+
+Saves font preferences to a file.
+
+## LOADPRINTPREFS
+loadprintprefs [FILE "file" | ASK]
+
+Loads print preferences from a file.
+
+## SAVEPRINTPREFS
+saveprintprefs [FILE "file" | ASK]
+
+Saves print preferences to a file.
+
+## SETMEASUREMENTS
+setmeasurements [COORDINATE hmsys vmsys] [RELATIVE rmsys] [TEXT tmsys]
+               [FROM <PAGE|SPREAD>] [SAVE]
+
+Sets measurement units.
+- Units: INCHES, CENTIMETERS, MILLIMETERS, PICAS, POINTS, PRINTERPOINTS, CICEROS, DIDOTPOINTS, METRICPOINTS, FEET, METERS
+
+## PRINTDOCUMENT
+printdocument [SIDES <BOTH|EVEN|ODD>] [SCALE <ACTUAL|FULLPAGE|scale>]
+             [COPIES copies] [THUMBNAILS <ON|OFF>]
+             [TILING <ON [TILINGOVERLAP amount]|OFF>]
+             [PICTURES <ON|OFF>] [DRAWINGS <ON|OFF>]
+             [COLLATE <ON|OFF>] [REVERSEORDER <ON|OFF>]
+             [PRINTBLANK <ON|OFF>] [PRINTERMARKS <ON|OFF>]
+             [MIRROR <ON|OFF>] [NEGATIVE <ON|OFF>]
+             [OUTPUT <GRAYSCALE|COLOR|SEPARATIONS|PROCESS|SPOT>]
+             [PAGE page | MPG masterpage | PAGERANGE "page,from-to,..."]
+             [DOCUMENT document | CHAPTER document:...]
+
+Prints a document.
+
+## UNDO
+undo [DOCUMENT name | WINDOW name]
+
+Undoes the last action.
+
+## REDO
+redo [DOCUMENT name | WINDOW name]
+
+Redoes the last undone action.
+
+## QUIT
+quit [mode]
+
+Quits PageStream.
+- mode -- FORCE (without saving), ALERT (default, ask user), QUIET (quit silently)
+
+## GETVERSION
+getversion
+
+Returns the PageStream version string in RESULT.
+
+## GETDISPLAY
+getdisplay stem [WINDOW name]
+
+Returns display settings. Results: stem.page, stem.mode, stem.scale, stem.left, stem.top.
+
+## GETSCREENDPI
+getscreendpi stem
+
+Returns screen DPI (Amiga only). Results: stem.x, stem.y.
+
+## GETSCREENNAME
+getscreenname
+
+Returns the public screen name in RESULT (Amiga only).
+
+## GETPORTNAME
+getportname
+
+Returns the ARexx port name in RESULT (Amiga only).
+
+## GETWINDOWPOS
+getwindowpos [AT stem] [SIZE stem] [WINDOW name]
+
+Returns window position and size.
+
+Example: getwindowpos at coords size coords
+
+## GETTOOLMODE
+gettoolmode [WINDOW document-window]
+
+Returns the current tool mode. Values: OBJECT, RESHAPE, CROP, TEXT, MAGNIFY, EYEDROPPER, COLUMN, LINE, BOX, RBOX, ELLIPSE, ARC, POLYGON, PEN, FREEHAND, GRID, ROUTETEXT, ROTATE, SBOX, BBOX, IBOX, PIE, STAR, SCALLOP, PUFFY, WAVY, LASSO, TABLE.
+
+## GETMEASUREMENTS
+getmeasurements [DOCUMENT document | WINDOW document-window]
+
+Returns the current measurement settings.
+
+## GETUNDO
+getundo [DOCUMENT name | WINDOW name]
+
+Returns the undo status.
+
+## GETREDO
+getredo [DOCUMENT name | WINDOW name]
+
+Returns the redo status.
+
+## GETERRNUM
+geterrnum
+
+Returns the last error number.
+
+## GETERRSTR
+geterrstr
+
+Returns the last error text.
+
+## GETCOORDFROMSTRING
+getcoordfroms string defaultmeasurementsystem
+
+Converts a measurement string (e.g. "1in") to an internal coordinate value.
+- Units: INCHES, CENTIMETERS, MILLIMETERS, PICAS, POINTS, PRINTERPOINTS, CICEROS, DIDOTPOINTS, METRICPOINTS, FEET, METERS
+
+## GETCMDSTRINGFROMCOORD
+getcmdstringfromcoord coord measurementtype
+
+Converts an internal coordinate value to a command string (e.g. "1in").
+
+## GETUISTRINGFROMCOORD
+getuistringfromcoord coord measurementtype
+
+Converts an internal coordinate value to a UI-formatted string.
+
+## LOCKINTERFACE
+lockinterface <TRUE | FALSE>
+
+Locks or unlocks the PageStream interface. WARNING: If the script ends before lockinterface false is called, the interface remains locked and PageStream must be force-quit!
+
+Example: lockinterface true
+Example: lockinterface false
+
+## CHECKLOCK
+checklock
+
+Checks the current interface lock status.
+
+## RX
+rx filepath [DOCUMENT name | WINDOW name]
+
+Executes an external ARexx, Python, or AppleScript script.
+
+Example: rx "PageStream:Scripts/Test"
+
+## EXECUTE
+execute filepath
+
+Executes an external script file.
+
+## PLAY
+play filepath
+
+Plays a recorded script file.
+
+## STARTRECORDING
+startrecording
+
+Starts recording user actions as a script.
+
+## STOPRECORDING
+stoprecording
+
+Stops recording user actions.
+
+## BEGINPREFCAPTURE
+beginprefcapture [SAVE]
+
+Begins buffering preference changes for faster execution.
+
+## ENDPREFCAPTURE
+endprefcapture
+
+Ends buffering and applies preference changes.
+
+## CHARACTERSET
+characterset csetname [SAVE]
+
+Sets the character set. Returns the previous one in RESULT.
+
+## BEEP
+beep
+
+Flashes the screen (Amiga only).
+
+## ALLOCAREXXREQUESTER
+allocarexxrequester name width height
+
+Creates a new dialog box.
+- name -- Dialog title
+- width -- Inner width in pixels
+- height -- Inner height in pixels
+
+Returns dialog handle in RESULT. Must be freed with FreeARexxRequester before script ends.
+
+Example: allocarexxrequester "Test Dialog Box" 400 220
+
+## ALLOCAREXXLIST
+allocarexxlist
+
+Creates a list for list controls. Returns list handle in RESULT. Must be freed with FreeARexxList.
+
+## ADDAREXXLIST
+addarexxlist handle item
+
+Adds an item to a list. Items are indexed starting at 0.
+
+Example: addarexxlist choices "First choice"
+
+## ADDAREXXGADGET
+addarexxgadget dbox type left top width [height]
+              [LABEL name] [LABELPOS pos] [STRING text]
+              [BORDER style] [CHECKED status]
+              [LIST handle] [CURRENT value] [TOTAL value]
+
+Adds a control to a dialog. Returns control handle in RESULT.
+- dbox -- Dialog handle
+- type -- EXIT, STRING, MULTILINE, TEXT, CHECKBOX, POPUP, CYCLE, SCROLLIST, SLIDER
+- left -- Left position
+- top -- Top position
+- width -- Width
+- height -- Height (for MULTILINE and SCROLLIST, minimum: 36)
+- LABEL -- Label text
+- LABELPOS -- Position: LEFT, RIGHT, ABOVE, ABOVELEFT, ABOVERIGHT, BELOW, BELOWLEFT, BELOWRIGHT, CENTER, CENTERLEFT, CENTERRIGHT, LEFTABOVE, LEFTBELOW, RIGHTABOVE, RIGHTBELOW
+- STRING -- Default text
+- BORDER -- NONE, RAISED, RECESSED, SHINE, SHADOW, TEXT
+- CHECKED -- TRUE or FALSE (for CHECKBOX)
+- LIST -- List handle (for POPUP, CYCLE, SCROLLIST)
+- CURRENT -- Default list entry or slider position
+- TOTAL -- Slider range
+
+## SETAREXXGADGET
+setarexxgadget reqhandle objid [HIDDEN <TRUE|FALSE>] [DISABLED <TRUE|FALSE>]
+              [CHECKED <TRUE|FALSE>] [HIGHLABEL <TRUE|FALSE>]
+              [READONLY <TRUE|FALSE>] [ESCAPE <TRUE|FALSE>]
+              [DEFAULT <TRUE|FALSE>] [LABEL string] [STRING string]
+              [LEFT num] [TOP num] [WIDTH num] [HEIGHT num]
+              [CURRENT num] [TOTAL num] [LABELPOS position]
+              [BORDER border_type] [ALIGNMENT <LEFT|CENTER|RIGHT>]
+              [ORIENTATION <HORIZONTAL|VERTICAL>] [LIST listhandle]
+
+Changes properties of a dialog control.
+
+## GETAREXXGADGET
+getarexxgadget dbhandle ctlhandle attribute
+
+Queries the state of a dialog control.
+- attribute -- CHECKED (returns 0/1), STRING (text), CURRENT (selected item)
+
+## DOAREXXREQUESTER
+doarexxrequester dbhandle
+
+Displays a dialog and waits for user input. Returns the handle of the pressed EXIT button in RESULT.
+
+## DOREQUESTER
+dorequester dbhandle
+
+Displays a dialog and waits for user input (alias for DoARexxRequester). Returns the handle of the pressed EXIT button in RESULT.
+
+## FREEAREXXREQUESTER
+freearexxrequester dbhandle
+
+Frees a dialog. Always call to avoid memory leaks.
+
+## FREEAREXXLIST
+freearexxlist listhandle
+
+Frees a list. Always call to avoid memory leaks.
+
+## ALERTREQUESTER
+alertrequester message [BUTTON1 label] [BUTTON2 label] [BUTTON3 label]
+
+Displays a warning message dialog.
+
+## OPENBUSYREQUESTER
+openbusyrequester [MESSAGE message] [ABORT <DISABLED|ENABLED>]
+                 [THERMOMETER <DISABLED|ENABLED>]
+                 [DELAYEDOPEN <DISABLED|ENABLED>]
+                 [TOTAL total] [CURRENT current]
+
+Opens a busy/progress requester. Returns handle in RESULT.
+
+Example: openbusyrequester message "Thinking..." thermometer enabled total 100 current 0
+
+## SETBUSYREQUESTER
+setbusyrequester handle [MESSAGE text] [THERMOMETER status]
+                       [ABORT status] [TOTAL value] [CURRENT value]
+
+Updates a busy requester.
+
+## GETBUSYREQUESTER
+getbusyrequester handle
+
+Checks if the Stop button was pressed. Returns 0 if not pressed, 1 if pressed.
+
+## CLOSEBUSYREQUESTER
+closebusyrequester handle
+
+Closes a busy requester.
+
+## GETCHOICE
+getchoice MESSAGE message BUTTON1 label [BUTTON2 label] [BUTTON3 label]
+
+Displays a choice dialog (Amiga only).
+- MESSAGE -- Message (max. 44 characters)
+- BUTTON1 -- Default button (max. 8 characters)
+- BUTTON2 -- Cancel button (activatable with Esc)
+- BUTTON3 -- Third button
+
+Returns button number in RESULT. Underscore before a letter = keyboard shortcut (e.g. "\_OK").
+
+Example: getchoice message "Click on a button." button1 "\_OK" button2 "\_Cancel"
+
+## GETFILE
+getfile [TITLE title] [mode] [PATH name] [FILE name]
+       [POSBUTTON label] [NEGBUTTON label]
+
+Displays a file selection dialog.
+- mode -- LOAD (default) or SAVE
+- RC = 0: Success, file path in RESULT
+- RC = 10: Cancelled
+
+Example: getfile TITLE "Save a file" save path "ram:" posbutton "Save"
+
+## GETFILEPATH
+getfilepath [PATH path] [TITLE title] [POSBUTTON ok] [NEGBUTTON cancel]
+
+Displays a directory selection dialog.
+
+## GETSTRING
+getstring [STRING default] [TITLE label] [POSBUTTON label] [NEGBUTTON label]
+
+Displays a string input dialog (Amiga only). RC = 0 + string in RESULT on success; RC = 10 on cancel.
+
+Example: getstring string "Erase this." title "\_Text" posbutton "\_Yes" negbutton "\_No"
+
+## GETREGION
+getregion stem [MESSAGE message]
+
+User drags a region on the page. Results: stem.x1, stem.y1, stem.x2, stem.y2. RC = 0 on success, RC = 10 on cancel.
+
+Example: getregion coord message "Drag to define an area"
+
+## BEGINCOMMANDCAPTURE
+begincommandcapture
+
+Begins capturing commands for later playback.
+
+## ENDCOMMANDCAPTURE
+endcommandcapture
+
+Ends command capture.

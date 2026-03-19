@@ -1,0 +1,1186 @@
+## ADDRNEW
+
+Creates a new address book entry below the current entry.
+
+Syntax: ADDRNEW [VAR/K] [STEM/K] [TYPE] [ALIAS] [NAME] [EMAIL]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  TYPE       Entry type: G=Group, L=Mailing list, omit=Person
+  ALIAS      Alias for the new entry
+  NAME       Full name
+  EMAIL      Email address
+
+At least one of ALIAS, NAME, or EMAIL must be specified.
+
+Return: ALIAS of the created entry in RESULT.
+
+Examples:
+  'ADDRNEW ALIAS "jd" NAME "John Doe" EMAIL "john@example.com"'
+  'ADDRNEW TYPE G ALIAS "Friends" NAME "Friends Group"'
+  'ADDRNEW TYPE L ALIAS "team" NAME "Team List" EMAIL "team@example.com"'
+
+## ADDREDIT
+
+Edits the fields of the current address book entry.
+Use ADDRGOTO first to select the entry.
+
+Syntax: ADDREDIT [ALIAS] [NAME] [EMAIL] [PGP] [HOMEPAGE] [STREET] [CITY]
+                 [COUNTRY] [PHONE] [COMMENT] [BIRTHDATE/N] [IMAGE]
+                 [MEMBER/M] [ADD/S]
+
+Parameters:
+  ALIAS        Change alias
+  NAME         Full name
+  EMAIL        Email address
+  PGP          PGP key ID
+  HOMEPAGE     Homepage URL
+  STREET       Street address
+  CITY         City
+  COUNTRY      Country
+  PHONE        Phone number
+  COMMENT      Comment text
+  BIRTHDATE/N  Birth date in format DDMMYYYY (e.g. 13091969)
+  IMAGE        Path to portrait image file
+  MEMBER/M     Member list (for mailing lists only)
+  ADD/S        Add members instead of replacing the list
+
+Examples:
+  'ADDRGOTO "jd"'
+  'ADDREDIT PHONE "+49 123 456" CITY "Berlin" COUNTRY "Germany"'
+
+  /* Add members to a mailing list */
+  'ADDRGOTO "team"'
+  'ADDREDIT MEMBER "alice" "bob" ADD'
+
+## ADDRDELETE
+
+Deletes an address book entry.
+
+Syntax: ADDRDELETE [ALIAS]
+
+Parameters:
+  ALIAS    Alias of the entry to delete. If omitted, the current entry is deleted.
+
+Examples:
+  'ADDRDELETE "jd"'
+  'ADDRDELETE'
+
+## ADDRGOTO
+
+Makes the specified entry the current one in the address book.
+
+Syntax: ADDRGOTO ALIAS/A
+
+Parameters:
+  ALIAS/A    Alias of the entry (required)
+
+Example:
+  'ADDRGOTO "jd"'
+
+## ADDRINFO
+
+Returns information about an address book entry.
+
+Syntax: ADDRINFO [VAR/K] [STEM/K] ALIAS/A
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  ALIAS/A    Alias of the entry (required)
+
+Return fields:
+  TYPE       P=Person, L=Mailing list, G=Group
+  NAME       Full name
+  EMAIL      Email address
+  PGP        PGP key ID
+  HOMEPAGE   Homepage URL
+  STREET     Street address
+  CITY       City
+  COUNTRY    Country
+  PHONE      Phone number
+  COMMENT    Comment
+  BIRTHDATE  Date in format YYYYMMDD
+  IMAGE      File path of portrait image
+  MEMBERS    Members of a mailing list
+
+Examples:
+  'ADDRINFO STEM ai. "jd"'
+  SAY "Name:" ai.name
+  SAY "Email:" ai.email
+  SAY "Type:" ai.type
+
+## ADDRFIND
+
+Searches the address book for matching entries.
+
+Syntax: ADDRFIND [VAR/K] [STEM/K] PATTERN/A [NAMEONLY/S] [EMAILONLY/S]
+
+Parameters:
+  VAR/K        Store result in named variable
+  STEM/K       Store result in stem variable
+  PATTERN/A    Search term (required)
+  NAMEONLY/S   Search only in the "Full name" field
+  EMAILONLY/S  Search only in the "Address" field
+
+Return: ALIAS/M (list of matching aliases)
+
+Examples:
+  'ADDRFIND STEM res. "example.com" EMAILONLY'
+  DO i = 0 TO res.alias.count - 1
+      SAY res.alias.i
+  END
+
+  'ADDRFIND STEM res. "Marcel Beck" NAMEONLY'
+
+## ADDRRESOLVE
+
+Resolves an alias or name to email address(es).
+
+Syntax: ADDRRESOLVE [VAR/K] [STEM/K] ALIAS/A
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  ALIAS/A    Alias or name to resolve (required)
+
+Return: EMAIL/M (list of email addresses)
+
+Example:
+  'ADDRRESOLVE STEM res. "team"'
+  DO i = 0 TO res.email.count - 1
+      SAY res.email.i
+  END
+
+## ADDRLOAD
+
+Loads an address book from a file.
+
+Syntax: ADDRLOAD FILENAME/A
+
+Parameters:
+  FILENAME/A    Path to the address book file (required)
+
+Example:
+  'ADDRLOAD "PROGDIR:.addressbook"'
+
+## ADDRSAVE
+
+Saves the address book to a file.
+
+Syntax: ADDRSAVE [FILENAME]
+
+Parameters:
+  FILENAME    Path to save to. If omitted, the current file is used.
+
+Examples:
+  'ADDRSAVE'
+  'ADDRSAVE "RAM:addressbook_backup"'
+
+## SETFOLDER
+
+Switches to a mailbox/folder.
+
+Syntax: SETFOLDER FOLDER/A
+
+Parameters:
+  FOLDER/A    Folder name or number (required)
+              0=Inbox is always the first folder
+
+Examples:
+  'SETFOLDER "Eingang"'
+  'SETFOLDER 0'
+  'SETFOLDER "Sent"'
+
+## FOLDERINFO
+
+Returns information about a mailbox/folder.
+
+Syntax: FOLDERINFO [VAR/K] [STEM/K] [FOLDER]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  FOLDER     Folder name or number. If omitted, uses current folder.
+
+Return fields:
+  NUMBER/N   Internal number (0=Inbox)
+  NAME       Display name
+  PATH       Directory name
+  TOTAL/N    Total number of messages
+  NEW/N      Number of new messages
+  UNREAD/N   Number of unread messages
+  SIZE/N     Size in bytes
+  TYPE/N     Folder type:
+             0=normal, 1=Inbox, 2=Outbox, 3=Sent (default),
+             4=Deleted, 5=Sent+Received, 6=Sent
+
+Examples:
+  'FOLDERINFO STEM fi.'
+  SAY "Mailbox:" fi.name "—" fi.total "messages," fi.new "new"
+
+  'FOLDERINFO STEM fi. "Outbox"'
+
+## NEWMAILFILE
+
+Returns an unused filename for a new message in a folder.
+
+Syntax: NEWMAILFILE [VAR/K] [STEM/K] [FOLDER]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  FOLDER     Folder name or number. If omitted, uses current folder.
+
+Return: FILENAME
+
+Example:
+  'NEWMAILFILE STEM nf.'
+  SAY "New file:" nf.filename
+
+## SETMAIL
+
+Selects a message in the current mailbox by position index.
+
+Syntax: SETMAIL NUM/N/A
+
+Parameters:
+  NUM/N/A    0-based message index (required)
+
+Example:
+  'SETMAIL 0'
+  'SETMAIL 5'
+
+## SETMAILFILE
+
+Selects a message by its filename.
+
+Syntax: SETMAILFILE MAILFILE/A
+
+Parameters:
+  MAILFILE/A    Filename of the message (required)
+
+Example:
+  'SETMAILFILE "000001.001"'
+
+## LISTSELECT
+
+Selects or deselects messages in the current mailbox.
+
+Syntax: LISTSELECT MODE/A
+
+Parameters:
+  MODE/A     Selection mode (required)
+             N = Select none (clear selection)
+             A = Select all
+             T = Toggle selection
+             numeric = Add message at position to selection
+
+Examples:
+  'LISTSELECT A'
+  'LISTSELECT N'
+  'LISTSELECT 5'
+
+## GETSELECTED
+
+Returns the positions of the selected messages.
+
+Syntax: GETSELECTED [VAR/K] [STEM/K]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+
+Return: NUM/N/M (list of selected message positions)
+
+Example:
+  'GETSELECTED STEM sel.'
+  DO i = 0 TO sel.num.count - 1
+      SAY "Selected:" sel.num.i
+  END
+
+## MAILINFO
+
+Returns detailed information about a message.
+
+Syntax: MAILINFO [VAR/K] [STEM/K] [INDEX/N]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  INDEX/N    Message index (0-based). If omitted, uses current message.
+
+Return fields:
+  INDEX/N    Message index
+  STATUS     Message status:
+             N=new, O=read, U=unread, R=replied,
+             F=forwarded, S=sent, W=waiting, H=hold, E=error
+  FROM       Sender
+  TO         Recipient
+  REPLYTO    Reply-to address
+  SUBJECT    Subject
+  FILENAME   File path of the message
+  SIZE/N     Size in bytes
+  DATE       Date string
+  FLAGS      8-byte string "MARCS-00":
+             M=Multipart, A=Attachments, R=Report,
+             C=Crypted (encrypted), S=Signed,
+             last two digits=user flags (see SETFLAG)
+  MSGID/N    32-bit compressed message ID
+
+Examples:
+  'MAILINFO STEM mi. 0'
+  SAY "From:" mi.from
+  SAY "Subject:" mi.subject
+  SAY "Status:" mi.status
+  SAY "Size:" mi.size "bytes"
+
+  /* Check for attachments */
+  'MAILINFO STEM mi.'
+  IF SUBSTR(mi.flags, 2, 1) = 'A' THEN SAY "Has attachments"
+
+## MAILREAD
+
+Opens the current message in a read window.
+
+Syntax: MAILREAD [VAR/K] [STEM/K] [WINDOW/N] [QUIET/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  WINDOW/N   Activate an already open read window by number
+  QUIET/S    Open window invisibly (hidden)
+
+Return: WINDOW/N (read window number)
+
+Example:
+  'MAILREAD'
+  window = RESULT
+
+  'MAILREAD QUIET'
+
+## MAILREPLY
+
+Opens a compose window to reply to the selected message.
+
+Syntax: MAILREPLY [VAR/K] [STEM/K] [QUIET/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  QUIET/S    Open window invisibly
+
+Return: WINDOW/N (compose window number)
+
+Example:
+  'MAILREPLY QUIET'
+
+## MAILFORWARD
+
+Opens a compose window to forward the selected message.
+
+Syntax: MAILFORWARD [VAR/K] [STEM/K] [QUIET/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  QUIET/S    Open window invisibly
+
+Return: WINDOW/N (compose window number)
+
+Example:
+  'MAILFORWARD QUIET'
+
+## MAILBOUNCE
+
+Opens a compose window to redirect (bounce) the selected message.
+The message is resent with modified headers.
+
+Syntax: MAILBOUNCE [VAR/K] [STEM/K] [QUIET/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  QUIET/S    Open window invisibly
+
+Return: WINDOW/N (compose window number)
+
+Example:
+  'MAILBOUNCE QUIET'
+
+## MAILEDIT
+
+Opens the selected message for editing.
+
+Syntax: MAILEDIT [VAR/K] [STEM/K] [QUIET/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  QUIET/S    Open window invisibly
+
+Return: WINDOW/N (edit window number)
+
+Example:
+  'MAILEDIT'
+
+## MAILCOPY
+
+Copies the selected messages to another mailbox.
+
+Syntax: MAILCOPY FOLDER/A
+
+Parameters:
+  FOLDER/A    Destination folder name or number (required)
+
+Example:
+  'MAILCOPY "Archive"'
+  'MAILCOPY 3'
+
+## MAILMOVE
+
+Moves the selected messages to another mailbox.
+
+Syntax: MAILMOVE FOLDER/A
+
+Parameters:
+  FOLDER/A    Destination folder name or number (required)
+
+Example:
+  'MAILMOVE "Archive"'
+
+## MAILDELETE
+
+Deletes the selected messages.
+
+Syntax: MAILDELETE [ATONCE/S] [FORCE/S]
+
+Parameters:
+  ATONCE/S    Delete immediately (skip trash folder)
+  FORCE/S     No confirmation prompt
+
+Examples:
+  'MAILDELETE'
+  'MAILDELETE ATONCE FORCE'
+
+## MAILSTATUS
+
+Changes the status of the selected messages.
+
+Syntax: MAILSTATUS STATUS
+
+Parameters:
+  STATUS     New status:
+             O = Read (Old)
+             U = Unread
+             H = Hold
+             W = Ready to send (Waiting)
+
+Examples:
+  'MAILSTATUS O'
+  'MAILSTATUS U'
+  'MAILSTATUS H'
+
+## MAILCHANGESUBJECT
+
+Changes the subject of the selected message(s).
+
+Syntax: MAILCHANGESUBJECT SUBJECT/A
+
+Parameters:
+  SUBJECT/A    New subject text (required)
+
+Example:
+  'MAILCHANGESUBJECT "Updated Subject"'
+
+## MAILSEND
+
+Sends selected or all messages in the outbox.
+
+Syntax: MAILSEND [ALL/S]
+
+Parameters:
+  ALL/S    Send all messages in outbox (not just selected)
+
+Examples:
+  'MAILSEND'
+  'MAILSEND ALL'
+
+## MAILSENDALL
+
+Sends all messages in the outbox.
+
+Syntax: MAILSENDALL
+
+Example:
+  'MAILSENDALL'
+
+## MAILFILTER
+
+Filters messages in the current mailbox using configured filter rules.
+
+Syntax: MAILFILTER [VAR/K] [STEM/K] [ALL/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  ALL/S      Filter all messages. Without ALL, only new messages are filtered.
+
+Return fields:
+  CHECKED/N     Number of messages checked
+  BOUNCED/N     Number bounced
+  FORWARDED/N   Number forwarded
+  REPLIED/N     Number auto-replied
+  EXECUTED/N    Number that triggered script execution
+  MOVED/N       Number moved
+  DELETED/N     Number deleted
+
+Example:
+  'MAILFILTER STEM mf. ALL'
+  SAY "Checked:" mf.checked "Moved:" mf.moved "Deleted:" mf.deleted
+
+## MAILUPDATE
+
+Refreshes/rebuilds the index of the current mailbox.
+
+Syntax: MAILUPDATE
+
+Example:
+  'MAILUPDATE'
+
+## MAILEXPORT
+
+Exports messages to a file.
+
+Syntax: MAILEXPORT FILENAME/A [ALL/S] [APPEND/S]
+
+Parameters:
+  FILENAME/A    Output file path (required)
+  ALL/S         Export all messages (not just selected)
+  APPEND/S      Append to existing file instead of overwriting
+
+Examples:
+  'MAILEXPORT "RAM:messages.txt"'
+  'MAILEXPORT "RAM:messages.txt" ALL APPEND'
+
+## MAILIMPORT
+
+Imports messages from a file into the current folder.
+
+Syntax: MAILIMPORT FILENAME/A [WAIT/S]
+
+Parameters:
+  FILENAME/A    Input file path (required)
+  WAIT/S        Let user make a pre-selection before importing
+
+Examples:
+  'MAILIMPORT "RAM:messages.txt"'
+  'MAILIMPORT "RAM:messages.txt" WAIT'
+
+## SETFLAG
+
+Sets user-definable flags on the current message.
+
+Syntax: SETFLAG [VOL/K/N] [PER/K/N]
+
+Parameters:
+  VOL/K/N    Volatile flag (lost on restart), values 0-7
+  PER/K/N    Permanent flag (stored in file comment), values 0-7
+
+The flags appear as the last two digits in the FLAGS field of MAILINFO.
+
+Examples:
+  'SETFLAG VOL 1'
+  'SETFLAG PER 3'
+  'SETFLAG VOL 0 PER 0'
+
+## MAILCHECK
+
+Checks for new emails and downloads them.
+
+Syntax: MAILCHECK [VAR/K] [STEM/K] [POP/K/N] [MANUAL/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  POP/K/N    Query only a specific POP3 server by number
+  MANUAL/S   Let user pre-select which messages to download
+
+Return fields:
+  DOWNLOADED/N   Number of messages downloaded
+  ONSERVER/N     Number of messages still on server
+  DUPSKIPPED/N   Number of duplicates skipped
+  DELETED/N      Number deleted from server
+
+Examples:
+  'MAILCHECK STEM mc.'
+  SAY mc.downloaded "new messages downloaded"
+  SAY mc.onserver "on server"
+
+  'MAILCHECK POP 0'
+
+## READCLOSE
+
+Closes the active read window.
+
+Syntax: READCLOSE
+
+Example:
+  'READCLOSE'
+
+## READINFO
+
+Returns information about the attachments of the message in the
+active read window.
+
+Syntax: READINFO [VAR/K] [STEM/K]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+
+Return fields (all /M = multiple):
+  FILENAME/M    Original filenames of attachments
+  FILETYPE/M    MIME types of attachments
+  FILESIZE/N/M  Sizes in bytes
+  TEMPFILE/M    Temporary file paths (for decoded attachments)
+
+Example:
+  'READINFO STEM ri.'
+  DO i = 0 TO ri.filename.count - 1
+      SAY "Attachment:" ri.filename.i "(" ri.filetype.i "," ri.filesize.i "bytes)"
+  END
+
+## READPRINT
+
+Prints a message or a specific attachment from the read window.
+
+Syntax: READPRINT [PART/N]
+
+Parameters:
+  PART/N    Attachment number to print. If omitted, prints the visible message.
+
+Examples:
+  'READPRINT'
+  'READPRINT 1'
+
+## READSAVE
+
+Saves a message or a specific attachment from the read window to a file.
+
+Syntax: READSAVE [PART/N] [FILENAME/K] [OVERWRITE/S]
+
+Parameters:
+  PART/N        Attachment number to save. If omitted, saves the message.
+  FILENAME/K    Destination file path. If omitted, a file requester appears.
+  OVERWRITE/S   Overwrite existing file without asking
+
+Examples:
+  'READSAVE FILENAME "RAM:message.txt"'
+  'READSAVE PART 1 FILENAME "RAM:attachment.pdf" OVERWRITE'
+
+## MAILWRITE
+
+Opens a new compose window for writing a message.
+
+Syntax: MAILWRITE [VAR/K] [STEM/K] [WINDOW/N] [QUIET/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  WINDOW/N   Activate an already open compose window by number
+  QUIET/S    Open window invisibly (hidden)
+
+Return: WINDOW/N (compose window number)
+
+Examples:
+  'MAILWRITE'
+  window = RESULT
+
+  'MAILWRITE QUIET'
+
+## WRITETO
+
+Sets the "To" field in the active compose window.
+
+Syntax: WRITETO ADDRESS/A/M [ADD/S]
+
+Parameters:
+  ADDRESS/A/M    Email address(es) (required, multiple allowed)
+  ADD/S          Append to existing addresses instead of replacing
+
+Examples:
+  'WRITETO "user@example.com"'
+  'WRITETO "alice@example.com" "bob@example.com"'
+  'WRITETO "cc@example.com" ADD'
+
+## WRITECC
+
+Sets the "CC" (carbon copy) field in the active compose window.
+
+Syntax: WRITECC ADDRESS/A/M [ADD/S]
+
+Parameters:
+  ADDRESS/A/M    Email address(es) (required, multiple allowed)
+  ADD/S          Append to existing addresses instead of replacing
+
+Examples:
+  'WRITECC "manager@example.com"'
+  'WRITECC "team@example.com" ADD'
+
+## WRITEBCC
+
+Sets the "BCC" (blind carbon copy) field in the active compose window.
+
+Syntax: WRITEBCC ADDRESS/A/M [ADD/S]
+
+Parameters:
+  ADDRESS/A/M    Email address(es) (required, multiple allowed)
+  ADD/S          Append to existing addresses instead of replacing
+
+Example:
+  'WRITEBCC "archive@example.com"'
+
+## WRITEMAILTO
+
+Sets the "To" field, replacing all existing addresses.
+
+Syntax: WRITEMAILTO ADDRESS/A/M
+
+Parameters:
+  ADDRESS/A/M    Email address(es) (required, multiple allowed)
+
+Example:
+  'WRITEMAILTO "newrecipient@example.com"'
+
+## WRITEFROM
+
+Sets the "From" field in the active compose window.
+
+Syntax: WRITEFROM ADDRESS/A
+
+Parameters:
+  ADDRESS/A    Email address (required)
+
+Example:
+  'WRITEFROM "sender@example.com"'
+
+## WRITEREPLYTO
+
+Sets the "Reply-To" field in the active compose window.
+
+Syntax: WRITEREPLYTO ADDRESS/A
+
+Parameters:
+  ADDRESS/A    Reply-to email address (required)
+
+Example:
+  'WRITEREPLYTO "replies@example.com"'
+
+## WRITESUBJECT
+
+Sets the subject in the active compose window.
+
+Syntax: WRITESUBJECT SUBJECT/A
+
+Parameters:
+  SUBJECT/A    Subject text (required). Strings with spaces must be quoted.
+
+Examples:
+  'WRITESUBJECT "Monthly Report"'
+  'WRITESUBJECT "Re: Your question"'
+
+## WRITEATTACH
+
+Adds a file as an attachment to the message.
+
+Syntax: WRITEATTACH FILE/A [DESC] [ENCMODE] [CTYPE]
+
+Parameters:
+  FILE/A     File path (required)
+  DESC       Description of the attachment
+  ENCMODE    Encoding mode:
+             uu  = UUencode
+             b64 = Base64 (recommended)
+  CTYPE      MIME Content-Type (e.g. "image/jpeg", "application/pdf")
+
+Examples:
+  'WRITEATTACH "WORK:Bilder/foto.jpg" DESC "Vacation photo" ENCMODE b64 CTYPE "image/jpeg"'
+  'WRITEATTACH "Work:Reports/March.pdf" "Monthly report" b64'
+
+## WRITEOPTIONS
+
+Sets options for the message being composed.
+
+Syntax: WRITEOPTIONS [DELETE/S] [RECEIPT/S] [NOTIF/S] [ADDINFO/S]
+                     [IMPORTANCE/N] [SIG/N] [SECURITY/N]
+
+Parameters:
+  DELETE/S       Delete message after sending
+  RECEIPT/S      Request read receipt
+  NOTIF/S        Request message notification (tracking)
+  ADDINFO/S      Add personal information to headers
+  IMPORTANCE/N   Priority level:
+                 0 = High
+                 1 = Normal
+                 2 = Low
+  SIG/N          Signature to use:
+                 0 = None
+                 1 = Signature 1
+                 2 = Signature 2
+                 3 = Signature 3
+  SECURITY/N     Security level:
+                 0 = Normal (no encryption)
+                 1-5 = Security levels
+
+Examples:
+  'WRITEOPTIONS IMPORTANCE 0 RECEIPT'
+  'WRITEOPTIONS SIG 1 SECURITY 0'
+
+## WRITEEDITOR
+
+Passes an ARexx command to the internal TextEditor (TextEditor.mcc)
+that controls the mail body editor.
+
+Syntax: WRITEEDITOR COMMAND/A
+
+Parameters:
+  COMMAND/A    TextEditor.mcc ARexx command (required)
+
+Available TextEditor.mcc commands:
+
+Clipboard & Editing:
+  CLEAR        Clear all editor contents
+  CUT          Cut selected text to clipboard
+  COPY         Copy selected text to clipboard
+  PASTE        Paste from clipboard at cursor
+  ERASE        Erase selected text (no clipboard)
+  DELETE       Delete character at cursor
+  BACKSPACE    Delete character before cursor
+  KILLLINE     Delete entire current line
+  UNDO         Undo last action
+  REDO         Redo last undone action
+
+Navigation:
+  GOTOLINE /N/A       Go to line number
+  GOTOCOLUMN /N/A     Go to column number
+  CURSOR Up/Down/Left/Right   Move cursor one step
+  NEXT Word/Sentence/Paragraph/Page     Move forward
+  PREVIOUS Word/Sentence/Paragraph/Page Move backward
+  POSITION SOF/EOF/SOL/EOL/SOW/EOW/SOV/EOV  Jump to position
+
+Position codes:
+  SOF = Start Of File    EOF = End Of File
+  SOL = Start Of Line    EOL = End Of Line
+  SOW = Start Of Word    EOW = End Of Word
+  SOV = Start Of View    EOV = End Of View
+
+Bookmarks:
+  SETBOOKMARK /N/A     Set bookmark (1-3)
+  GOTOBOOKMARK /N/A    Jump to bookmark (1-3)
+
+Text & Query:
+  TEXT /F              Insert text at cursor (*n for newline)
+  GETLINE              Get current line text (returns RESULT)
+  LINE /N/A            Get/set current line number (returns RESULT)
+  COLUMN /N/A          Get/set current column (returns RESULT)
+  GETCURSOR Line/Column  Get cursor position (returns RESULT)
+
+Selection:
+  MARK On/Off          Start or stop text selection
+  TOUPPER              Convert selected text to uppercase
+  TOLOWER              Convert selected text to lowercase
+
+Examples:
+  /* Insert text */
+  'WRITEEDITOR "TEXT Hello World"'
+
+  /* Insert multi-line text (use *n for newline) */
+  'WRITEEDITOR "TEXT Hi,*n"'
+  'WRITEEDITOR "TEXT *n"'
+  'WRITEEDITOR "TEXT Here is the report.*n"'
+
+  /* Go to beginning of file */
+  'WRITEEDITOR "POSITION SOF"'
+
+  /* Go to line 10, column 5 */
+  'WRITEEDITOR "GOTOLINE 10"'
+  'WRITEEDITOR "GOTOCOLUMN 5"'
+
+  /* Select and copy a line */
+  'WRITEEDITOR "POSITION SOL"'
+  'WRITEEDITOR "MARK ON"'
+  'WRITEEDITOR "POSITION EOL"'
+  'WRITEEDITOR "COPY"'
+  'WRITEEDITOR "MARK OFF"'
+
+  /* Get the current line text */
+  'WRITEEDITOR "GETLINE"'
+  SAY RESULT
+
+  /* Get cursor position */
+  'WRITEEDITOR "GETCURSOR Line"'
+  line = RESULT
+  'WRITEEDITOR "GETCURSOR Column"'
+  col = RESULT
+
+## WRITESEND
+
+Sends the message immediately from the active compose window.
+
+Syntax: WRITESEND
+
+Example:
+  'WRITESEND'
+
+## WRITEQUEUE
+
+Puts the message in the outbox queue.
+
+Syntax: WRITEQUEUE [HOLD/S]
+
+Parameters:
+  HOLD/S    Mark as "hold" — message is not sent automatically
+
+Examples:
+  'WRITEQUEUE'
+  'WRITEQUEUE HOLD'
+
+## REQUEST
+
+Opens a requester window with freely definable buttons.
+
+Syntax: REQUEST [VAR/K] [STEM/K] BODY/A GADGETS/A
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  BODY/A     Message text (required)
+  GADGETS/A  Button labels separated by | (required)
+
+Return: RESULT/N
+  0 = Rightmost button (typically Cancel)
+  1 = Leftmost button
+  2 = Second from left, etc.
+
+Example:
+  'REQUEST BODY "Really delete message?" GADGETS "Yes|No|Cancel"'
+  IF RESULT = 1 THEN SAY "Yes selected"
+  IF RESULT = 2 THEN SAY "No selected"
+  IF RESULT = 0 THEN SAY "Cancel selected"
+
+## REQUESTFOLDER
+
+Opens a mailbox/folder selection dialog.
+
+Syntax: REQUESTFOLDER [VAR/K] [STEM/K] BODY/A [EXCLUDEACTIVE/S]
+
+Parameters:
+  VAR/K              Store result in named variable
+  STEM/K             Store result in stem variable
+  BODY/A             Prompt text (required)
+  EXCLUDEACTIVE/S    Exclude the currently active folder from the list
+
+Return: FOLDER (selected folder name)
+RC = 1 if the user cancels.
+
+Example:
+  'REQUESTFOLDER BODY "Move messages to:"'
+  IF RC = 0 THEN 'MAILMOVE "'RESULT'"'
+
+## REQUESTSTRING
+
+Opens a text input dialog.
+
+Syntax: REQUESTSTRING [VAR/K] [STEM/K] BODY/A [STRING/K] [SECRET/S]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  BODY/A     Prompt text (required)
+  STRING/K   Default text for the input field
+  SECRET/S   Hide input (for passwords)
+
+Return: STRING (entered text)
+RC = 1 if the user cancels.
+
+Examples:
+  'REQUESTSTRING BODY "Enter search term:" STRING "default"'
+  IF RC = 0 THEN SAY "Entered:" RESULT
+
+  'REQUESTSTRING BODY "Password:" SECRET'
+
+## APPBUSY
+
+Sets YAM into "busy" state. User input is disabled and a status
+text is shown.
+
+Syntax: APPBUSY [VAR/K] [STEM/K] [TEXT]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  TEXT       Status text to display
+
+RC = 1 if YAM is already busy.
+
+Note: Always call APPNOBUSY when done!
+
+Example:
+  'APPBUSY TEXT "Please wait..."'
+  /* ... operations ... */
+  'APPNOBUSY'
+
+## APPNOBUSY
+
+Clears the "busy" state of YAM, re-enabling user input.
+
+Syntax: APPNOBUSY
+
+RC = 1 if YAM is still busy (nested busy calls).
+
+Example:
+  'APPNOBUSY'
+
+## INFO
+
+Returns program information about YAM.
+
+Syntax: INFO [VAR/K] [STEM/K] [ITEM]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+  ITEM       Information to retrieve:
+             TITLE, AUTHOR, COPYRIGHT, DESCRIPTION,
+             VERSION, BASE, SCREEN
+
+Return: VALUE in RESULT
+
+Example:
+  OPTIONS RESULTS
+  'INFO ITEM TITLE'
+  SAY RESULT
+
+  'INFO ITEM VERSION'
+  SAY RESULT
+
+## USERINFO
+
+Returns information about the currently logged-in user.
+
+Syntax: USERINFO [VAR/K] [STEM/K]
+
+Parameters:
+  VAR/K      Store result in named variable
+  STEM/K     Store result in stem variable
+
+Return fields:
+  USERNAME    Username
+  EMAIL       Email address
+  REALNAME    Real name
+  CONFIG      Configuration file path
+  MAILDIR     Mail directory path
+  FOLDERS/N   Number of folders
+
+Example:
+  'USERINFO STEM ui.'
+  SAY "User:" ui.username
+  SAY "Email:" ui.email
+  SAY "Mailboxes:" ui.folders
+
+## ISONLINE
+
+Checks whether YAM is currently sending or receiving emails.
+
+Syntax: ISONLINE
+
+Return: RC = 1 if YAM is online (sending/receiving), RC = 0 otherwise.
+
+Example:
+  'ISONLINE'
+  IF RC = 1 THEN SAY "YAM is busy sending/receiving"
+
+## HIDE
+
+Iconifies YAM (minimizes to AppIcon on Workbench).
+
+Syntax: HIDE
+
+Example:
+  'HIDE'
+
+## SHOW
+
+Restores YAM from iconified state.
+
+Syntax: SHOW
+
+Example:
+  'SHOW'
+
+## SCREENTOFRONT
+
+Brings the YAM screen to the front.
+
+Syntax: SCREENTOFRONT
+
+Example:
+  'SCREENTOFRONT'
+
+## SCREENTOBACK
+
+Sends the YAM screen to the back.
+
+Syntax: SCREENTOBACK
+
+Example:
+  'SCREENTOBACK'
+
+## HELP
+
+Outputs a list of all supported ARexx commands.
+
+Syntax: HELP [FILE]
+
+Parameters:
+  FILE    Output file path. If omitted, output goes to the shell window.
+
+Examples:
+  'HELP'
+  'HELP FILE "RAM:yam_commands.txt"'
+
+## QUIT
+
+Quits YAM.
+
+Syntax: QUIT [FORCE/S]
+
+Parameters:
+  FORCE/S    Skip confirmation prompts
+
+Examples:
+  'QUIT'
+  'QUIT FORCE'
+
+## GETURL
+
+Downloads a file via HTTP from the internet.
+
+Syntax: GETURL URL/A FILENAME/A
+
+Parameters:
+  URL/A         URL to download (required)
+  FILENAME/A    Destination file path (required)
+
+Return codes:
+  RC = 0    Successful
+  RC = 5    No online connection
+  RC = 10   URL not found
+
+Example:
+  'GETURL "http://example.com/file.txt" "RAM:file.txt"'
+  IF RC = 0 THEN SAY "Download successful"
+  IF RC = 5 THEN SAY "Not online"
+  IF RC = 10 THEN SAY "URL not found"

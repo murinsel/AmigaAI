@@ -1,6 +1,7 @@
 # YAM ARexx Port (Yet Another Mailer)
 
 Port name: YAM
+For detailed parameter docs and examples, use the arexx_help tool: arexx_help program=YAM command=MAILWRITE
 Arguments: /A=required, /S=switch, /N=number, /K=keyword, /M=multiple results.
 Results via: RESULT, VAR/K (named variable), or STEM/K (stem variable).
 

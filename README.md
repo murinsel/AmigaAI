@@ -62,18 +62,22 @@ copy ENV:AmigaAI ENVARC:AmigaAI ALL
 ## Command Line Arguments
 
 ```
-AmigaAI [CREATEICON] [APILOG <file>]
+AmigaAI [CREATEICON] [APILOG <file>] [APIHOST <host>] [APIPORT <port>] [NOSSL]
 ```
 
 | Argument | Description |
 |----------|-------------|
 | `CREATEICON` | Create a Workbench icon (.info file) for AmigaAI and exit |
 | `APILOG <file>` | Log all API requests and responses to the specified file |
+| `APIHOST <host>` | API endpoint host (default: `api.anthropic.com`) |
+| `APIPORT <port>` | API endpoint port (default: `443`) |
+| `NOSSL` | Use plain HTTP instead of HTTPS |
 
 Example:
 
 ```
 AmigaAI APILOG RAM:api.log
+AmigaAI APIHOST=192.168.1.10 APIPORT=3456 NOSSL
 ```
 
 ## ToolTypes
@@ -83,6 +87,9 @@ When launched from Workbench, AmigaAI reads ToolTypes from its icon (.info file)
 | ToolType | Description |
 |----------|-------------|
 | `APILOG=<file>` | Log all API requests and responses to the specified file |
+| `APIHOST=<host>` | API endpoint host |
+| `APIPORT=<port>` | API endpoint port |
+| `NOSSL` | Use plain HTTP instead of HTTPS |
 
 Example icon ToolType entry: `APILOG=RAM:api.log`
 
@@ -98,11 +105,20 @@ AmigaAI provides Claude with the following tools:
 | `write_file` | Write to files |
 | `list_ports` | List active ARexx message ports |
 | `identify_file` | Identify file types using the DataType system |
+| `arexx_help` | Look up detailed ARexx command documentation on demand |
 | `mouse_move` | Move mouse pointer to screen coordinates |
 | `mouse_click` | Click mouse button (left, right, middle) |
 | `key_press` | Send a raw keyboard event |
 | `type_text` | Type a string via keyboard simulation |
 | `screenshot` | Capture a screenshot (full screen or region) |
+
+## ARexx Knowledge Base
+
+AmigaAI includes detailed ARexx documentation for popular Amiga applications. When Claude detects a running ARexx port, it automatically loads the compact command overview. For detailed parameter info, it can query individual commands on demand via the `arexx_help` tool — keeping token usage low while providing full documentation depth.
+
+Supported applications: **DMusic**, **IBrowse**, **PageStream**, **Workbench**, **YAM**
+
+Additional applications can be supported by adding `.md` (overview) and `.help` (detailed reference) files to `instructions/ARexx/`.
 
 ## FileType
 

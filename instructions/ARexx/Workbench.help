@@ -1,0 +1,539 @@
+## WINDOW
+
+Opens, closes, and manages Workbench windows.
+
+Syntax: WINDOW WINDOWS/M/A [OPEN/S] [CLOSE/S] [SNAPSHOT/S] [ACTIVATE/S]
+               [MIN/S] [MAX/S] [FRONT/S] [BACK/S] [CYCLE/K]
+
+Parameters:
+  WINDOWS/M/A    Window names (required, multiple allowed)
+                 Values: ROOT (main Workbench window) or absolute paths
+                 e.g. "Work:", "SYS:Utilities", "RAM:"
+  OPEN/S         Open the window
+  CLOSE/S        Close the window
+  SNAPSHOT/S     Save window position and size
+  ACTIVATE/S     Make the window active
+  MIN/S          Minimize to smallest size
+  MAX/S          Maximize to largest size
+  FRONT/S        Bring to front
+  BACK/S         Send to back
+  CYCLE/K        Cycle through windows
+                 Values: PREVIOUS, NEXT
+
+Multiple switches can be combined in one command.
+
+Examples:
+  'WINDOW "Work:" OPEN'
+  'WINDOW "Work:" FRONT ACTIVATE'
+  'WINDOW root SNAPSHOT'
+  'WINDOW "SYS:Utilities" CLOSE'
+  'WINDOW "Work:" OPEN FRONT ACTIVATE'
+
+## ACTIVATEWINDOW
+
+Makes a window the active (focused) one.
+
+Syntax: ACTIVATEWINDOW [WINDOW]
+
+Parameters:
+  WINDOW    Window path or ROOT (default: active window)
+
+Examples:
+  'ACTIVATEWINDOW "Work:"'
+  'ACTIVATEWINDOW root'
+
+## CHANGEWINDOW
+
+Changes position and size of a window simultaneously.
+
+Syntax: CHANGEWINDOW [WINDOW] [LEFTEDGE/N] [TOPEDGE/N] [WIDTH/N] [HEIGHT/N]
+
+Parameters:
+  WINDOW       Window path or ROOT
+  LEFTEDGE/N   New left edge position in pixels
+  TOPEDGE/N    New top edge position in pixels
+  WIDTH/N      New width in pixels
+  HEIGHT/N     New height in pixels
+
+Examples:
+  'CHANGEWINDOW root LEFTEDGE 10 TOPEDGE 30 WIDTH 400 HEIGHT 300'
+  'CHANGEWINDOW "Work:" LEFTEDGE 50 TOPEDGE 50 WIDTH 500 HEIGHT 400'
+
+## MOVEWINDOW
+
+Moves a window to a new position.
+
+Syntax: MOVEWINDOW [WINDOW] [LEFTEDGE/N] [TOPEDGE/N]
+
+Parameters:
+  WINDOW       Window path or ROOT
+  LEFTEDGE/N   New left edge position in pixels
+  TOPEDGE/N    New top edge position in pixels
+
+Examples:
+  'MOVEWINDOW root LEFTEDGE 0 TOPEDGE 0'
+  'MOVEWINDOW "Work:" LEFTEDGE 100 TOPEDGE 50'
+
+## SIZEWINDOW
+
+Resizes a window.
+
+Syntax: SIZEWINDOW [WINDOW] [WIDTH/N] [HEIGHT/N]
+
+Parameters:
+  WINDOW     Window path or ROOT
+  WIDTH/N    New width in pixels
+  HEIGHT/N   New height in pixels
+
+Examples:
+  'SIZEWINDOW root WIDTH 640 HEIGHT 480'
+  'SIZEWINDOW "Work:" WIDTH 300 HEIGHT 200'
+
+## WINDOWTOFRONT
+
+Brings a window to the front.
+
+Syntax: WINDOWTOFRONT [WINDOW]
+
+Parameters:
+  WINDOW    Window path or ROOT
+
+Examples:
+  'WINDOWTOFRONT root'
+  'WINDOWTOFRONT "Work:"'
+
+## WINDOWTOBACK
+
+Sends a window to the back.
+
+Syntax: WINDOWTOBACK [WINDOW]
+
+Parameters:
+  WINDOW    Window path or ROOT
+
+Examples:
+  'WINDOWTOBACK root'
+  'WINDOWTOBACK "Work:"'
+
+## ZOOMWINDOW
+
+Toggles window to its alternative (zoomed) size. The alternative size
+is typically the minimum size or a previously saved zoom position.
+
+Syntax: ZOOMWINDOW [WINDOW]
+
+Parameters:
+  WINDOW    Window path or ROOT
+
+Example:
+  'ZOOMWINDOW "Work:"'
+
+## UNZOOMWINDOW
+
+Restores a window from its zoomed (alternative) size to normal.
+
+Syntax: UNZOOMWINDOW [WINDOW]
+
+Parameters:
+  WINDOW    Window path or ROOT
+
+Example:
+  'UNZOOMWINDOW "Work:"'
+
+## VIEW
+
+Scrolls the visible area of a window.
+
+Syntax: VIEW [WINDOW] [PAGE/S] [PIXEL/S] [UP/S] [DOWN/S] [LEFT/S] [RIGHT/S]
+
+Parameters:
+  WINDOW     Window path or ROOT
+  PAGE/S     Scroll by one page
+  PIXEL/S    Scroll by one pixel
+  UP/S       Scroll up
+  DOWN/S     Scroll down
+  LEFT/S     Scroll left
+  RIGHT/S    Scroll right
+
+If neither PAGE nor PIXEL is specified, scrolls by one line.
+Direction switches can be combined.
+
+Examples:
+  'VIEW root PAGE DOWN'
+  'VIEW "Work:" PIXEL RIGHT'
+  'VIEW root UP LEFT'
+
+## LOCKGUI
+
+Locks the user interface. All drawer windows are disabled.
+Calls are nested — each LOCKGUI requires a matching UNLOCKGUI.
+
+Syntax: LOCKGUI
+
+Example:
+  'LOCKGUI'
+  /* ... batch operations ... */
+  'UNLOCKGUI'
+
+## UNLOCKGUI
+
+Unlocks the user interface after a LOCKGUI call.
+Must be called once for each LOCKGUI.
+
+Syntax: UNLOCKGUI
+
+Example:
+  'UNLOCKGUI'
+
+## ICON
+
+Manipulates icons in a window. Supports selecting, moving, opening,
+and navigating icons.
+
+Syntax: ICON [WINDOW] NAMES/M [OPEN/S] [MAKEVISIBLE/S] [SELECT/S] [UNSELECT/S]
+             [UP/N] [DOWN/N] [LEFT/N] [RIGHT/N] [X/N] [Y/N]
+             [ACTIVATE/K] [CYCLE/K] [MOVE/K]
+
+Parameters:
+  WINDOW         Window path or ROOT
+  NAMES/M        Icon names (multiple allowed)
+  OPEN/S         Open icon (launch program or open drawer)
+  MAKEVISIBLE/S  Scroll window to make icon visible
+  SELECT/S       Select icon
+  UNSELECT/S     Deselect icon
+  UP/N           Move icon up by N pixels
+  DOWN/N         Move icon down by N pixels
+  LEFT/N         Move icon left by N pixels
+  RIGHT/N        Move icon right by N pixels
+  X/N            Set icon to absolute X position
+  Y/N            Set icon to absolute Y position
+  ACTIVATE/K     Activate neighboring icon
+                 Values: UP, DOWN, LEFT, RIGHT
+  CYCLE/K        Cycle through icons
+                 Values: PREVIOUS, NEXT
+  MOVE/K         Navigate drawer hierarchy
+                 Values: IN (enter drawer), OUT (go to parent)
+
+Examples:
+  /* Select icons */
+  'ICON WINDOW root NAMES Workbench Work SELECT'
+
+  /* Move icon to absolute position */
+  'ICON WINDOW "Work:" NAMES "MyProgram" X 100 Y 50'
+
+  /* Open icon (launch program) */
+  'ICON WINDOW "SYS:Utilities" NAMES MultiView OPEN'
+
+  /* Make icon visible */
+  'ICON WINDOW root NAMES "HiddenIcon" MAKEVISIBLE'
+
+  /* Move icon relative */
+  'ICON WINDOW root NAMES "MyIcon" RIGHT 20 DOWN 10'
+
+## INFO
+
+Opens the information dialog for a file, drawer, or volume.
+
+Syntax: INFO NAME/A
+
+Parameters:
+  NAME/A    Absolute path of the object (required)
+
+Examples:
+  'INFO NAME "SYS:"'
+  'INFO NAME "Work:MyFile"'
+
+## NEWDRAWER
+
+Creates a new drawer (directory).
+
+Syntax: NEWDRAWER NAME/A
+
+Parameters:
+  NAME/A    Absolute path of the new drawer (required)
+
+Examples:
+  'NEWDRAWER "RAM:NewDrawer"'
+  'NEWDRAWER "Work:Projects/New"'
+
+## DELETE
+
+Deletes files or drawers.
+
+Syntax: DELETE NAME/A [ALL/S]
+
+Parameters:
+  NAME/A    Absolute path of the file or drawer (required)
+  ALL/S     Delete contents recursively (for drawers)
+
+Note: Without ALL, non-empty drawers cannot be deleted.
+
+Examples:
+  'DELETE "RAM:TempFile"'
+  'DELETE "RAM:TempFolder" ALL'
+
+## RENAME
+
+Renames a file, drawer, or volume.
+
+Syntax: RENAME OLDNAME/A NEWNAME/A
+
+Parameters:
+  OLDNAME/A    Absolute path of the object (required)
+  NEWNAME/A    New name only, without path (required)
+
+Note: NEWNAME is just the new name, not a full path. The object stays
+in the same directory.
+
+Examples:
+  'RENAME "RAM:OldName" "NewName"'
+  'RENAME "Work:readme.txt" "README.txt"'
+
+## GETATTR
+
+Queries information from the Workbench database. Returns the value
+in RESULT (requires OPTIONS RESULTS).
+
+Syntax: GETATTR OBJECT/A [NAME/K] [STEM/K] [VAR/K]
+
+Parameters:
+  OBJECT/A   The attribute to query (required)
+  NAME/K     Context for the query (e.g. window path for WINDOW.* objects)
+  STEM/K     Store result in a stem variable
+  VAR/K      Store result in a named variable
+
+Queryable Objects:
+
+Application info:
+  APPLICATION.VERSION      Workbench version string
+  APPLICATION.SCREEN       Screen name
+  APPLICATION.AREXX        ARexx port name
+  APPLICATION.LASTERROR    Last error message
+
+Font info:
+  APPLICATION.FONT.SCREEN.NAME|SIZE    Screen font
+  APPLICATION.FONT.ICON.NAME|SIZE      Icon font
+  APPLICATION.FONT.SYSTEM.NAME|SIZE    System font
+
+Icon border:
+  APPLICATION.ICONBORDER.LEFT|TOP|RIGHT|BOTTOM
+
+Window list:
+  WINDOWS.COUNT            Number of open windows
+  WINDOWS.ACTIVE           Path of the active window
+  WINDOWS.0 ... WINDOWS.N  Path of the Nth window
+
+Window details (use NAME=path):
+  WINDOW.LEFT|TOP          Window position
+  WINDOW.WIDTH|HEIGHT      Window size
+  WINDOW.MIN.WIDTH|HEIGHT  Minimum size
+  WINDOW.MAX.WIDTH|HEIGHT  Maximum size
+  WINDOW.VIEW.LEFT|TOP     Scroll position
+  WINDOW.SCREEN.NAME|WIDTH|HEIGHT  Screen info
+
+Icon info (use NAME=window path):
+  WINDOW.ICONS.ALL.COUNT               Total icon count
+  WINDOW.ICONS.SELECTED.COUNT           Selected icon count
+  WINDOW.ICONS.UNSELECTED.COUNT         Unselected icon count
+  WINDOW.ICONS.ALL.n.NAME|LEFT|TOP|WIDTH|HEIGHT|TYPE|STATUS
+  WINDOW.ICONS.SELECTED.n.NAME|LEFT|TOP|WIDTH|HEIGHT|TYPE|STATUS
+  WINDOW.ICONS.UNSELECTED.n.NAME|LEFT|TOP|WIDTH|HEIGHT|TYPE|STATUS
+
+Icon TYPE values: DISK, DRAWER, TOOL, PROJECT, GARBAGE, DEVICE, KICK, APPICON
+
+Examples:
+  OPTIONS RESULTS
+
+  /* Workbench version */
+  'GETATTR APPLICATION.VERSION'
+  SAY "Version:" RESULT
+
+  /* Number of open windows */
+  'GETATTR WINDOWS.COUNT'
+  SAY "Open windows:" RESULT
+
+  /* Active window */
+  'GETATTR WINDOWS.ACTIVE'
+  SAY "Active:" RESULT
+
+  /* Window position */
+  'GETATTR WINDOW.LEFT NAME "Work:"'
+  SAY "Left:" RESULT
+
+  /* List all windows */
+  'GETATTR WINDOWS.COUNT'
+  count = RESULT
+  DO i = 0 TO count - 1
+      'GETATTR WINDOWS.'i
+      SAY "Window:" RESULT
+  END
+
+  /* All icons in root window */
+  'GETATTR WINDOW.ICONS.ALL.COUNT NAME ROOT'
+  count = RESULT
+  DO i = 0 TO count - 1
+      'GETATTR WINDOW.ICONS.ALL.'i'.NAME NAME ROOT'
+      SAY "Icon:" RESULT
+  END
+
+## FAULT
+
+Returns a human-readable error message for an AmigaDOS error code.
+
+Syntax: FAULT CODE/A/N
+
+Parameters:
+  CODE/A/N    AmigaDOS error code (required, numeric)
+
+Return: RESULT contains the error description.
+
+Examples:
+  OPTIONS RESULTS
+  'FAULT 205'
+  SAY RESULT   /* "Object not found" */
+
+  'FAULT 221'
+  SAY RESULT   /* "Disk is full" */
+
+## HELP
+
+Displays help information about Workbench ARexx commands.
+
+Syntax: HELP [COMMAND/K] [MENUS/S] [PROMPT/S]
+
+Parameters:
+  COMMAND/K    Show syntax of a specific command
+  MENUS/S      List available menu items
+  PROMPT/S     Invoke the help system
+
+Return: RESULT contains the help text.
+
+Examples:
+  OPTIONS RESULTS
+  'HELP COMMAND GETATTR'
+  SAY RESULT
+
+  'HELP MENUS'
+  SAY RESULT
+
+## MENU
+
+Invokes standard menu items or creates/removes custom menu entries.
+
+Syntax: MENU [WINDOW/K] [INVOKE] [NAME/K] [TITLE/K] [SHORTCUT/K]
+             [ADD/S] [REMOVE/S] [CMD/K/F]
+
+Parameters:
+  WINDOW/K     Target window (for window-specific menu items)
+  INVOKE       Execute the named menu item
+  NAME/K       Unique identifier for the menu item
+  TITLE/K      Display text for custom menu items
+  SHORTCUT/K   Keyboard shortcut (one character)
+  ADD/S        Add a custom menu item
+  REMOVE/S     Remove a custom menu item
+  CMD/K/F      ARexx command to execute when item is selected
+
+Standard Menu Items:
+  Workbench menu:
+    WORKBENCH.BACKDROP       Toggle backdrop mode
+    WORKBENCH.EXECUTE        Execute command dialog
+    WORKBENCH.REDRAWALL      Redraw all windows
+    WORKBENCH.UPDATEALL      Update all windows
+    WORKBENCH.LASTMESSAGE    Show last error message
+    WORKBENCH.ABOUT          About Workbench dialog
+    WORKBENCH.QUIT           Quit Workbench
+
+  Window menu:
+    WINDOW.NEWDRAWER         Create new drawer
+    WINDOW.OPENPARENT        Open parent directory
+    WINDOW.CLOSE             Close window
+    WINDOW.UPDATE            Update window contents
+    WINDOW.SELECTCONTENTS    Select all icons
+    WINDOW.CLEARSELECTION    Clear selection
+    WINDOW.RESIZETOFIT       Resize window to fit contents
+    WINDOW.SNAPSHOT.WINDOW   Snapshot window position
+    WINDOW.SNAPSHOT.ALL      Snapshot window and all icons
+    WINDOW.SHOW.ONLYICONS    Show only icons
+    WINDOW.SHOW.ALLFILES     Show all files
+
+  Cleanup:
+    WINDOW.CLEANUPBY.COLUMN  Clean up in columns
+    WINDOW.CLEANUPBY.NAME    Clean up by name
+    WINDOW.CLEANUPBY.DATE    Clean up by date
+    WINDOW.CLEANUPBY.SIZE    Clean up by size
+    WINDOW.CLEANUPBY.TYPE    Clean up by type
+
+  View:
+    WINDOW.VIEWBY.ICON       View as icons
+    WINDOW.VIEWBY.NAME       View by name (list)
+    WINDOW.VIEWBY.DATE       View by date (list)
+    WINDOW.VIEWBY.SIZE       View by size (list)
+    WINDOW.VIEWBY.TYPE       View by type (list)
+
+  Icons menu:
+    ICONS.OPEN               Open selected icons
+    ICONS.COPY               Copy selected icons
+    ICONS.RENAME             Rename selected icon
+    ICONS.INFORMATION        Show icon information
+    ICONS.SNAPSHOT           Save icon position
+    ICONS.UNSNAPSHOT         Remove saved position
+    ICONS.LEAVEOUT           Leave out on Workbench
+    ICONS.PUTAWAY            Put away (undo leave out)
+    ICONS.DELETE             Delete selected icons
+    ICONS.FORMATDISK         Format disk
+    ICONS.EMPTYTRASH         Empty trashcan
+
+  Tools menu:
+    TOOLS.RESETWB            Reset Workbench
+
+Examples:
+  /* Invoke standard menu items */
+  'MENU INVOKE WORKBENCH.ABOUT'
+  'MENU WINDOW "Work:" INVOKE WINDOW.CLEANUPBY.NAME'
+
+  /* Add custom menu item */
+  'MENU ADD NAME "MyTool" TITLE "My Tool" SHORTCUT "M" CMD "rx MyScript.rexx"'
+
+  /* Remove custom menu item */
+  'MENU REMOVE NAME "MyTool"'
+
+## KEYBOARD
+
+Binds ARexx commands to keyboard shortcuts using the Commodities
+input event format.
+
+Syntax: KEYBOARD NAME/A [ADD/S] [REMOVE/S] [KEY] [CMD/F]
+
+Parameters:
+  NAME/A      Unique identifier for the binding (required)
+  ADD/S       Add a new keyboard binding
+  REMOVE/S    Remove an existing binding
+  KEY         Key combination in Commodities format
+              e.g. "ctrl a", "alt f1", "shift ctrl q"
+  CMD/F       ARexx script or command to execute
+
+Examples:
+  /* Bind Ctrl+A to a script */
+  'KEYBOARD ADD NAME "MyHotkey" KEY "ctrl a" CMD "rx MyScript.rexx"'
+
+  /* Remove binding */
+  'KEYBOARD REMOVE NAME "MyHotkey"'
+
+  /* Bind Alt+F1 */
+  'KEYBOARD ADD NAME "ShowInfo" KEY "alt f1" CMD "rx ShowInfo.rexx"'
+
+## RX
+
+Executes ARexx scripts and commands.
+
+Syntax: RX [CONSOLE/S] [ASYNC/S] CMD/A/F
+
+Parameters:
+  CONSOLE/S    Open a console window for I/O
+  ASYNC/S      Execute asynchronously (don't wait for completion)
+  CMD/A/F      Script filename or inline ARexx command (required)
+
+Examples:
+  'RX CMD "test.wb"'
+  'RX ASYNC CMD "long_script.rexx"'
+  'RX CONSOLE CMD "interactive.rexx"'

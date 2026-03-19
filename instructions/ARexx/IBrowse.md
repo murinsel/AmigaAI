@@ -1,5 +1,6 @@
 # IBROWSE ARexx Port
 
+For detailed parameter docs and examples, use the arexx_help tool: arexx_help program=IBrowse command=GOTOURL
 Arguments: /A=required, /S=switch, /N=number. BROWSERNR is the [ID] shown in the window title.
 
 **CRITICAL Quoting rule:** Every command sent to the IBROWSE port MUST be enclosed in single quotes — both when using arexx_command and when writing ARexx scripts. Without single quotes, ARexx interprets the words as variable names instead of sending them as commands. Use double quotes inside for string arguments.

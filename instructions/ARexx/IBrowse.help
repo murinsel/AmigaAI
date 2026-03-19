@@ -1,0 +1,427 @@
+## QUIT
+
+Exits IBrowse.
+
+Syntax: QUIT [FORCE/S]
+
+Parameters:
+  FORCE/S    Skip confirmation dialog
+
+Example:
+  'QUIT FORCE'
+
+## SHOW
+
+Restores IBrowse from iconified state and brings it to the front.
+
+Syntax: SHOW
+
+Alias: ACTIVATE
+
+Example:
+  'SHOW'
+
+## ACTIVATE
+
+Restores IBrowse from iconified state and brings it to the front.
+
+Syntax: ACTIVATE
+
+Alias: SHOW
+
+Example:
+  'ACTIVATE'
+
+## HIDE
+
+Iconifies IBrowse.
+
+Syntax: HIDE
+
+Alias: DEACTIVATE
+
+Example:
+  'HIDE'
+
+## DEACTIVATE
+
+Iconifies IBrowse.
+
+Syntax: DEACTIVATE
+
+Alias: HIDE
+
+Example:
+  'DEACTIVATE'
+
+## INFO
+
+Returns program information.
+
+Syntax: INFO ITEM/A
+
+Parameters:
+  ITEM/A     Information to retrieve (required)
+             Allowed values: TITLE, AUTHOR, COPYRIGHT, DESCRIPTION,
+             VERSION, BASE, SCREEN
+
+Return: RESULT contains the requested information
+RC = -5 if ITEM is unknown.
+
+Example:
+  OPTIONS RESULTS
+  'INFO ITEM=TITLE'
+  SAY RESULT
+
+  'INFO ITEM=VERSION'
+  SAY RESULT
+
+## HELP
+
+Writes a list of all available ARexx commands to a file.
+
+Syntax: HELP FILE/A
+
+Parameters:
+  FILE/A     Output file path (required)
+
+Example:
+  'HELP FILE=RAM:ibrowse_arexx.txt'
+
+## GOTOURL
+
+Loads a URL in the browser.
+
+Syntax: GOTOURL URL/A [BROWSERNR/N] [SAVE/S] [RELOAD/S] [MIME]
+
+Parameters:
+  URL/A          The URL to load (required)
+  BROWSERNR/N    Target browser ID (default: active browser)
+  SAVE/S         Download file to disk instead of displaying
+  RELOAD/S       Bypass cache and reload from server
+  MIME           Override MIME type manually
+
+Return: RC = -6 if no browser is active.
+
+Examples:
+  'GOTOURL "http://www.amiga.org" BROWSERNR=1'
+
+  /* Download a file */
+  'GOTOURL "http://example.com/file.lha" SAVE'
+
+  /* Open URL in new window if no browser active */
+  'GOTOURL "http://www.amiga.org"'
+  IF RC ~= 0 THEN 'NEWWINDOW "http://www.amiga.org"'
+
+## BACK
+
+Navigates back in browser history.
+
+Syntax: BACK [BROWSERNR/N]
+
+Parameters:
+  BROWSERNR/N    Target browser ID (default: active browser)
+
+Example:
+  'BACK'
+  'BACK BROWSERNR=2'
+
+## FORWARD
+
+Navigates forward in browser history.
+
+Syntax: FORWARD [BROWSERNR/N]
+
+Parameters:
+  BROWSERNR/N    Target browser ID (default: active browser)
+
+Example:
+  'FORWARD'
+  'FORWARD BROWSERNR=2'
+
+## HOME
+
+Loads the homepage (as configured in IBrowse settings).
+
+Syntax: HOME [BROWSERNR/N]
+
+Parameters:
+  BROWSERNR/N    Target browser ID (default: active browser)
+
+Example:
+  'HOME'
+  'HOME BROWSERNR=1'
+
+## STOP
+
+Stops the current loading operation.
+
+Syntax: STOP [BROWSERNR/N]
+
+Parameters:
+  BROWSERNR/N    Target browser ID (default: active browser)
+
+Example:
+  'STOP'
+  'STOP BROWSERNR=3'
+
+## RELOAD
+
+Reloads the current page.
+
+Syntax: RELOAD [BROWSERNR/N] [ALL/S] [FRAMES/S] [IMAGES/S]
+
+Parameters:
+  BROWSERNR/N    Target browser ID (default: active browser)
+  ALL/S          Reload everything (page, frames, images)
+  FRAMES/S       Reload frames only
+  IMAGES/S       Reload images only
+
+Example:
+  'RELOAD'
+  'RELOAD ALL'
+  'RELOAD IMAGES BROWSERNR=2'
+
+## LOADIMAGES
+
+Loads images that have not been loaded yet (e.g. when image loading is disabled).
+
+Syntax: LOADIMAGES [BROWSERNR/N]
+
+Parameters:
+  BROWSERNR/N    Target browser ID (default: active browser)
+
+Example:
+  'LOADIMAGES'
+  'LOADIMAGES BROWSERNR=1'
+
+## NEW
+
+Opens a new window or browser (depending on IBrowse settings).
+
+Syntax: NEW [URL]
+
+Parameters:
+  URL    URL to load in the new window/browser
+
+Return: RESULT contains the number of the new browser/window.
+
+Example:
+  OPTIONS RESULTS
+  'NEW'
+  SAY "New browser:" RESULT
+
+  'NEW "http://www.amiga.org"'
+
+## NEWWINDOW
+
+Opens a new window explicitly (always creates a new window, regardless of settings).
+
+Syntax: NEWWINDOW [URL]
+
+Parameters:
+  URL    URL to load in the new window
+
+Return: RESULT contains the new window number.
+
+Example:
+  OPTIONS RESULTS
+  'NEWWINDOW "http://www.amiga.org"'
+  SAY "Window:" RESULT
+
+## NEWBROWSER
+
+Opens a new browser tab in an existing window.
+
+Syntax: NEWBROWSER [URL] [BROWSEWINDOWNR/N]
+
+Parameters:
+  URL                URL to load in the new browser
+  BROWSEWINDOWNR/N   Target window number (default: active window)
+
+Return: RESULT contains the new browser number.
+RC = -6 if window number is invalid.
+
+Example:
+  OPTIONS RESULTS
+  'NEWBROWSER "http://www.amiga.org"'
+  SAY "Browser:" RESULT
+
+  'NEWBROWSER "http://www.example.com" BROWSEWINDOWNR=1'
+
+## CLOSEBROWSER
+
+Closes a browser.
+
+Syntax: CLOSEBROWSER [BROWSERNR/N]
+
+Parameters:
+  BROWSERNR/N    Browser to close (default: active browser)
+
+Example:
+  'CLOSEBROWSER'
+  'CLOSEBROWSER BROWSERNR=3'
+
+## SCREENTOFRONT
+
+Brings the IBrowse screen to the front.
+
+Syntax: SCREENTOFRONT
+
+Example:
+  'SCREENTOFRONT'
+
+## SCREENTOBACK
+
+Sends the IBrowse screen to the back.
+
+Syntax: SCREENTOBACK
+
+Example:
+  'SCREENTOBACK'
+
+## QUERY
+
+Queries information about a browser.
+
+Syntax: QUERY ITEM/A [BROWSERNR/N]
+
+Parameters:
+  ITEM/A         Information to retrieve (required)
+                 Allowed values: URL, TITLE, ACTIVEBROWSERNR, ACTIVEWINDOWNR
+  BROWSERNR/N    Target browser ID (default: active browser)
+
+Return: RESULT contains the requested information.
+RC = -5 if ITEM is unknown, RC = -6 if no browser is active.
+
+Note: ACTIVEBROWSERNR and ACTIVEWINDOWNR ignore the BROWSERNR parameter.
+
+Examples:
+  OPTIONS RESULTS
+  'QUERY ITEM=URL BROWSERNR=2'
+  SAY "URL:" RESULT
+
+  'QUERY ITEM=TITLE'
+  SAY "Title:" RESULT
+
+  'QUERY ITEM=ACTIVEBROWSERNR'
+  SAY "Active browser:" RESULT
+
+  /* List all open URLs */
+  DO i = 1 TO 20
+      'QUERY ITEM=URL BROWSERNR='i
+      IF RC = 0 THEN SAY 'Browser' i': ' RESULT
+  END
+
+## ADDHOTLIST
+
+Adds an entry to the Hotlist Manager (bookmarks).
+
+Syntax: ADDHOTLIST [GROUP/S] TITLE/A [URL] [SHORTCUT] [SHOWINMENU/N] [INSERTGROUP] [ACTIVATE/S]
+
+Parameters:
+  GROUP/S        Create a group instead of a bookmark
+  TITLE/A        Name of the entry (required)
+  URL            URL for the bookmark (not needed for groups)
+  SHORTCUT       Keyboard shortcut for the entry
+  SHOWINMENU/N   0=not shown in menu, >0=show in menu
+  INSERTGROUP    Target group name (case insensitive)
+  ACTIVATE/S     Open the Hotlist Manager and show the entry
+
+Examples:
+  'ADDHOTLIST TITLE="Amiga News" URL="http://www.amiga.org" INSERTGROUP="Amiga"'
+
+  /* Create a new group */
+  'ADDHOTLIST GROUP TITLE="My Links"'
+
+  /* Add with shortcut and menu visibility */
+  'ADDHOTLIST TITLE="Search" URL="http://www.google.com" SHORTCUT="g" SHOWINMENU=1'
+
+## ADDFASTLINK
+
+Adds a fastlink button to the toolbar.
+
+Syntax: ADDFASTLINK TITLE/A [URL] [PROMPTTITLE/S]
+
+Parameters:
+  TITLE/A          Button title (required)
+  URL              URL for the button
+  PROMPTTITLE/S    Show input dialog for title
+
+Example:
+  'ADDFASTLINK TITLE="Aminet" URL="http://aminet.net"'
+
+## OPENHOTLIST
+
+Opens or closes the Hotlist Manager window.
+
+Syntax: OPENHOTLIST [CLOSE/S]
+
+Parameters:
+  CLOSE/S    Close the Hotlist Manager instead of opening it
+
+Example:
+  'OPENHOTLIST'
+  'OPENHOTLIST CLOSE'
+
+## OPENHISTORY
+
+Opens or closes the browser history window.
+
+Syntax: OPENHISTORY [BROWSERNR/N] [CLOSE/S]
+
+Parameters:
+  BROWSERNR/N    Target browser ID (default: active browser)
+  CLOSE/S        Close the history window instead of opening it
+
+Example:
+  'OPENHISTORY'
+  'OPENHISTORY BROWSERNR=2'
+  'OPENHISTORY CLOSE'
+
+## OPENCACHEBROWSER
+
+Opens or closes the cache explorer window.
+
+Syntax: OPENCACHEBROWSER [CLOSE/S]
+
+Parameters:
+  CLOSE/S    Close the cache explorer instead of opening it
+
+Example:
+  'OPENCACHEBROWSER'
+  'OPENCACHEBROWSER CLOSE'
+
+## OPENINFOWINDOW
+
+Opens or closes the info window.
+
+Syntax: OPENINFOWINDOW [CLOSE/S]
+
+Parameters:
+  CLOSE/S    Close the info window instead of opening it
+
+Example:
+  'OPENINFOWINDOW'
+  'OPENINFOWINDOW CLOSE'
+
+## FLUSH
+
+Frees memory by clearing history, images, or cache.
+
+Syntax: FLUSH [BROWSERNR/N] [HISTORY/S] [ALLIMAGES/S] [CACHEDIMAGES/S] [IMAGES/S]
+
+Parameters:
+  BROWSERNR/N      Target browser ID (only for HISTORY and IMAGES)
+  HISTORY/S        Clear browser history
+  ALLIMAGES/S      Remove all images from memory (ignores BROWSERNR)
+  CACHEDIMAGES/S   Remove cached images from memory (ignores BROWSERNR)
+  IMAGES/S         Remove images of the specified browser
+
+Note: ALLIMAGES and CACHEDIMAGES affect all browsers regardless of BROWSERNR.
+
+Examples:
+  'FLUSH HISTORY BROWSERNR=2'
+  'FLUSH ALLIMAGES'
+  'FLUSH CACHEDIMAGES'
+  'FLUSH IMAGES BROWSERNR=1'

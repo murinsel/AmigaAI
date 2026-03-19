@@ -1,5 +1,6 @@
 # WORKBENCH ARexx Port
 
+For detailed parameter docs and examples, use the arexx_help tool: arexx_help program=Workbench command=WINDOW
 Arguments: /A=required, /S=switch, /N=number, /K=keyword, /M=multiple, /F=rest of line.
 WINDOW argument accepts: ROOT (desktop), ACTIVE (focused window), or absolute drawer path.
 

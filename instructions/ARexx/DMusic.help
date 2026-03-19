@@ -32,13 +32,16 @@ Save the current score to its existing filename.
 ## SAVEAS
 SAVEAS FILENAME,FORMAT/K,EMBEDSAMPLES/K,FORCE/S
 
-Save the current score with options.
+Save the current score with options. If FILENAME is omitted, the file requester appears.
 - FILENAME -- Destination path
-- FORMAT -- File format: CMUS (default), DMCS, MIDI
-- EMBEDSAMPLES -- YES or NO. Embed instrument samples in the file (for distribution)
+- FORMAT -- File format: CMUS, SMF (Standard MIDI File), SMUS (IFF Simple Music),
+  REQUEST (opens the format selection requester).
+  If omitted, uses the format from the previous save.
+- EMBEDSAMPLES -- ON, OFF, or TOGGLE. Controls the "Embed Samples" switch.
 - FORCE -- Overwrite without asking
 
-Example: SAVEAS "Work:Scores/Song.CMUS" FORMAT CMUS EMBEDSAMPLES YES
+Example: SAVEAS "Work:Scores/Song.CMUS" FORMAT CMUS EMBEDSAMPLES ON
+Example: SAVEAS "Work:Scores/Song.mid" FORMAT SMF
 
 ## REVERT
 REVERT FORCE/S
@@ -107,17 +110,36 @@ Resize the main document window.
 ## WINDOW
 WINDOW NAMES/M,OPEN/S,CLOSE/S,SNAPSHOT/S,ACTIVATE/S,MIN/S,MAX/S,FRONT/S,BACK/S,PREV/S,NEXT/S
 
-Open, close, activate, or resize named command windows.
-- NAMES -- Window name(s): TOOL, INSTRUMENT, PALETTE, TEMPO, etc.
-- OPEN/CLOSE -- Open or close the window
+Open, close, activate, or resize named windows.
+- NAMES -- One or more window names:
+  DOCUMENT       Main document window
+  TIMESIG        "Set Time Signature" window
+  KEYSIG         "Set Key Signature" window
+  CLEF           "Set Clef" window
+  TEMPO          "Set Tempo" window
+  INSTRUMENT     "Set Instrument" window
+  PRINT          Print Options window
+  SCOREPREFS     Score Settings window
+  STAVEPREFS     Stave Settings window
+  DISPLAYPREFS   Display Preferences window
+  MIDI_WINDOW    MIDI Settings window
+  REVEAL         Reveal Project window
+  INFO           About box
+  FKEY           "Assign macro to key" window
+  HELP           Help window
+  TOOLBAR        Toolbar window
+  KEYBOARD       Keyboard window
+- OPEN -- Open the window, or bring to front if already open
+- CLOSE -- Close the window
 - SNAPSHOT -- Save current position/size
-- ACTIVATE -- Bring to front and make active
-- MIN/MAX -- Minimize or maximize
+- ACTIVATE -- Activate the window
+- MIN/MAX -- Minimize or maximize (document windows only)
 - FRONT/BACK -- Move in front of or behind other windows
-- PREV/NEXT -- Cycle through open document windows
+- PREV/NEXT -- Activate previous/next document (document windows only)
 
-Example: WINDOW TOOL OPEN
+Example: WINDOW TOOLBAR OPEN
 Example: WINDOW INSTRUMENT CLOSE
+Example: WINDOW DOCUMENT MAX FRONT
 
 ## MOVEWINDOW
 MOVEWINDOW LEFT/N,TOP/N
@@ -186,7 +208,7 @@ Save the GUI settings (window positions, macro assignments, etc.) to tooltypes.
 SETTOOL TOOL/A
 
 Select a tool in the tool window.
-- TOOL -- Tool name: NOTE, REST, TIE, TEXT, DYNAMIC, TEMPO, CLEF, KEY, TIME, BAR, STAFF, BEAM, TUPLET, SLUR, CRESCENDO, DECRESCENDO, 8VA, 8VB, PEDAL, REHEARSAL
+- TOOL -- Tool name: MOVEMENT, DELETE, NOTE, GROUP, DYNAMIC, TEXT
 
 Example: SETTOOL NOTE
 
@@ -200,11 +222,13 @@ Change the accidental setting in the tool window.
 ## SETDIVISION
 SETDIVISION VALUE/A,UPDATE/S
 
-Change the note duration setting.
-- VALUE -- WHOLE, HALF, QUARTER, EIGHTH, SIXTEENTH, THIRTYSECOND, SIXTYFOURTH
+Change the note duration setting in the tool window.
+- VALUE -- D (double whole), 1 (whole), 2 (half), 4 (quarter), 8 (eighth), 16, 32, 64
+  Append "R" for rest, e.g. "16R" = 16th-note rest
 - UPDATE -- Also update any currently selected notes
 
-Example: SETDIVISION QUARTER
+Example: SETDIVISION 4
+Example: SETDIVISION 16R
 
 ## SETDOT
 SETDOT VALUE/A,UPDATE/S
@@ -223,8 +247,9 @@ Change the dynamics setting.
 ## SETTUPLET
 SETTUPLET VALUE/A,UPDATE/S
 
-Change the tuplet setting.
-- VALUE -- NONE, TRIPLET, or a numeric ratio
+Change the tuplet setting in the tool window.
+- VALUE -- By number: 0 (none), 3 (triplet), 5 (quintuplet), 7 (septuplet)
+  Or by keyword: NONE, TRIPLET, QUINTUPLET, SEPTUPLET
 - UPDATE -- Also update any currently selected notes
 
 ## REQUESTNOTIFY
@@ -281,7 +306,7 @@ GOTO TRACK/K/N,STAFF/K/N,MEASURE/K/N,CHORD/K/N,CLOCK/K/N,HIDDEN/S
 
 Move the cursor to a specified location.
 - TRACK -- Track number (1-based)
-- STAFF -- Staff number within track (1-based)
+- STAFF -- Staff number (1-based). Note: STAFF = TRACK / 2
 - MEASURE -- Measure number (1-based)
 - CHORD -- Chord position within measure
 - CLOCK -- Clock tick position within measure
@@ -349,26 +374,53 @@ Deselect all selected items.
 INSERTITEM TYPE,TRACK/K/N,DURATION/K,CLOCKS/K/N,DOTS/K/N,TUPLET/K/N,ACCIDENTAL/K,OCTAVE/K/N,LINE/K/N,PITCH/K/N,LETTER/K,NOTESTEM/K,LOUDNESS/K/N,FONT/K,RATE/K/N,SELECTED/N,HIDDEN/S,NOFIX/S
 
 Add an item to the score at the cursor position.
-- TYPE -- Item type: NOTE, REST, BAR, TEXT, DYNAMIC, TEMPO, CLEF, KEY, TIME, REHEARSAL
-- TRACK -- Target track number
-- DURATION -- WHOLE, HALF, QUARTER, EIGHTH, SIXTEENTH, THIRTYSECOND, SIXTYFOURTH
-- CLOCKS -- Duration in clock ticks (alternative to DURATION)
-- DOTS -- Number of dots (0, 1, or 2)
-- TUPLET -- Tuplet ratio (e.g. 3 for triplet)
-- ACCIDENTAL -- NATURAL, SHARP, FLAT, DOUBLESHARP, DOUBLEFLAT, NONE
-- OCTAVE -- Octave number (0-9, middle C = octave 4)
-- LINE -- Staff line position
-- PITCH -- MIDI pitch number (0-127, middle C = 60)
-- LETTER -- Note letter: C, D, E, F, G, A, B
-- NOTESTEM -- UP, DOWN, or AUTO
-- LOUDNESS -- MIDI velocity (0-127)
-- FONT -- Text font name (for TEXT type)
-- RATE -- Tempo in BPM (for TEMPO type)
-- SELECTED -- 1 to create as selected
-- HIDDEN -- Create as hidden item
+
+Item types:
+  NOTE      New chord (default)
+  REST      Rest
+  INTERVAL  Add a note to an existing chord
+  DYNAMIC   Dynamic value
+  TEMPO     Tempo marking
+  BAR       Bar line
+  TEXT      Text annotation
+  CLEF      Clef change
+  KEY       Key signature change
+  TIME      Time signature change
+  REHEARSAL Rehearsal marking
+
+Attributes for all items:
+- TRACK -- Track number to create the item on
+- SELECTED -- Non-zero to select, zero to deselect
+- HIDDEN -- Create without updating display (faster for batch operations)
 - NOFIX -- Disable re-sorting (use with RESORTEVENTS for batch operations)
 
+Attributes for notes and rests:
+- DURATION -- Format: [division][:tuplet][.dots]
+  Divisions: D (double whole), W or 1 (whole), H or 2 (half),
+  O or 4 (quarter), 8 (eighth), 16, 32, 64
+  Tuplets: 0 (none), 1 (triplet), 2 (quintuplet), 3 (septuplet)
+  Dots: 0, 1, or 2
+  Example: "32:3.2" = 32nd note double-dotted triplet, "D:3" = double whole triplet
+- CLOCKS -- Duration in clock ticks (alternative to DURATION)
+
+Attributes for notes only:
+- ACCIDENTAL -- NONE, FLAT, NATURAL, SHARP
+- OCTAVE -- Octave number (0 = middle C octave)
+- LINE -- Staff line (0=middle, positive=higher, negative=lower)
+- PITCH -- MIDI pitch number (0-127)
+- LETTER -- Note letter: A, B, C, D, E, F, G
+- NOTESTEM -- Stem direction: UP, DOWN
+
+Attributes for dynamics only:
+- LOUDNESS -- MIDI velocity (0-127)
+  PPP=0-10, PP=11-19, P=20-31, MP=32-47,
+  MF=48-63, F=64-81, FF=82-107, FFF=108-127
+- FONT -- Text font name (for TEXT type)
+- RATE -- Tempo in BPM (for TEMPO type)
+
+Example: INSERTITEM NOTE DURATION 2 LINE 3 NOTESTEM UP
 Example: INSERTITEM NOTE LETTER C OCTAVE 4 DURATION QUARTER
+Example: INSERTITEM INTERVAL LETTER E OCTAVE 4 (add to chord)
 Example: INSERTITEM REST DURATION HALF
 Example: INSERTITEM TEMPO RATE 120
 
@@ -412,12 +464,36 @@ Delete measure(s) starting from the current measure.
 ## CHANGEITEM
 CHANGEITEM TYPE,TRACK/K/N,DURATION/K,CLOCKS/K/N,DOTS/K/N,TUPLET/K/N,ACCIDENTAL/K,OCTAVE/K/N,LINE/K/N,PITCH/K/N,LETTER/K,NOTESTEM/K,LOUDNESS/K/N,FONT/K,RATE/K/N,SELECTED/N,HIDDEN/S,NOFIX/S
 
-Modify the item after the cursor. Same parameters as INSERTITEM.
-Only specified parameters are changed; others remain as they are.
+Modify the item after the cursor. Only specified parameters are changed.
+NOTE: CHANGEITEM is not undoable.
+
 - NOFIX -- Disable re-sorting during batch edits (use with RESORTEVENTS)
+
+Attributes for all items:
+- SELECTED -- Non-zero to select, zero to deselect
+- HIDDEN -- Change without updating display (much faster for batch edits)
+
+Attributes for notes and rests:
+- DURATION -- Format: [division][:tuplet][.dots]
+  Valid divisions: D (double whole), W or 1 (whole), H or 2 (half),
+  O or 4 (quarter), 8 (eighth), 16, 32, 64
+  Valid tuplets: 0 (none), 1 (triplet), 2 (quintuplet), 3 (septuplet)
+  Valid dots: 0, 1, or 2
+
+Attributes for notes only:
+- ACCIDENTAL -- NONE, FLAT, NATURAL, SHARP
+- OCTAVE -- Octave number (0 = middle C octave)
+- LINE -- Staff line number (0=middle line, positive=higher, negative=lower)
+- PITCH -- MIDI pitch number (0-127)
+- LETTER -- Note letter: A, B, C, D, E, F, G
+- NOTESTEM -- Stem direction: UP, DOWN, TOGGLE
+
+Attributes for dynamics only:
+- LOUDNESS -- MIDI volume (0-127)
 
 Example: CHANGEITEM DURATION HALF
 Example: CHANGEITEM LETTER D OCTAVE 5
+Example: CHANGEITEM OCTAVE (-1)
 
 ## CHANGESELECTED
 CHANGESELECTED TYPE,TRACK/K/N,DURATION/K,CLOCKS/K/N,DOTS/K/N,TUPLET/K/N,ACCIDENTAL/K,OCTAVE/K/N,LINE/K/N,PITCH/K/N,LETTER/K,NOTESTEM/K,LOUDNESS/K/N,FONT/K,RATE/K/N,SELECTED/N,HIDDEN/S,NOFIX/S
@@ -425,6 +501,7 @@ CHANGESELECTED TYPE,TRACK/K/N,DURATION/K,CLOCKS/K/N,DOTS/K/N,TUPLET/K/N,ACCIDENT
 Modify all currently selected items. Same parameters as CHANGEITEM.
 
 Example: CHANGESELECTED LOUDNESS 100
+Example: CHANGESELECTED NOTESTEM DOWN
 
 ## CHANGETONE
 CHANGETONE HALFSTEP/K/N,LEVEL/K/N,OCTAVE/K/N
@@ -441,19 +518,21 @@ Example: CHANGETONE OCTAVE -1 (transpose down one octave)
 FLIPNOTESTEM DIRECTION
 
 Flip the direction of selected note stems.
-- DIRECTION -- UP, DOWN, or AUTO
+- DIRECTION -- UP, DOWN, or TOGGLE
+
+Example: FLIPNOTESTEM TOGGLE
 
 ## GROUPITEM
 GROUPITEM ACTION/A,TYPE/A,DIRECTION
 
-Add or remove grouping (ties, beams, 8va's, etc.)
-- ACTION -- ADD or REMOVE
-- TYPE -- TIE, BEAM, SLUR, 8VA, 8VB, CRESCENDO, DECRESCENDO, PEDAL
-- DIRECTION -- OPEN or CLOSE (start or end of the group)
+Add or remove grouping. The group to add or delete must be selected first.
+- ACTION -- ADD or DELETE
+- TYPE -- TIE, BEAM, SLUR, OCTAVE, CRESCENDO, DECRESCENDO
+- DIRECTION -- UP or DOWN (default: UP)
 
-Example: GROUPITEM ADD TIE OPEN (start a tie)
-Example: GROUPITEM ADD TIE CLOSE (end the tie)
-Example: GROUPITEM ADD BEAM OPEN (start a beam group)
+Example: GROUPITEM ADD TIE
+Example: GROUPITEM ADD BEAM UP
+Example: GROUPITEM DELETE SLUR
 
 ## DOUBLETIME
 DOUBLETIME
@@ -464,6 +543,15 @@ Double the duration of all selected notes (e.g. quarter -> half).
 HALFTIME
 
 Halve the duration of all selected notes (e.g. quarter -> eighth).
+
+## INVERTCHORD
+INVERTCHORD DIRECTION
+
+Invert a selected chord up or down.
+- DIRECTION -- UP or DOWN
+
+Example: INVERTCHORD UP
+Example: INVERTCHORD DOWN
 
 ## JOINMEASURE
 JOINMEASURE
@@ -483,74 +571,160 @@ Realign note spacing in the current measure.
 ## SETBARATTR
 SETBARATTR BEGINSECTION/S,ENDSECTION/S,ENDING1/K,ENDING2/K,BEGINREPEAT/K,ENDREPEAT/K,DOUBLEBAR/K
 
-Change bar line attributes for the current measure.
-- BEGINSECTION/ENDSECTION -- Mark section boundaries
-- ENDING1 -- First ending bracket: OPEN, CLOSE, or NONE
-- ENDING2 -- Second ending bracket: OPEN, CLOSE, or NONE
-- BEGINREPEAT -- Begin repeat: YES or NO
-- ENDREPEAT -- End repeat: YES or NO
-- DOUBLEBAR -- Double bar line: YES or NO
+Change bar line attributes for all measures in the current selection range.
+- BEGINSECTION -- Sets the first bar in the selection as section beginning
+- ENDSECTION -- Sets the last bar in the selection as section ending
+- ENDING1 -- First ending bracket: ON, OFF, or TOGGLE
+- ENDING2 -- Second ending bracket: ON, OFF, or TOGGLE
+- BEGINREPEAT -- Begin repeat: ON, OFF, or TOGGLE
+- ENDREPEAT -- End repeat: ON, OFF, or TOGGLE
+- DOUBLEBAR -- Double bar line: ON, OFF, or TOGGLE
 
-Example: SETBARATTR BEGINREPEAT YES
-Example: SETBARATTR ENDING1 OPEN
+Example: SETBARATTR BEGINREPEAT ON
+Example: SETBARATTR ENDING1 ON
 
 ## SETCLEF
 SETCLEF TYPE/A,STAFF/N/A,START/N,END/N
 
-Change the clef for a staff.
-- TYPE -- TREBLE, BASS, ALTO, TENOR, PERCUSSION
+Change the clef for a staff at a particular measure.
+- TYPE -- NONE, TREBLE, BASS, ALTO, TENOR
+  NONE removes the clef change; the effective clef is derived from previous measures.
 - STAFF -- Staff number (1-based)
-- START -- Starting measure number
-- END -- Ending measure number
+- START -- Starting measure number (default: 0)
+- END -- Ending measure. If omitted, effect continues until the next clef change.
 
 Example: SETCLEF TREBLE 1 1 999
+Example: SETCLEF BASS 1 3
 
 ## SETKEYSIGNATURE
 SETKEYSIGNATURE TYPE/A,STAFF/N/A,START/N,END/N,TRANSPOSE/K
 
-Change the key signature.
-- TYPE -- Key name: C, G, D, A, E, B, F#, C#, F, Bb, Eb, Ab, Db, Gb, Cb, Am, Em, Bm, F#m, C#m, G#m, D#m, A#m, Dm, Gm, Cm, Fm, Bbm, Ebm, Abm
+Change the key signature of a particular staff at a particular measure.
+- TYPE -- Key name (use hyphens in compound names):
+  Major: C-MAJOR, G-MAJOR, D-MAJOR, A-MAJOR, E-MAJOR, B-MAJOR,
+         F-SHARP-MAJOR, C-SHARP-MAJOR, F-MAJOR, B-FLAT-MAJOR,
+         E-FLAT-MAJOR, A-FLAT-MAJOR, D-FLAT-MAJOR, G-FLAT-MAJOR,
+         C-FLAT-MAJOR
+  Minor: A-MINOR, E-MINOR, B-MINOR, F-SHARP-MINOR, C-SHARP-MINOR,
+         G-SHARP-MINOR, D-SHARP-MINOR, A-SHARP-MINOR, D-MINOR,
+         G-MINOR, C-MINOR, F-MINOR, B-FLAT-MINOR, E-FLAT-MINOR,
+         A-FLAT-MINOR
+  NONE -- Removes key signature; effective key derived from previous measures.
 - STAFF -- Staff number (1-based)
-- START -- Starting measure
-- END -- Ending measure
+- START -- Starting measure (default: 0)
+- END -- Ending measure. If omitted, effect continues until the next key change.
 - TRANSPOSE -- YES or NO. Transpose existing notes to match new key
 
-Example: SETKEYSIGNATURE G 1 1 999
-Example: SETKEYSIGNATURE Bb 1 5 999 TRANSPOSE YES
+Example: SETKEYSIGNATURE C-FLAT-MAJOR 0 0
+Example: SETKEYSIGNATURE G-MAJOR 1 1 999
+Example: SETKEYSIGNATURE B-FLAT-MAJOR 1 5 999 TRANSPOSE YES
 
 ## SETTIMESIGNATURE
 SETTIMESIGNATURE BEATS/N/A,DURATION/N/A,MEASURE/N
 
 Change the time signature.
-- BEATS -- Number of beats per measure
-- DURATION -- Beat duration (4=quarter, 8=eighth, 2=half, etc.)
-- MEASURE -- Starting measure number (default: current measure)
+- BEATS -- Number of beats per measure (the "top" number).
+  If 0, deletes the time signature change; the effective time signature
+  is derived from previous measures.
+- DURATION -- Beat duration (the "bottom" number): 4=quarter, 8=eighth, 2=half, etc.
+- MEASURE -- Starting measure number. All measures from that point until the
+  next time signature change will be affected.
 
 Example: SETTIMESIGNATURE 3 4 (3/4 time)
 Example: SETTIMESIGNATURE 6 8 1 (6/8 from measure 1)
+Example: SETTIMESIGNATURE 4 4 8 1 (4/4 starting at measure 8)
 
 ## SETSTAFF
 SETSTAFF STAFF/N/A,ATTR/A,VALUE/A
 
 Change staff attributes.
 - STAFF -- Staff number (1-based)
-- ATTR -- Attribute name: NAME, CHANNEL, INSTRUMENT, TRANSPOSE, VOLUME, PAN, VISIBLE
-- VALUE -- New value for the attribute
+- ATTR -- Attribute name:
+  SOUND            "Staff Sound On" checkmark (TRUE/FALSE)
+  HIDDEN           "Staff Hidden" checkmark (TRUE/FALSE)
+  HIDEINSTRUMENTS  "Hide Instruments" checkmark (TRUE/FALSE)
+  HIDESIGNATURES   "Hide Time Signatures" checkmark (TRUE/FALSE)
+  SHOWSTYLES       "Show Play Styles" checkmark (TRUE/FALSE)
+  SPLIT            Split measure lines (TRUE/FALSE)
+  TOPBRACKET       Staff has a bracket top (TRUE/FALSE)
+  BOTTOMBRACKET    Staff has a bracket bottom (TRUE/FALSE)
+  BRACE            Staff has bracket top and bottom (TRUE/FALSE)
+  TRANSPOSITION    Staff transposition (numeric value)
+  STAFFHEIGHT      Total height of staff (numeric value)
+  STAFFVOFFSET     Space above staff (numeric value)
+- VALUE -- TRUE/FALSE for checkmark attributes, numeric for others
 
-Example: SETSTAFF 1 NAME "Piano"
-Example: SETSTAFF 2 CHANNEL 2
-Example: SETSTAFF 1 VISIBLE YES
+Example: SETSTAFF 1 HIDEINSTRUMENTS TRUE
+Example: SETSTAFF 1 TRANSPOSITION 9
+Example: SETSTAFF 1 HIDDEN TRUE
 
 ## GETATTR
 GETATTR OBJECT/A,NAME,FIELD
 
 Get information about DeluxeMusic's status. Returns value in RESULT.
-- OBJECT -- Object type: APPLICATION, DOCUMENT, SCORE, WINDOW
-- NAME -- Object name (if applicable)
-- FIELD -- Specific field to query: FILENAME, MODIFIED, TRACKS, STAVES, MEASURES, etc.
+- OBJECT -- Object type to query (see below)
+- NAME -- Specific object name (if omitted, queries the current object)
+- FIELD -- Specific field (if omitted, returns all fields for that object)
 
-Example: GETATTR DOCUMENT "" FILENAME
+Objects and their fields:
+
+APPLICATION:
+  VERSION        Version number of the program
+  SCREEN         Name of the screen
+
+PROJECTS:
+  COUNT          Total number of open projects
+  [number]       Name of a specific project by index
+
+PROJECT:
+  AREXX          ARexx port name for this document
+  FILENAME       Complete filename with path
+  FILE           File name only (without path)
+  PATH           Drawer path only (without filename)
+  FILEPATTERN    Current pattern in file requester
+  CHANGES        Document has been modified (TRUE/FALSE)
+  FEEDBACKTYPE   Feedback type (0 to 2)
+  FLASHNOTES     "Flash notes" checkmark state
+  TURNPAGES      "Turn pages" checkmark state
+  PLAYERPIANO    "Player piano" checkmark state
+  REPEATPLAY     "Repeat play" checkmark state
+  CHROMATICDRAG  "Chromatic drag" checkmark state
+
+WINDOWS:
+  COUNT          Total number of open windows
+  [number]       Name of a specific window by index
+
+WINDOW:
+  LEFT           Left edge coordinate
+  TOP            Top edge coordinate
+  WIDTH          Width in pixels
+  HEIGHT         Height in pixels
+  TITLE          Window title
+  MIN.WIDTH      Minimum width
+  MAX.WIDTH      Maximum width
+  MIN.HEIGHT     Minimum height
+  MAX.HEIGHT     Maximum height
+  SCREEN         Screen name of the window
+
+SCREEN:
+  LEFT           Left edge of screen
+  TOP            Top edge of screen
+  WIDTH          Width of screen
+  HEIGHT         Height of screen
+  DEPTH          Depth (number of bitplanes)
+  TITLE          Title of screen
+
+SCORE:
+  MEASURES       Number of measures in the score
+  LASTUSEDBAR    Last used bar in the score
+  BARSPERLINE    Bars per line setting
+  STAVES         Number of staves in the score
+
+Example: GETATTR APPLICATION "" VERSION
+Example: GETATTR PROJECT "" FILENAME
 Example: GETATTR SCORE "" MEASURES
+Example: GETATTR SCORE "CLEOPHA" MEASURES
+Example: GETATTR WINDOW "" LEFT
 
 ## GETERRORINFO
 GETERRORINFO ERROR/N/A
@@ -562,18 +736,65 @@ Get a text description of an error number. Returns description in RESULT.
 GETPOSITION FIELD
 
 Get current cursor position. Returns value in RESULT.
-- FIELD -- TRACK, STAFF, MEASURE, CHORD, CLOCK, EVENT
+If FIELD is omitted, all position parameters are returned.
+
+- FIELD -- Which attribute to query:
+  MEASURE   Current measure number
+  STAFF     Current staff number
+  TRACK     Current track number
+  CHORD     Current chord within the measure
+  INTERVAL  Interval number in the chord
+  TIME      Clock time of event, relative to measure start
 
 Example: GETPOSITION MEASURE
+Example: GETPOSITION TRACK
 
 ## GETITEMATTR
 GETITEMATTR FIELD
 
-Get information about the item at/after the cursor. Returns value in RESULT.
-- FIELD -- TYPE, DURATION, CLOCKS, DOTS, TUPLET, ACCIDENTAL, OCTAVE, LINE, PITCH, LETTER, NOTESTEM, LOUDNESS, FONT, RATE, SELECTED, HIDDEN
+Get information about the item just after the cursor. Returns value in RESULT.
+If FIELD is omitted, all parameters are returned.
 
-Example: GETITEMATTR TYPE
-Example: GETITEMATTR PITCH
+All items:
+  ITEM.TYPE       Current item type
+  ITEM.TRACK      Track number of the current item
+  ITEM.START      Start time of item in ticks
+  ITEM.XPOS       X position of item on screen
+  ITEM.SELECTED   Item selection state
+
+Note items (Note track only):
+  NOTE.DIVISION     Division (D=double whole, 1=whole, 2=half, 4=quarter, 8, 16, 32, 64)
+  NOTE.TUPLET       Tuplet value
+  NOTE.DOTS         Number of dots
+  NOTE.ACCIDENTAL   Accidental type
+  NOTE.LEVEL        Staff line level
+  NOTE.PITCH        MIDI note pitch (0-127)
+  NOTE.STYLE        Note style
+  NOTE.INSTRUMENT   Note instrument number
+  NOTE.BEAMHEIGHT   Note beam height
+  NOTE.FIXEDPOS     TRUE if note position was manually specified
+  NOTE.BEAMOUT      TRUE if beamed to next note
+  NOTE.TIEOUT       TRUE if tied to next note
+  NOTE.TIEDOWN      TRUE if tie curves downward
+  NOTE.STEMDOWN     TRUE if stem points downward
+
+Instrument items (Instrument track only):
+  INSTRUMENT.NUMBER   Instrument number in table
+
+Tempo items (Tempo track only):
+  TEMPO.VALUE         New tempo value (BPM)
+
+Dynamic items:
+  DYNAMIC.VOLUME      MIDI volume (0-127)
+  DYNAMIC.VPOS        Vertical position of event
+
+Group items:
+  GROUP.ENDVOL        End volume for crescendos (0-127)
+  GROUP.GROUPDOWN     TRUE if group direction is down
+
+Example: GETITEMATTR ITEM.TYPE
+Example: GETITEMATTR NOTE.PITCH
+Example: GETITEMATTR TEMPO.VALUE
 
 ## GETCLEF
 GETCLEF STAFF/N/A,MEASURE/N,EFFECTIVE/S
@@ -596,9 +817,24 @@ GETSTAFF STAFF/N/A,ATTR/A
 
 Get staff attribute value. Returns value in RESULT.
 - STAFF -- Staff number (1-based)
-- ATTR -- Attribute: NAME, CHANNEL, INSTRUMENT, TRANSPOSE, VOLUME, PAN, VISIBLE
+- ATTR -- Attribute name:
+  SOUND            "Staff sound on" checkmark
+  HIDDEN           "Staff Hidden" checkmark
+  HIDEINSTRUMENTS  "Hide Instruments" checkmark
+  HIDESIGNATURES   "Hide Time Signatures" checkmark
+  SHOWSTYLES       "Show Play Styles" checkmark
+  SPLIT            Split measure lines
+  TOPBRACKET       Staff has a bracket top
+  BOTTOMBRACKET    Staff has a bracket bottom
+  BRACE            Staff has a brace (bracket top and bottom)
+  TRANSPOSITION    Staff transposition value
+  STAFFHEIGHT      Total height (space above + space below)
+  STAFFVOFFSET     Space above staff
+  NAME, CHANNEL, INSTRUMENT, TRANSPOSE, VOLUME, PAN, VISIBLE
 
 Example: GETSTAFF 1 NAME
+Example: GETSTAFF 1 STAFFHEIGHT
+Example: GETSTAFF 2 TRANSPOSITION
 
 ## GETTIMESIGNATURE
 GETTIMESIGNATURE MEASURE/N,EFFECTIVE/S

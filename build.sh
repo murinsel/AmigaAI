@@ -8,7 +8,7 @@
 PROJDIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ "$1" = "clean" ]; then
-    rm -rf "$PROJDIR/obj" "$PROJDIR/AmigaAI" "$PROJDIR/FileType"
+    rm -rf "$PROJDIR/obj" "$PROJDIR/AmigaAI" "$PROJDIR/FileType" "$PROJDIR/SSLTest"
     echo "Cleaned."
     exit 0
 fi
@@ -77,6 +77,15 @@ echo '=== Linking FileType ==='
 \$STRIP FileType
 echo '=== Done: FileType ==='
 ls -la FileType
+echo ''
+echo '=== Compiling SSLTest ==='
+echo '  CC  src/ssltest.c'
+\$CC \$CFLAGS -c -o obj/ssltest.o src/ssltest.c
+echo '=== Linking SSLTest ==='
+\$CC \$LDFLAGS -o SSLTest obj/ssltest.o \$LIBS
+\$STRIP SSLTest
+echo '=== Done: SSLTest ==='
+ls -la SSLTest
 "
     # Build mkcatalog on host and generate .catalog files
     echo ""
@@ -123,6 +132,17 @@ else
     echo "=== Done: FileType ==="
     ls -la FileType
 
+    # Build SSLTest diagnostic tool
+    echo ""
+    echo "=== Compiling SSLTest ==="
+    echo "  CC  src/ssltest.c"
+    $CC $CFLAGS -c -o obj/ssltest.o src/ssltest.c
+    echo "=== Linking SSLTest ==="
+    $CC $LDFLAGS -o SSLTest obj/ssltest.o $LIBS
+    $STRIP SSLTest
+    echo "=== Done: SSLTest ==="
+    ls -la SSLTest
+
     # Build mkcatalog (host tool) and generate .catalog files
     echo ""
     echo "=== Building mkcatalog (host) ==="
@@ -144,9 +164,10 @@ else
     xdftool $DISK write Install_AmigaAI
     xdftool $DISK write Install_AmigaAI.info
 
-    # Main executable
+    # Main executable + tools
     xdftool $DISK write AmigaAI
     xdftool $DISK write FileType
+    xdftool $DISK write SSLTest
 
     # Catalogs
     xdftool $DISK makedir catalogs

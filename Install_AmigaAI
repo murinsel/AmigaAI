@@ -235,13 +235,21 @@
 (complete 30)
 
 ; ============================================================
-; Copy FileType utility
+; Copy Tools (FileType, SSLTest)
 ; ============================================================
 
 (if (exists "FileType")
     (copyfiles
         (prompt "Copying FileType utility...")
         (source "FileType")
+        (dest #installdir)
+    )
+)
+
+(if (exists "SSLTest")
+    (copyfiles
+        (prompt "Copying SSLTest diagnostic tool...")
+        (source "SSLTest")
         (dest #installdir)
     )
 )

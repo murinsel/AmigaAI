@@ -158,7 +158,7 @@ else
     echo "=== Creating AmigaAI.adf ==="
     DISK=AmigaAI.adf
     rm -f $DISK
-    xdftool $DISK format "AmigaAI"
+    xdftool $DISK format "AmigaAI" ffs
 
     # Installer
     xdftool $DISK write Install_AmigaAI

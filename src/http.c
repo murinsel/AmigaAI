@@ -548,8 +548,44 @@ int http_post(const char *host,
         }
     }
 
-    /* Log outgoing request body */
-    api_log_write("REQUEST", body, 0);
+    /* Log outgoing request: headers (with auth value REDACTED) + body */
+    {
+        int hdr_len = request_len - strlen(body);
+        char *redacted = malloc(hdr_len + 64);
+        if (redacted) {
+            char *p, *eol;
+            int new_len;
+
+            memcpy(redacted, request, hdr_len);
+            redacted[hdr_len] = '\0';
+
+            /* Redact Bearer token */
+            p = strstr(redacted, "Bearer ");
+            if (p) {
+                eol = strstr(p, "\r\n");
+                if (eol) {
+                    new_len = (p - redacted) + 7;
+                    memmove(redacted + new_len + 10, eol,
+                            strlen(eol) + 1);
+                    memcpy(redacted + new_len, "[REDACTED]", 10);
+                }
+            }
+            /* Redact x-api-key value */
+            p = strstr(redacted, "x-api-key: ");
+            if (p) {
+                eol = strstr(p, "\r\n");
+                if (eol) {
+                    new_len = (p - redacted) + 11;
+                    memmove(redacted + new_len + 10, eol,
+                            strlen(eol) + 1);
+                    memcpy(redacted + new_len, "[REDACTED]", 10);
+                }
+            }
+            api_log_write("REQUEST HEADERS", redacted, 0);
+            free(redacted);
+        }
+    }
+    api_log_write("REQUEST BODY", body, 0);
 
     /* Send request */
     if (use_ssl) {

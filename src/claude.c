@@ -163,6 +163,14 @@ static char *api_call(struct Claude *ctx, char **error_msg)
         headers[hdr_idx++] = "anthropic-version: " CLAUDE_API_VERSION;
     headers[hdr_idx] = NULL;
 
+    /* Diagnostic: log auth scheme + key length (never print the key itself) */
+    printf("  [api] provider=%s auth=%s host=%s%s key_len=%d\n",
+           ctx->config->api_provider,
+           is_bearer ? "Bearer" : "x-api-key",
+           ctx->config->api_host,
+           ctx->config->api_path,
+           (int)strlen(ctx->config->api_key));
+
     /* Build system prompt */
     sys_ptr = build_system_prompt(ctx, effective_system, sizeof(effective_system));
 

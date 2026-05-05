@@ -708,13 +708,16 @@ static void handle_endpoint_settings(void)
     int done = 0;
     struct IClass *wincl;
     char port_buf[16];
-    /* Pending auth scheme — set by preset buttons, committed on OK.
-     * No UI element for it; user manages auth indirectly via presets. */
+    /* Pending auth scheme + key realm — set by preset buttons, committed on OK.
+     * No UI elements for them; user manages indirectly via presets. */
     char pending_auth[CONFIG_MAX_AUTH_LEN];
+    char pending_realm[CONFIG_MAX_REALM_LEN];
 
     snprintf(port_buf, sizeof(port_buf), "%d", app_config.api_port);
     strncpy(pending_auth, app_config.api_auth, CONFIG_MAX_AUTH_LEN - 1);
     pending_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
+    strncpy(pending_realm, app_config.api_key_realm, CONFIG_MAX_REALM_LEN - 1);
+    pending_realm[CONFIG_MAX_REALM_LEN - 1] = '\0';
 
     {
         ULONG p[1];
@@ -1012,9 +1015,12 @@ static void handle_endpoint_settings(void)
                 app_config.api_key[CONFIG_MAX_KEY_LEN - 1] = '\0';
             }
 
-            /* Commit pending auth scheme (set by preset buttons) */
+            /* Commit pending auth scheme + key realm (set by preset buttons) */
             strncpy(app_config.api_auth, pending_auth, CONFIG_MAX_AUTH_LEN - 1);
             app_config.api_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
+            strncpy(app_config.api_key_realm, pending_realm,
+                    CONFIG_MAX_REALM_LEN - 1);
+            app_config.api_key_realm[CONFIG_MAX_REALM_LEN - 1] = '\0';
 
             config_save(&app_config, 1);
             gui_set_status(&app_gui, GetString(MSG_ENDPOINT_SAVED));
@@ -1024,7 +1030,7 @@ static void handle_endpoint_settings(void)
         case 101: /* Cancel */
             done = 1;
             break;
-        case 102: { /* Anthropic native preset (x-api-key auth) */
+        case 102: { /* Anthropic native — realm=anthropic, x-api-key */
             char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"api.anthropic.com");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
@@ -1034,11 +1040,13 @@ static void handle_endpoint_settings(void)
                  (ULONG)CONFIG_PROVIDER_ANTHROPIC);
             strncpy(pending_auth, CONFIG_AUTH_XAPIKEY, CONFIG_MAX_AUTH_LEN - 1);
             pending_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
-            config_load_provider_key(CONFIG_PROVIDER_ANTHROPIC, saved_key);
+            strncpy(pending_realm, CONFIG_REALM_ANTHROPIC, CONFIG_MAX_REALM_LEN - 1);
+            pending_realm[CONFIG_MAX_REALM_LEN - 1] = '\0';
+            config_load_realm_key(CONFIG_REALM_ANTHROPIC, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;
         }
-        case 103: { /* OpenRouter (Anthropic format, Bearer auth) */
+        case 103: { /* OpenRouter (Anthropic format) — realm=openrouter, Bearer */
             char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
@@ -1048,11 +1056,13 @@ static void handle_endpoint_settings(void)
                  (ULONG)CONFIG_PROVIDER_ANTHROPIC);
             strncpy(pending_auth, CONFIG_AUTH_BEARER, CONFIG_MAX_AUTH_LEN - 1);
             pending_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
-            config_load_provider_key(CONFIG_PROVIDER_ANTHROPIC, saved_key);
+            strncpy(pending_realm, CONFIG_REALM_OPENROUTER, CONFIG_MAX_REALM_LEN - 1);
+            pending_realm[CONFIG_MAX_REALM_LEN - 1] = '\0';
+            config_load_realm_key(CONFIG_REALM_OPENROUTER, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;
         }
-        case 104: { /* OpenRouter (OpenAI format, Bearer auth) */
+        case 104: { /* OpenRouter (OpenAI format) — realm=openrouter, Bearer */
             char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
@@ -1063,7 +1073,9 @@ static void handle_endpoint_settings(void)
                  (ULONG)CONFIG_PROVIDER_OPENAI);
             strncpy(pending_auth, CONFIG_AUTH_BEARER, CONFIG_MAX_AUTH_LEN - 1);
             pending_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
-            config_load_provider_key(CONFIG_PROVIDER_OPENAI, saved_key);
+            strncpy(pending_realm, CONFIG_REALM_OPENROUTER, CONFIG_MAX_REALM_LEN - 1);
+            pending_realm[CONFIG_MAX_REALM_LEN - 1] = '\0';
+            config_load_realm_key(CONFIG_REALM_OPENROUTER, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;
         }

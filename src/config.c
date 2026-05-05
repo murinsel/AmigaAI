@@ -21,6 +21,8 @@ void config_defaults(struct Config *cfg)
     strncpy(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC,
             CONFIG_MAX_PROVIDER_LEN - 1);
     strncpy(cfg->api_auth, CONFIG_AUTH_XAPIKEY, CONFIG_MAX_AUTH_LEN - 1);
+    strncpy(cfg->api_key_realm, CONFIG_REALM_ANTHROPIC,
+            CONFIG_MAX_REALM_LEN - 1);
 }
 
 /* Read a single line from a file, strip trailing newline */
@@ -73,8 +75,7 @@ int config_load(struct Config *cfg)
 
     config_defaults(cfg);
 
-    /* Read api_provider first so we know which provider-specific key
-     * file to read. Fall back to "anthropic" if not set (old configs). */
+    /* Read api_provider (request format). Old configs default to "anthropic". */
     read_file_string(CONFIG_DIR_ENV "/api_provider",
                      cfg->api_provider, CONFIG_MAX_PROVIDER_LEN);
     if (cfg->api_provider[0] == '\0') {
@@ -82,22 +83,34 @@ int config_load(struct Config *cfg)
                 CONFIG_MAX_PROVIDER_LEN - 1);
     }
 
-    /* Auth scheme: x-api-key (Anthropic native) or bearer (OpenRouter, OpenAI).
-     * Default heuristic for old configs: anthropic provider on api.anthropic.com
-     * uses x-api-key, anything else uses bearer. */
+    /* Auth scheme: x-api-key (Anthropic native) or bearer (OpenRouter, OpenAI). */
     read_file_string(CONFIG_DIR_ENV "/api_auth",
                      cfg->api_auth, CONFIG_MAX_AUTH_LEN);
     if (cfg->api_auth[0] == '\0') {
         strncpy(cfg->api_auth, CONFIG_AUTH_XAPIKEY, CONFIG_MAX_AUTH_LEN - 1);
     }
 
-    /* Try provider-specific key file first; fall back to legacy
-     * single-key file (backwards compat for old installs). */
+    /* Key realm = which key file to use. Decoupled from provider because
+     * OpenRouter serves both Anthropic and OpenAI formats with one key. */
+    read_file_string(CONFIG_DIR_ENV "/api_key_realm",
+                     cfg->api_key_realm, CONFIG_MAX_REALM_LEN);
+    if (cfg->api_key_realm[0] == '\0') {
+        strncpy(cfg->api_key_realm, CONFIG_REALM_ANTHROPIC,
+                CONFIG_MAX_REALM_LEN - 1);
+    }
+
+    /* Load the actual key from the realm-specific file, with fallback
+     * chain: api_key.<realm> -> api_key.<provider> (legacy v1) ->
+     * api_key (legacy v0 single-key file). */
     snprintf(key_path, sizeof(key_path),
-             CONFIG_DIR_ENV "/api_key.%s", cfg->api_provider);
+             CONFIG_DIR_ENV "/api_key.%s", cfg->api_key_realm);
     if (!read_file_string(key_path, cfg->api_key, CONFIG_MAX_KEY_LEN)) {
-        read_file_string(CONFIG_DIR_ENV "/api_key",
-                         cfg->api_key, CONFIG_MAX_KEY_LEN);
+        snprintf(key_path, sizeof(key_path),
+                 CONFIG_DIR_ENV "/api_key.%s", cfg->api_provider);
+        if (!read_file_string(key_path, cfg->api_key, CONFIG_MAX_KEY_LEN)) {
+            read_file_string(CONFIG_DIR_ENV "/api_key",
+                             cfg->api_key, CONFIG_MAX_KEY_LEN);
+        }
     }
 
     read_file_string(CONFIG_DIR_ENV "/model", cfg->model, CONFIG_MAX_MODEL_LEN);
@@ -144,13 +157,13 @@ static int save_to_dir(const struct Config *cfg, const char *dir)
     }
     UnLock(lock);
 
-    /* Write to provider-specific key file */
-    snprintf(path, sizeof(path), "%s/api_key.%s", dir, cfg->api_provider);
+    /* Write to realm-specific key file */
+    snprintf(path, sizeof(path), "%s/api_key.%s", dir, cfg->api_key_realm);
     write_file_string(path, cfg->api_key);
 
-    /* Also write to legacy "api_key" file when provider is anthropic,
+    /* Also write to legacy "api_key" file when realm is anthropic,
      * for backwards compat with shell scripts that read ENV:AmigaAI/api_key */
-    if (strcmp(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC) == 0) {
+    if (strcmp(cfg->api_key_realm, CONFIG_REALM_ANTHROPIC) == 0) {
         snprintf(path, sizeof(path), "%s/api_key", dir);
         write_file_string(path, cfg->api_key);
     }
@@ -184,21 +197,24 @@ static int save_to_dir(const struct Config *cfg, const char *dir)
     snprintf(path, sizeof(path), "%s/api_auth", dir);
     write_file_string(path, cfg->api_auth);
 
+    snprintf(path, sizeof(path), "%s/api_key_realm", dir);
+    write_file_string(path, cfg->api_key_realm);
+
     return 1;
 }
 
-void config_load_provider_key(const char *provider, char *out_key)
+void config_load_realm_key(const char *realm, char *out_key)
 {
     char path[64];
 
     out_key[0] = '\0';
 
-    snprintf(path, sizeof(path), CONFIG_DIR_ENV "/api_key.%s", provider);
+    snprintf(path, sizeof(path), CONFIG_DIR_ENV "/api_key.%s", realm);
     if (read_file_string(path, out_key, CONFIG_MAX_KEY_LEN))
         return;
 
     /* Legacy fallback: ENV:AmigaAI/api_key is treated as anthropic */
-    if (strcmp(provider, CONFIG_PROVIDER_ANTHROPIC) == 0)
+    if (strcmp(realm, CONFIG_REALM_ANTHROPIC) == 0)
         read_file_string(CONFIG_DIR_ENV "/api_key", out_key, CONFIG_MAX_KEY_LEN);
 }
 

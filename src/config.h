@@ -35,4 +35,10 @@ int config_save(const struct Config *cfg, int save_permanent);
 /* Set defaults */
 void config_defaults(struct Config *cfg);
 
+/* Load the API key for a specific provider from ENV:AmigaAI/api_key.<provider>
+ * (with fallback to ENV:AmigaAI/api_key for legacy installs).
+ * Used to switch keys when the user changes provider in the UI.
+ * out_key must be at least CONFIG_MAX_KEY_LEN bytes. */
+void config_load_provider_key(const char *provider, char *out_key);
+
 #endif /* AMIGAAI_CONFIG_H */

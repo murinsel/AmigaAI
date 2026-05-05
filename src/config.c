@@ -68,10 +68,28 @@ static int write_file_int(const char *path, int val)
 int config_load(struct Config *cfg)
 {
     char buf[32];
+    char key_path[64];
 
     config_defaults(cfg);
 
-    read_file_string(CONFIG_DIR_ENV "/api_key", cfg->api_key, CONFIG_MAX_KEY_LEN);
+    /* Read api_provider first so we know which provider-specific key
+     * file to read. Fall back to "anthropic" if not set (old configs). */
+    read_file_string(CONFIG_DIR_ENV "/api_provider",
+                     cfg->api_provider, CONFIG_MAX_PROVIDER_LEN);
+    if (cfg->api_provider[0] == '\0') {
+        strncpy(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC,
+                CONFIG_MAX_PROVIDER_LEN - 1);
+    }
+
+    /* Try provider-specific key file first; fall back to legacy
+     * single-key file (backwards compat for old installs). */
+    snprintf(key_path, sizeof(key_path),
+             CONFIG_DIR_ENV "/api_key.%s", cfg->api_provider);
+    if (!read_file_string(key_path, cfg->api_key, CONFIG_MAX_KEY_LEN)) {
+        read_file_string(CONFIG_DIR_ENV "/api_key",
+                         cfg->api_key, CONFIG_MAX_KEY_LEN);
+    }
+
     read_file_string(CONFIG_DIR_ENV "/model", cfg->model, CONFIG_MAX_MODEL_LEN);
     read_file_string(CONFIG_DIR_ENV "/system_prompt", cfg->system_prompt, CONFIG_MAX_PROMPT_LEN);
 
@@ -99,14 +117,6 @@ int config_load(struct Config *cfg)
 
     read_file_string(CONFIG_DIR_ENV "/api_path", cfg->api_path, CONFIG_MAX_PATH_LEN);
 
-    /* api_provider — old configs default to "anthropic" (set in config_defaults) */
-    read_file_string(CONFIG_DIR_ENV "/api_provider",
-                     cfg->api_provider, CONFIG_MAX_PROVIDER_LEN);
-    if (cfg->api_provider[0] == '\0') {
-        strncpy(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC,
-                CONFIG_MAX_PROVIDER_LEN - 1);
-    }
-
     /* Check if we have an API key */
     return cfg->api_key[0] != '\0';
 }
@@ -124,8 +134,16 @@ static int save_to_dir(const struct Config *cfg, const char *dir)
     }
     UnLock(lock);
 
-    snprintf(path, sizeof(path), "%s/api_key", dir);
+    /* Write to provider-specific key file */
+    snprintf(path, sizeof(path), "%s/api_key.%s", dir, cfg->api_provider);
     write_file_string(path, cfg->api_key);
+
+    /* Also write to legacy "api_key" file when provider is anthropic,
+     * for backwards compat with shell scripts that read ENV:AmigaAI/api_key */
+    if (strcmp(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC) == 0) {
+        snprintf(path, sizeof(path), "%s/api_key", dir);
+        write_file_string(path, cfg->api_key);
+    }
 
     snprintf(path, sizeof(path), "%s/model", dir);
     write_file_string(path, cfg->model);
@@ -154,6 +172,21 @@ static int save_to_dir(const struct Config *cfg, const char *dir)
     write_file_string(path, cfg->api_provider);
 
     return 1;
+}
+
+void config_load_provider_key(const char *provider, char *out_key)
+{
+    char path[64];
+
+    out_key[0] = '\0';
+
+    snprintf(path, sizeof(path), CONFIG_DIR_ENV "/api_key.%s", provider);
+    if (read_file_string(path, out_key, CONFIG_MAX_KEY_LEN))
+        return;
+
+    /* Legacy fallback: ENV:AmigaAI/api_key is treated as anthropic */
+    if (strcmp(provider, CONFIG_PROVIDER_ANTHROPIC) == 0)
+        read_file_string(CONFIG_DIR_ENV "/api_key", out_key, CONFIG_MAX_KEY_LEN);
 }
 
 int config_save(const struct Config *cfg, int save_permanent)

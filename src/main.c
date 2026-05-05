@@ -701,7 +701,7 @@ static const char *model_list[] = {
 
 static void handle_endpoint_settings(void)
 {
-    Object *win, *str_host, *str_port, *str_path, *chk_ssl, *str_provider;
+    Object *win, *str_host, *str_port, *str_path, *chk_ssl, *str_provider, *str_key;
     Object *ok_btn, *cancel_btn, *anthropic_btn, *openrouter_btn, *openrouter_oai_btn;
     Object *hgrp, *vgrp;
     ULONG open, sigs;
@@ -803,7 +803,21 @@ static void handle_endpoint_settings(void)
         str_provider = MUI_NewObjectA((CONST_STRPTR)MUIC_String, tags);
     }
 
-    if (!str_host || !str_port || !str_path || !chk_ssl || !str_provider) return;
+    /* API key gadget (per-provider) */
+    {
+        struct TagItem tags[] = {
+            { MUIA_Frame, MUIV_Frame_String },
+            { MUIA_String_Contents, (ULONG)app_config.api_key },
+            { MUIA_String_MaxLen, CONFIG_MAX_KEY_LEN },
+            { MUIA_String_Secret, TRUE },
+            { MUIA_CycleChain, (ULONG)TRUE },
+            { TAG_DONE, 0 }
+        };
+        str_key = MUI_NewObjectA((CONST_STRPTR)MUIC_String, tags);
+    }
+
+    if (!str_host || !str_port || !str_path || !chk_ssl ||
+        !str_provider || !str_key) return;
 
     /* Buttons row */
     {
@@ -822,8 +836,8 @@ static void handle_endpoint_settings(void)
     /* Vertical layout: labels + fields */
     {
         ULONG lbl_p[1];
-        Object *lbl_host, *lbl_port, *lbl_path, *lbl_ssl, *lbl_provider;
-        Object *row_host, *row_port, *row_path, *row_ssl, *row_provider;
+        Object *lbl_host, *lbl_port, *lbl_path, *lbl_ssl, *lbl_provider, *lbl_key;
+        Object *row_host, *row_port, *row_path, *row_ssl, *row_provider, *row_key;
 
         lbl_p[0] = (ULONG)GetString(MSG_ENDPOINT_HOST);
         lbl_host = MUI_MakeObjectA(MUIO_Label, lbl_p);
@@ -835,6 +849,8 @@ static void handle_endpoint_settings(void)
         lbl_ssl = MUI_MakeObjectA(MUIO_Label, lbl_p);
         lbl_p[0] = (ULONG)"Provider";
         lbl_provider = MUI_MakeObjectA(MUIO_Label, lbl_p);
+        lbl_p[0] = (ULONG)"API Key";
+        lbl_key = MUI_MakeObjectA(MUIO_Label, lbl_p);
 
         {
             struct TagItem t[] = {
@@ -882,12 +898,22 @@ static void handle_endpoint_settings(void)
             row_provider = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, t);
         }
         {
+            struct TagItem t[] = {
+                { MUIA_Group_Horiz, TRUE },
+                { MUIA_Group_Child, (ULONG)lbl_key },
+                { MUIA_Group_Child, (ULONG)str_key },
+                { TAG_DONE, 0 }
+            };
+            row_key = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, t);
+        }
+        {
             struct TagItem tags[] = {
                 { MUIA_Group_Child, (ULONG)row_host },
                 { MUIA_Group_Child, (ULONG)row_port },
                 { MUIA_Group_Child, (ULONG)row_path },
                 { MUIA_Group_Child, (ULONG)row_ssl },
                 { MUIA_Group_Child, (ULONG)row_provider },
+                { MUIA_Group_Child, (ULONG)row_key },
                 { MUIA_Group_Child, (ULONG)hgrp },
                 { TAG_DONE, 0 }
             };
@@ -937,6 +963,7 @@ static void handle_endpoint_settings(void)
             const char *host_str = NULL;
             const char *port_str = NULL;
             const char *provider_str = NULL;
+            const char *key_str = NULL;
             ULONG ssl_val = 0;
             int port_val;
 
@@ -946,6 +973,7 @@ static void handle_endpoint_settings(void)
             port_str = (const char *)xget(str_port, MUIA_String_Contents);
             path_str = (const char *)xget(str_path, MUIA_String_Contents);
             provider_str = (const char *)xget(str_provider, MUIA_String_Contents);
+            key_str = (const char *)xget(str_key, MUIA_String_Contents);
             ssl_val = xget(chk_ssl, MUIA_Selected);
 
             if (host_str && host_str[0]) {
@@ -972,6 +1000,13 @@ static void handle_endpoint_settings(void)
                 app_config.api_provider[CONFIG_MAX_PROVIDER_LEN - 1] = '\0';
             }
 
+            /* Save key into the active provider's slot. config_save will
+             * write it to ENV:AmigaAI/api_key.<provider>. */
+            if (key_str) {
+                strncpy(app_config.api_key, key_str, CONFIG_MAX_KEY_LEN - 1);
+                app_config.api_key[CONFIG_MAX_KEY_LEN - 1] = '\0';
+            }
+
             config_save(&app_config, 1);
             gui_set_status(&app_gui, GetString(MSG_ENDPOINT_SAVED));
             done = 1;
@@ -980,23 +1015,32 @@ static void handle_endpoint_settings(void)
         case 101: /* Cancel */
             done = 1;
             break;
-        case 102: /* Anthropic preset */
+        case 102: { /* Anthropic preset */
+            char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"api.anthropic.com");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
             xset(str_path, MUIA_String_Contents, (ULONG)"/v1/messages");
             xset(chk_ssl, MUIA_Selected, TRUE);
             xset(str_provider, MUIA_String_Contents,
                  (ULONG)CONFIG_PROVIDER_ANTHROPIC);
+            config_load_provider_key(CONFIG_PROVIDER_ANTHROPIC, saved_key);
+            xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;
-        case 103: /* OpenRouter (Anthropic-compatible) preset */
+        }
+        case 103: { /* OpenRouter (Anthropic-compatible) preset */
+            char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
             xset(str_path, MUIA_String_Contents, (ULONG)"/api/v1/messages");
             xset(chk_ssl, MUIA_Selected, TRUE);
             xset(str_provider, MUIA_String_Contents,
                  (ULONG)CONFIG_PROVIDER_ANTHROPIC);
+            config_load_provider_key(CONFIG_PROVIDER_ANTHROPIC, saved_key);
+            xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;
-        case 104: /* OpenRouter (OpenAI-compatible) preset */
+        }
+        case 104: { /* OpenRouter (OpenAI-compatible) preset */
+            char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
             xset(str_path, MUIA_String_Contents,
@@ -1004,7 +1048,10 @@ static void handle_endpoint_settings(void)
             xset(chk_ssl, MUIA_Selected, TRUE);
             xset(str_provider, MUIA_String_Contents,
                  (ULONG)CONFIG_PROVIDER_OPENAI);
+            config_load_provider_key(CONFIG_PROVIDER_OPENAI, saved_key);
+            xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;
+        }
         case MUIV_Application_ReturnID_Quit:
             done = 1;
             break;

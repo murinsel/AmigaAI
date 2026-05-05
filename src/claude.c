@@ -176,6 +176,7 @@ static char *api_call(struct Claude *ctx, char **error_msg)
 
     /* Build request JSON with tools */
     request_json = json_build_request(
+        ctx->config->api_provider,
         ctx->config->model,
         ctx->config->max_tokens,
         sys_ptr,
@@ -266,7 +267,7 @@ static char *api_call(struct Claude *ctx, char **error_msg)
     }
 
     /* Parse token usage */
-    json_parse_usage(response.body,
+    json_parse_usage(ctx->config->api_provider, response.body,
                      &ctx->last_input_tokens,
                      &ctx->last_output_tokens);
 
@@ -392,7 +393,8 @@ char *claude_send(struct Claude *ctx, const char *user_message, char **error_msg
         }
 
         /* Parse full response */
-        content = json_parse_full_response(body, &stop_reason, &text, &err);
+        content = json_parse_full_response(ctx->config->api_provider,
+                                           body, &stop_reason, &text, &err);
         free(body);
 
         if (!content) {
@@ -631,7 +633,8 @@ char *claude_send_image(struct Claude *ctx, const char *image_base64,
             goto img_fail;
         }
 
-        content = json_parse_full_response(body, &stop_reason, &resp_text, &err);
+        content = json_parse_full_response(ctx->config->api_provider,
+                                           body, &stop_reason, &resp_text, &err);
         free(body);
 
         if (!content) {

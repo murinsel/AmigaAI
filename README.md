@@ -63,6 +63,7 @@ copy ENV:AmigaAI ENVARC:AmigaAI ALL
 
 ```
 AmigaAI [CREATEICON] [APILOG <file>] [APIHOST <host>] [APIPORT <port>] [NOSSL]
+        [APIPROVIDER <name>] [APIPATH <path>]
 ```
 
 | Argument | Description |
@@ -72,6 +73,8 @@ AmigaAI [CREATEICON] [APILOG <file>] [APIHOST <host>] [APIPORT <port>] [NOSSL]
 | `APIHOST <host>` | API endpoint host (default: `api.anthropic.com`) |
 | `APIPORT <port>` | API endpoint port (default: `443`) |
 | `NOSSL` | Use plain HTTP instead of HTTPS |
+| `APIPROVIDER <name>` | Request format: `anthropic` (default) or `openai` |
+| `APIPATH <path>` | API endpoint path (e.g. `/v1/messages`, `/api/v1/chat/completions`) |
 
 Example:
 
@@ -90,8 +93,65 @@ When launched from Workbench, AmigaAI reads ToolTypes from its icon (.info file)
 | `APIHOST=<host>` | API endpoint host |
 | `APIPORT=<port>` | API endpoint port |
 | `NOSSL` | Use plain HTTP instead of HTTPS |
+| `APIPROVIDER=<name>` | Request format (`anthropic` or `openai`) |
+| `APIPATH=<path>` | API endpoint path |
 
 Example icon ToolType entry: `APILOG=RAM:api.log`
+
+## Using OpenRouter / Other Models
+
+AmigaAI can also talk to OpenRouter, which exposes hundreds of models from
+many vendors (Anthropic, OpenAI, Google, Meta, Mistral, DeepSeek, ...) behind
+a single API key. Only models with **tool/function calling support** work
+with AmigaAI's agent loop.
+
+### Setup
+
+1. Create an OpenRouter account and grab a key (`sk-or-v1-...`) at
+   https://openrouter.ai/keys
+2. In AmigaAI, open **Settings → Endpoint…** and click one of:
+   - **OpenRouter** — Anthropic-compatible Messages API. Use this for
+     Claude models on OpenRouter.
+   - **OpenRouter (OpenAI)** — Chat Completions API. Use this for any
+     non-Claude model (GPT-4o, Gemini, Llama, etc.).
+3. Paste your `sk-or-v1-...` key into the API Key field. The key is
+   stored separately from your Anthropic key (in
+   `ENV:AmigaAI/api_key.openrouter`), so both can co-exist — just switch
+   presets to swap.
+4. Click **OK**, then open **Model…** to pick a model from the list.
+
+### Configuration model
+
+AmigaAI uses three independent settings to support multiple providers:
+
+| Setting | Values | Meaning |
+|---------|--------|---------|
+| `api_provider` | `anthropic`, `openai` | Request body format on the wire |
+| `api_auth` | `x-api-key`, `bearer` | HTTP auth scheme |
+| `api_key_realm` | `anthropic`, `openrouter`, `openai` | Which key file to read |
+
+This decoupling matters because OpenRouter speaks the **Anthropic Messages
+format** but uses **Bearer auth**, and one OpenRouter key serves both formats.
+
+### Image / screenshot tool with non-Claude models
+
+Anthropic's API can return images directly inside a tool result, but the
+OpenAI Chat Completions API can't. When using the OpenAI format, AmigaAI
+automatically splits a screenshot result into a text-only tool message
+(`Screenshot captured (see next message)`) plus a separate user message
+carrying the image. The model sees the image either way; the user notices
+nothing.
+
+### Model availability
+
+The Model dialog shows a different list per provider:
+
+- **Anthropic native**: `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`, `claude-opus-4-6`
+- **OpenRouter (Anthropic format)**: `anthropic/claude-sonnet-4.6`, `anthropic/claude-haiku-4.5`, `anthropic/claude-opus-4.7`, …
+- **OpenRouter (OpenAI format)**: `openai/gpt-4o`, `google/gemini-2.5-pro`, `meta-llama/llama-3.3-70b-instruct`, `mistralai/mistral-large`, `deepseek/deepseek-chat`, …
+
+You can also type any model name into the Model dialog if it's not in the
+preset list — OpenRouter will accept any model ID it recognises.
 
 ## Tools
 

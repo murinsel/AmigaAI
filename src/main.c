@@ -702,12 +702,54 @@ static void handle_memory_view(void)
     }
 }
 
-static const char *model_list[] = {
+/* Anthropic native models (used when api_provider == "anthropic"
+ * AND host is api.anthropic.com — i.e. direct Anthropic API). */
+static const char *model_list_anthropic_native[] = {
     "claude-sonnet-4-6",
     "claude-haiku-4-5-20251001",
     "claude-opus-4-6",
     NULL
 };
+
+/* Anthropic-format models on OpenRouter (host=openrouter.ai,
+ * provider=anthropic). Tool-capable Claude variants only. */
+static const char *model_list_openrouter_anthropic[] = {
+    "anthropic/claude-sonnet-4.6",
+    "anthropic/claude-haiku-4.5",
+    "anthropic/claude-opus-4.7",
+    "anthropic/claude-opus-4.6",
+    "anthropic/claude-sonnet-4.5",
+    NULL
+};
+
+/* OpenAI Chat Completions format on OpenRouter — multi-vendor.
+ * Only models that support tool/function calling. */
+static const char *model_list_openrouter_openai[] = {
+    "anthropic/claude-sonnet-4.6",
+    "anthropic/claude-haiku-4.5",
+    "openai/gpt-4o",
+    "openai/gpt-4o-mini",
+    "google/gemini-2.5-flash",
+    "google/gemini-2.5-pro",
+    "meta-llama/llama-3.3-70b-instruct",
+    "mistralai/mistral-large",
+    "deepseek/deepseek-chat",
+    NULL
+};
+
+/* Pick the model list based on current provider + host */
+static const char **get_model_list(void)
+{
+    int is_openrouter = (strstr(app_config.api_host, "openrouter") != NULL);
+    int is_openai_fmt = (strcmp(app_config.api_provider,
+                                CONFIG_PROVIDER_OPENAI) == 0);
+
+    if (is_openai_fmt)
+        return model_list_openrouter_openai;
+    if (is_openrouter)
+        return model_list_openrouter_anthropic;
+    return model_list_anthropic_native;
+}
 
 static void handle_endpoint_settings(void)
 {
@@ -1034,6 +1076,7 @@ static void handle_endpoint_settings(void)
 
             config_save(&app_config, 1);
             gui_set_status(&app_gui, GetString(MSG_ENDPOINT_SAVED));
+            update_window_title();
             done = 1;
             break;
         }
@@ -1054,6 +1097,12 @@ static void handle_endpoint_settings(void)
             pending_realm[CONFIG_MAX_REALM_LEN - 1] = '\0';
             config_load_realm_key(CONFIG_REALM_ANTHROPIC, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
+            /* Reset model to native Anthropic naming if currently OR-prefixed */
+            if (strchr(app_config.model, '/')) {
+                strncpy(app_config.model, "claude-sonnet-4-6",
+                        CONFIG_MAX_MODEL_LEN - 1);
+                app_config.model[CONFIG_MAX_MODEL_LEN - 1] = '\0';
+            }
             break;
         }
         case 103: { /* OpenRouter (Anthropic format) — realm=openrouter, Bearer */
@@ -1070,6 +1119,12 @@ static void handle_endpoint_settings(void)
             pending_realm[CONFIG_MAX_REALM_LEN - 1] = '\0';
             config_load_realm_key(CONFIG_REALM_OPENROUTER, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
+            /* Reset model to OR-prefixed Anthropic if currently native */
+            if (!strchr(app_config.model, '/')) {
+                strncpy(app_config.model, "anthropic/claude-sonnet-4.6",
+                        CONFIG_MAX_MODEL_LEN - 1);
+                app_config.model[CONFIG_MAX_MODEL_LEN - 1] = '\0';
+            }
             break;
         }
         case 104: { /* OpenRouter (OpenAI format) — realm=openrouter, Bearer */
@@ -1087,6 +1142,12 @@ static void handle_endpoint_settings(void)
             pending_realm[CONFIG_MAX_REALM_LEN - 1] = '\0';
             config_load_realm_key(CONFIG_REALM_OPENROUTER, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
+            /* Reset model if currently in native Anthropic format */
+            if (!strchr(app_config.model, '/')) {
+                strncpy(app_config.model, "openai/gpt-4o",
+                        CONFIG_MAX_MODEL_LEN - 1);
+                app_config.model[CONFIG_MAX_MODEL_LEN - 1] = '\0';
+            }
             break;
         }
         case MUIV_Application_ReturnID_Quit:
@@ -1114,10 +1175,11 @@ static void handle_model_select(void)
     int done = 0;
     int i, active = 0;
     struct IClass *wincl;
+    const char **models = get_model_list();
 
     /* Find currently active model in list */
-    for (i = 0; model_list[i]; i++) {
-        if (strcmp(model_list[i], app_config.model) == 0) {
+    for (i = 0; models[i]; i++) {
+        if (strcmp(models[i], app_config.model) == 0) {
             active = i;
             break;
         }
@@ -1141,7 +1203,7 @@ static void handle_model_select(void)
             { MUIA_Frame, MUIV_Frame_InputList },
             { MUIA_List_ConstructHook, MUIV_List_ConstructHook_String },
             { MUIA_List_DestructHook,  MUIV_List_DestructHook_String },
-            { MUIA_List_SourceArray, (ULONG)model_list },
+            { MUIA_List_SourceArray, (ULONG)models },
             { MUIA_CycleChain, (ULONG)TRUE },
             { TAG_DONE, 0 }
         };

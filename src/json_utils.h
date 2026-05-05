@@ -3,11 +3,14 @@
 
 #include "cJSON.h"
 
-/* Build the JSON request body for the Claude Messages API.
- * messages_array is a cJSON array containing the conversation.
+/* Build the JSON request body for the API.
+ * provider is "anthropic" (Messages API) or "openai" (Chat Completions API).
+ * messages_array is a cJSON array in Anthropic-internal format.
+ * For openai provider, the messages and tools are converted internally.
  * system may be NULL. tools may be NULL (no tool use).
  * Returns a newly allocated JSON string (caller must free). */
-char *json_build_request(const char *model,
+char *json_build_request(const char *provider,
+                         const char *model,
                          int max_tokens,
                          const char *system,
                          cJSON *messages_array,
@@ -18,11 +21,14 @@ char *json_build_request(const char *model,
  * If error_msg is not NULL, it will be set to an error description on failure. */
 char *json_parse_response(const char *json_str, char **error_msg);
 
-/* Parse full response: return the content array and stop_reason.
- * Returns a duplicated cJSON content array (caller must cJSON_Delete).
+/* Parse full response: return Anthropic-style content array and stop_reason.
+ * provider is "anthropic" or "openai" — for openai, the response is converted
+ * to Anthropic-internal format so the agent loop stays unchanged.
+ * Returns a newly created cJSON content array (caller must cJSON_Delete).
  * Sets *stop_reason to "end_turn", "tool_use", etc. (caller must free).
  * Also extracts any text blocks into *text_out (caller must free, may be NULL). */
-cJSON *json_parse_full_response(const char *json_str,
+cJSON *json_parse_full_response(const char *provider,
+                                const char *json_str,
                                 char **stop_reason,
                                 char **text_out,
                                 char **error_msg);
@@ -59,8 +65,11 @@ cJSON *json_make_user_image_message(const char *image_base64,
                                      const char *media_type,
                                      const char *text);
 
-/* Parse usage info from response. Returns 0 on success. */
-int json_parse_usage(const char *json_str, int *input_tokens, int *output_tokens);
+/* Parse usage info from response. Returns 0 on success.
+ * For openai provider, prompt_tokens/completion_tokens are mapped to
+ * input_tokens/output_tokens. */
+int json_parse_usage(const char *provider, const char *json_str,
+                     int *input_tokens, int *output_tokens);
 
 /* Convert a UTF-8 string to ISO-8859-1. Characters outside Latin-1 become '?'.
  * Returns newly allocated string (caller must free) or NULL on alloc failure. */

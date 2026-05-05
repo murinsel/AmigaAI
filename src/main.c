@@ -78,9 +78,11 @@ static int  assign_ok = 0;  /* Non-zero if AmigaAI: assign was created */
 static char api_log_file[256] = "";
 
 /* CLI/ToolType overrides for API endpoint (applied after config_load) */
-static char *tt_apihost = NULL;
-static int   tt_apiport = 0;
-static int   tt_nossl   = 0;
+static char *tt_apihost     = NULL;
+static int   tt_apiport     = 0;
+static int   tt_nossl       = 0;
+static char *tt_apiprovider = NULL;
+static char *tt_apipath     = NULL;
 
 /* BPTR to the original cli_CommandDir, so we can restore it on exit */
 static BPTR orig_cmd_dir = 0;
@@ -699,8 +701,9 @@ static const char *model_list[] = {
 
 static void handle_endpoint_settings(void)
 {
-    Object *win, *str_host, *str_port, *str_path, *chk_ssl;
-    Object *ok_btn, *cancel_btn, *anthropic_btn, *openrouter_btn, *hgrp, *vgrp;
+    Object *win, *str_host, *str_port, *str_path, *chk_ssl, *str_provider;
+    Object *ok_btn, *cancel_btn, *anthropic_btn, *openrouter_btn, *openrouter_oai_btn;
+    Object *hgrp, *vgrp;
     ULONG open, sigs;
     int done = 0;
     struct IClass *wincl;
@@ -728,7 +731,13 @@ static void handle_endpoint_settings(void)
         p[0] = (ULONG)GetString(MSG_ENDPOINT_OPENROUTER);
         openrouter_btn = MUI_MakeObjectA(MUIO_Button, p);
     }
-    if (!ok_btn || !cancel_btn || !anthropic_btn || !openrouter_btn) return;
+    {
+        ULONG p[1];
+        p[0] = (ULONG)"OpenRouter (OpenAI)";
+        openrouter_oai_btn = MUI_MakeObjectA(MUIO_Button, p);
+    }
+    if (!ok_btn || !cancel_btn || !anthropic_btn ||
+        !openrouter_btn || !openrouter_oai_btn) return;
 
     /* Host string gadget */
     {
@@ -782,7 +791,19 @@ static void handle_endpoint_settings(void)
         chk_ssl = MUI_NewObjectA((CONST_STRPTR)MUIC_Image, tags);
     }
 
-    if (!str_host || !str_port || !str_path || !chk_ssl) return;
+    /* Provider string gadget (read-only display) */
+    {
+        struct TagItem tags[] = {
+            { MUIA_Frame, MUIV_Frame_String },
+            { MUIA_String_Contents, (ULONG)app_config.api_provider },
+            { MUIA_String_MaxLen, CONFIG_MAX_PROVIDER_LEN },
+            { MUIA_CycleChain, (ULONG)TRUE },
+            { TAG_DONE, 0 }
+        };
+        str_provider = MUI_NewObjectA((CONST_STRPTR)MUIC_String, tags);
+    }
+
+    if (!str_host || !str_port || !str_path || !chk_ssl || !str_provider) return;
 
     /* Buttons row */
     {
@@ -791,6 +812,7 @@ static void handle_endpoint_settings(void)
             { MUIA_Group_Child, (ULONG)ok_btn },
             { MUIA_Group_Child, (ULONG)anthropic_btn },
             { MUIA_Group_Child, (ULONG)openrouter_btn },
+            { MUIA_Group_Child, (ULONG)openrouter_oai_btn },
             { MUIA_Group_Child, (ULONG)cancel_btn },
             { TAG_DONE, 0 }
         };
@@ -800,8 +822,8 @@ static void handle_endpoint_settings(void)
     /* Vertical layout: labels + fields */
     {
         ULONG lbl_p[1];
-        Object *lbl_host, *lbl_port, *lbl_path, *lbl_ssl;
-        Object *row_host, *row_port, *row_path, *row_ssl;
+        Object *lbl_host, *lbl_port, *lbl_path, *lbl_ssl, *lbl_provider;
+        Object *row_host, *row_port, *row_path, *row_ssl, *row_provider;
 
         lbl_p[0] = (ULONG)GetString(MSG_ENDPOINT_HOST);
         lbl_host = MUI_MakeObjectA(MUIO_Label, lbl_p);
@@ -811,6 +833,8 @@ static void handle_endpoint_settings(void)
         lbl_path = MUI_MakeObjectA(MUIO_Label, lbl_p);
         lbl_p[0] = (ULONG)"SSL/TLS";
         lbl_ssl = MUI_MakeObjectA(MUIO_Label, lbl_p);
+        lbl_p[0] = (ULONG)"Provider";
+        lbl_provider = MUI_MakeObjectA(MUIO_Label, lbl_p);
 
         {
             struct TagItem t[] = {
@@ -849,11 +873,21 @@ static void handle_endpoint_settings(void)
             row_ssl = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, t);
         }
         {
+            struct TagItem t[] = {
+                { MUIA_Group_Horiz, TRUE },
+                { MUIA_Group_Child, (ULONG)lbl_provider },
+                { MUIA_Group_Child, (ULONG)str_provider },
+                { TAG_DONE, 0 }
+            };
+            row_provider = MUI_NewObjectA((CONST_STRPTR)MUIC_Group, t);
+        }
+        {
             struct TagItem tags[] = {
                 { MUIA_Group_Child, (ULONG)row_host },
                 { MUIA_Group_Child, (ULONG)row_port },
                 { MUIA_Group_Child, (ULONG)row_path },
                 { MUIA_Group_Child, (ULONG)row_ssl },
+                { MUIA_Group_Child, (ULONG)row_provider },
                 { MUIA_Group_Child, (ULONG)hgrp },
                 { TAG_DONE, 0 }
             };
@@ -886,6 +920,8 @@ static void handle_endpoint_settings(void)
              (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 102);
     DoMethod(openrouter_btn, MUIM_Notify, MUIA_Pressed, FALSE,
              (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 103);
+    DoMethod(openrouter_oai_btn, MUIM_Notify, MUIA_Pressed, FALSE,
+             (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 104);
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE,
              (ULONG)app_gui.app, 2, MUIM_Application_ReturnID, 101);
 
@@ -900,6 +936,7 @@ static void handle_endpoint_settings(void)
         case 100: { /* OK */
             const char *host_str = NULL;
             const char *port_str = NULL;
+            const char *provider_str = NULL;
             ULONG ssl_val = 0;
             int port_val;
 
@@ -908,6 +945,7 @@ static void handle_endpoint_settings(void)
             host_str = (const char *)xget(str_host, MUIA_String_Contents);
             port_str = (const char *)xget(str_port, MUIA_String_Contents);
             path_str = (const char *)xget(str_path, MUIA_String_Contents);
+            provider_str = (const char *)xget(str_provider, MUIA_String_Contents);
             ssl_val = xget(chk_ssl, MUIA_Selected);
 
             if (host_str && host_str[0]) {
@@ -928,6 +966,12 @@ static void handle_endpoint_settings(void)
 
             app_config.api_ssl = ssl_val ? 1 : 0;
 
+            if (provider_str && provider_str[0]) {
+                strncpy(app_config.api_provider, provider_str,
+                        CONFIG_MAX_PROVIDER_LEN - 1);
+                app_config.api_provider[CONFIG_MAX_PROVIDER_LEN - 1] = '\0';
+            }
+
             config_save(&app_config, 1);
             gui_set_status(&app_gui, GetString(MSG_ENDPOINT_SAVED));
             done = 1;
@@ -941,12 +985,25 @@ static void handle_endpoint_settings(void)
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
             xset(str_path, MUIA_String_Contents, (ULONG)"/v1/messages");
             xset(chk_ssl, MUIA_Selected, TRUE);
+            xset(str_provider, MUIA_String_Contents,
+                 (ULONG)CONFIG_PROVIDER_ANTHROPIC);
             break;
-        case 103: /* OpenRouter preset */
+        case 103: /* OpenRouter (Anthropic-compatible) preset */
             xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
             xset(str_path, MUIA_String_Contents, (ULONG)"/api/v1/messages");
             xset(chk_ssl, MUIA_Selected, TRUE);
+            xset(str_provider, MUIA_String_Contents,
+                 (ULONG)CONFIG_PROVIDER_ANTHROPIC);
+            break;
+        case 104: /* OpenRouter (OpenAI-compatible) preset */
+            xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
+            xset(str_port, MUIA_String_Contents, (ULONG)"443");
+            xset(str_path, MUIA_String_Contents,
+                 (ULONG)"/api/v1/chat/completions");
+            xset(chk_ssl, MUIA_Selected, TRUE);
+            xset(str_provider, MUIA_String_Contents,
+                 (ULONG)CONFIG_PROVIDER_OPENAI);
             break;
         case MUIV_Application_ReturnID_Quit:
             done = 1;
@@ -1815,6 +1872,14 @@ int main(int argc, char *argv[])
                             (CONST_STRPTR *)dobj->do_ToolTypes,
                             (CONST_STRPTR)"NOSSL");
                     if (tt) tt_nossl = 1;
+                    tt = (char *)FindToolType(
+                            (CONST_STRPTR *)dobj->do_ToolTypes,
+                            (CONST_STRPTR)"APIPROVIDER");
+                    if (tt) tt_apiprovider = strdup(tt);
+                    tt = (char *)FindToolType(
+                            (CONST_STRPTR *)dobj->do_ToolTypes,
+                            (CONST_STRPTR)"APIPATH");
+                    if (tt) tt_apipath = strdup(tt);
                     FreeDiskObject(dobj);
                 }
                 CloseLibrary(IconBase);
@@ -1828,10 +1893,11 @@ int main(int argc, char *argv[])
     } else {
         /* CLI mode: parse arguments with ReadArgs */
         {
-            #define TEMPLATE "CREATEICON/S,APILOG/K,APIHOST/K,APIPORT/N,NOSSL/S"
+            #define TEMPLATE "CREATEICON/S,APILOG/K,APIHOST/K,APIPORT/N,NOSSL/S,APIPROVIDER/K,APIPATH/K"
             enum { ARG_CREATEICON, ARG_APILOG, ARG_APIHOST,
-                   ARG_APIPORT, ARG_NOSSL, ARG_COUNT };
-            LONG args[ARG_COUNT] = { 0, 0, 0, 0, 0 };
+                   ARG_APIPORT, ARG_NOSSL, ARG_APIPROVIDER, ARG_APIPATH,
+                   ARG_COUNT };
+            LONG args[ARG_COUNT] = { 0, 0, 0, 0, 0, 0, 0 };
             struct RDArgs *rda;
 
             rda = ReadArgs((CONST_STRPTR)TEMPLATE, args, NULL);
@@ -1854,6 +1920,10 @@ int main(int argc, char *argv[])
                     tt_apiport = (int)*(LONG *)args[ARG_APIPORT];
                 if (args[ARG_NOSSL])
                     tt_nossl = 1;
+                if (args[ARG_APIPROVIDER])
+                    tt_apiprovider = strdup((char *)args[ARG_APIPROVIDER]);
+                if (args[ARG_APIPATH])
+                    tt_apipath = strdup((char *)args[ARG_APIPATH]);
                 FreeArgs(rda);
             }
         }
@@ -1944,6 +2014,20 @@ int main(int argc, char *argv[])
         app_config.api_port = tt_apiport;
     if (tt_nossl)
         app_config.api_ssl = 0;
+    if (tt_apiprovider) {
+        strncpy(app_config.api_provider, tt_apiprovider,
+                CONFIG_MAX_PROVIDER_LEN - 1);
+        app_config.api_provider[CONFIG_MAX_PROVIDER_LEN - 1] = '\0';
+        free(tt_apiprovider);
+        tt_apiprovider = NULL;
+    }
+    if (tt_apipath) {
+        strncpy(app_config.api_path, tt_apipath,
+                CONFIG_MAX_PATH_LEN - 1);
+        app_config.api_path[CONFIG_MAX_PATH_LEN - 1] = '\0';
+        free(tt_apipath);
+        tt_apipath = NULL;
+    }
 
     if (!app_config.api_ssl || app_config.api_port != 443) {
         printf("  API endpoint: %s:%d (%s)\n",

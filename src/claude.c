@@ -126,22 +126,34 @@ static char *api_call(struct Claude *ctx, char **error_msg)
 {
     char *request_json;
     struct HttpResponse response;
-    char api_key_header[256];
+    char auth_header[256];
     int rc;
+    int is_openai;
+    const char *headers[4];
 
     static char effective_system[CONFIG_MAX_PROMPT_LEN + MEMORY_MAX_SIZE + 512];
     const char *sys_ptr;
 
-    const char *headers[] = {
-        "Content-Type: application/json",
-        api_key_header,
-        "anthropic-version: " CLAUDE_API_VERSION,
-        NULL
-    };
+    /* Provider-specific auth headers.
+     * Anthropic: x-api-key + anthropic-version: 2023-06-01
+     * OpenAI:    Authorization: Bearer (no anthropic-version) */
+    is_openai = (strcmp(ctx->config->api_provider,
+                        CONFIG_PROVIDER_OPENAI) == 0);
 
-    /* Build x-api-key header */
-    snprintf(api_key_header, sizeof(api_key_header),
-             "x-api-key: %s", ctx->config->api_key);
+    if (is_openai) {
+        snprintf(auth_header, sizeof(auth_header),
+                 "Authorization: Bearer %s", ctx->config->api_key);
+        headers[0] = "Content-Type: application/json";
+        headers[1] = auth_header;
+        headers[2] = NULL;
+    } else {
+        snprintf(auth_header, sizeof(auth_header),
+                 "x-api-key: %s", ctx->config->api_key);
+        headers[0] = "Content-Type: application/json";
+        headers[1] = auth_header;
+        headers[2] = "anthropic-version: " CLAUDE_API_VERSION;
+        headers[3] = NULL;
+    }
 
     /* Build system prompt */
     sys_ptr = build_system_prompt(ctx, effective_system, sizeof(effective_system));

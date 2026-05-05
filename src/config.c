@@ -18,6 +18,8 @@ void config_defaults(struct Config *cfg)
     cfg->api_port = 443;
     cfg->api_ssl = 1;
     strncpy(cfg->api_path, "/v1/messages", CONFIG_MAX_PATH_LEN - 1);
+    strncpy(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC,
+            CONFIG_MAX_PROVIDER_LEN - 1);
 }
 
 /* Read a single line from a file, strip trailing newline */
@@ -97,6 +99,14 @@ int config_load(struct Config *cfg)
 
     read_file_string(CONFIG_DIR_ENV "/api_path", cfg->api_path, CONFIG_MAX_PATH_LEN);
 
+    /* api_provider — old configs default to "anthropic" (set in config_defaults) */
+    read_file_string(CONFIG_DIR_ENV "/api_provider",
+                     cfg->api_provider, CONFIG_MAX_PROVIDER_LEN);
+    if (cfg->api_provider[0] == '\0') {
+        strncpy(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC,
+                CONFIG_MAX_PROVIDER_LEN - 1);
+    }
+
     /* Check if we have an API key */
     return cfg->api_key[0] != '\0';
 }
@@ -139,6 +149,9 @@ static int save_to_dir(const struct Config *cfg, const char *dir)
 
     snprintf(path, sizeof(path), "%s/api_path", dir);
     write_file_string(path, cfg->api_path);
+
+    snprintf(path, sizeof(path), "%s/api_provider", dir);
+    write_file_string(path, cfg->api_provider);
 
     return 1;
 }

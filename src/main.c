@@ -708,8 +708,13 @@ static void handle_endpoint_settings(void)
     int done = 0;
     struct IClass *wincl;
     char port_buf[16];
+    /* Pending auth scheme — set by preset buttons, committed on OK.
+     * No UI element for it; user manages auth indirectly via presets. */
+    char pending_auth[CONFIG_MAX_AUTH_LEN];
 
     snprintf(port_buf, sizeof(port_buf), "%d", app_config.api_port);
+    strncpy(pending_auth, app_config.api_auth, CONFIG_MAX_AUTH_LEN - 1);
+    pending_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
 
     {
         ULONG p[1];
@@ -1007,6 +1012,10 @@ static void handle_endpoint_settings(void)
                 app_config.api_key[CONFIG_MAX_KEY_LEN - 1] = '\0';
             }
 
+            /* Commit pending auth scheme (set by preset buttons) */
+            strncpy(app_config.api_auth, pending_auth, CONFIG_MAX_AUTH_LEN - 1);
+            app_config.api_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
+
             config_save(&app_config, 1);
             gui_set_status(&app_gui, GetString(MSG_ENDPOINT_SAVED));
             done = 1;
@@ -1015,7 +1024,7 @@ static void handle_endpoint_settings(void)
         case 101: /* Cancel */
             done = 1;
             break;
-        case 102: { /* Anthropic preset */
+        case 102: { /* Anthropic native preset (x-api-key auth) */
             char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"api.anthropic.com");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
@@ -1023,11 +1032,13 @@ static void handle_endpoint_settings(void)
             xset(chk_ssl, MUIA_Selected, TRUE);
             xset(str_provider, MUIA_String_Contents,
                  (ULONG)CONFIG_PROVIDER_ANTHROPIC);
+            strncpy(pending_auth, CONFIG_AUTH_XAPIKEY, CONFIG_MAX_AUTH_LEN - 1);
+            pending_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
             config_load_provider_key(CONFIG_PROVIDER_ANTHROPIC, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;
         }
-        case 103: { /* OpenRouter (Anthropic-compatible) preset */
+        case 103: { /* OpenRouter (Anthropic format, Bearer auth) */
             char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
@@ -1035,11 +1046,13 @@ static void handle_endpoint_settings(void)
             xset(chk_ssl, MUIA_Selected, TRUE);
             xset(str_provider, MUIA_String_Contents,
                  (ULONG)CONFIG_PROVIDER_ANTHROPIC);
+            strncpy(pending_auth, CONFIG_AUTH_BEARER, CONFIG_MAX_AUTH_LEN - 1);
+            pending_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
             config_load_provider_key(CONFIG_PROVIDER_ANTHROPIC, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;
         }
-        case 104: { /* OpenRouter (OpenAI-compatible) preset */
+        case 104: { /* OpenRouter (OpenAI format, Bearer auth) */
             char saved_key[CONFIG_MAX_KEY_LEN];
             xset(str_host, MUIA_String_Contents, (ULONG)"openrouter.ai");
             xset(str_port, MUIA_String_Contents, (ULONG)"443");
@@ -1048,6 +1061,8 @@ static void handle_endpoint_settings(void)
             xset(chk_ssl, MUIA_Selected, TRUE);
             xset(str_provider, MUIA_String_Contents,
                  (ULONG)CONFIG_PROVIDER_OPENAI);
+            strncpy(pending_auth, CONFIG_AUTH_BEARER, CONFIG_MAX_AUTH_LEN - 1);
+            pending_auth[CONFIG_MAX_AUTH_LEN - 1] = '\0';
             config_load_provider_key(CONFIG_PROVIDER_OPENAI, saved_key);
             xset(str_key, MUIA_String_Contents, (ULONG)saved_key);
             break;

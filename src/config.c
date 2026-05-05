@@ -20,6 +20,7 @@ void config_defaults(struct Config *cfg)
     strncpy(cfg->api_path, "/v1/messages", CONFIG_MAX_PATH_LEN - 1);
     strncpy(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC,
             CONFIG_MAX_PROVIDER_LEN - 1);
+    strncpy(cfg->api_auth, CONFIG_AUTH_XAPIKEY, CONFIG_MAX_AUTH_LEN - 1);
 }
 
 /* Read a single line from a file, strip trailing newline */
@@ -79,6 +80,15 @@ int config_load(struct Config *cfg)
     if (cfg->api_provider[0] == '\0') {
         strncpy(cfg->api_provider, CONFIG_PROVIDER_ANTHROPIC,
                 CONFIG_MAX_PROVIDER_LEN - 1);
+    }
+
+    /* Auth scheme: x-api-key (Anthropic native) or bearer (OpenRouter, OpenAI).
+     * Default heuristic for old configs: anthropic provider on api.anthropic.com
+     * uses x-api-key, anything else uses bearer. */
+    read_file_string(CONFIG_DIR_ENV "/api_auth",
+                     cfg->api_auth, CONFIG_MAX_AUTH_LEN);
+    if (cfg->api_auth[0] == '\0') {
+        strncpy(cfg->api_auth, CONFIG_AUTH_XAPIKEY, CONFIG_MAX_AUTH_LEN - 1);
     }
 
     /* Try provider-specific key file first; fall back to legacy
@@ -170,6 +180,9 @@ static int save_to_dir(const struct Config *cfg, const char *dir)
 
     snprintf(path, sizeof(path), "%s/api_provider", dir);
     write_file_string(path, cfg->api_provider);
+
+    snprintf(path, sizeof(path), "%s/api_auth", dir);
+    write_file_string(path, cfg->api_auth);
 
     return 1;
 }

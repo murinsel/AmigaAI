@@ -14,6 +14,10 @@
 #define CONFIG_PROVIDER_ANTHROPIC "anthropic"
 #define CONFIG_PROVIDER_OPENAI    "openai"
 
+#define CONFIG_AUTH_XAPIKEY  "x-api-key"
+#define CONFIG_AUTH_BEARER   "bearer"
+#define CONFIG_MAX_AUTH_LEN  16
+
 struct Config {
     char api_key[CONFIG_MAX_KEY_LEN];
     char model[CONFIG_MAX_MODEL_LEN];
@@ -23,7 +27,8 @@ struct Config {
     int  api_port;
     int  api_ssl;         /* 1 = HTTPS, 0 = plain HTTP (proxy) */
     char api_path[CONFIG_MAX_PATH_LEN];  /* API path, e.g. /v1/messages */
-    char api_provider[CONFIG_MAX_PROVIDER_LEN];  /* "anthropic" or "openai" */
+    char api_provider[CONFIG_MAX_PROVIDER_LEN];  /* "anthropic" or "openai" — request format */
+    char api_auth[CONFIG_MAX_AUTH_LEN];  /* "x-api-key" or "bearer" — auth scheme */
 };
 
 /* Load config from ENV:AmigaAI/ */

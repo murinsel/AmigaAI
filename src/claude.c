@@ -128,32 +128,40 @@ static char *api_call(struct Claude *ctx, char **error_msg)
     struct HttpResponse response;
     char auth_header[256];
     int rc;
-    int is_openai;
+    int is_anthropic_format;
+    int is_bearer;
     const char *headers[4];
+    int hdr_idx = 0;
 
     static char effective_system[CONFIG_MAX_PROMPT_LEN + MEMORY_MAX_SIZE + 512];
     const char *sys_ptr;
 
-    /* Provider-specific auth headers.
-     * Anthropic: x-api-key + anthropic-version: 2023-06-01
-     * OpenAI:    Authorization: Bearer (no anthropic-version) */
-    is_openai = (strcmp(ctx->config->api_provider,
-                        CONFIG_PROVIDER_OPENAI) == 0);
+    /* Auth scheme and request format are independent:
+     *   Anthropic native:        x-api-key + anthropic-version (anthropic format)
+     *   OpenRouter (Anthropic):  Bearer token (anthropic format)
+     *   OpenRouter (OpenAI):     Bearer token (openai format)
+     *   OpenAI native:           Bearer token (openai format) */
+    is_anthropic_format = (strcmp(ctx->config->api_provider,
+                                  CONFIG_PROVIDER_ANTHROPIC) == 0);
+    is_bearer = (strcmp(ctx->config->api_auth,
+                        CONFIG_AUTH_BEARER) == 0);
 
-    if (is_openai) {
+    if (is_bearer) {
         snprintf(auth_header, sizeof(auth_header),
                  "Authorization: Bearer %s", ctx->config->api_key);
-        headers[0] = "Content-Type: application/json";
-        headers[1] = auth_header;
-        headers[2] = NULL;
     } else {
         snprintf(auth_header, sizeof(auth_header),
                  "x-api-key: %s", ctx->config->api_key);
-        headers[0] = "Content-Type: application/json";
-        headers[1] = auth_header;
-        headers[2] = "anthropic-version: " CLAUDE_API_VERSION;
-        headers[3] = NULL;
     }
+
+    headers[hdr_idx++] = "Content-Type: application/json";
+    headers[hdr_idx++] = auth_header;
+    /* anthropic-version is required by Anthropic's native API and ignored
+     * by OpenRouter when speaking the Anthropic format. Send only when
+     * the request body is in Anthropic format. */
+    if (is_anthropic_format)
+        headers[hdr_idx++] = "anthropic-version: " CLAUDE_API_VERSION;
+    headers[hdr_idx] = NULL;
 
     /* Build system prompt */
     sys_ptr = build_system_prompt(ctx, effective_system, sizeof(effective_system));

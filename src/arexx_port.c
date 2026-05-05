@@ -84,6 +84,15 @@ static ULONG setmodel_func(struct Hook *hook, Object *app, LONG *params)
     return 0;
 }
 
+/* GETMODEL - Return current AI model name in RESULT */
+static ULONG getmodel_func(struct Hook *hook, Object *app, LONG *params)
+{
+    (void)hook; (void)params;
+    set(app, MUIA_Application_RexxString,
+        (ULONG)arx_ctx->claude->config->model);
+    return 0;
+}
+
 /* SETSYSTEM PROMPT/F - Change system prompt */
 static ULONG setsystem_func(struct Hook *hook, Object *app, LONG *params)
 {
@@ -294,6 +303,7 @@ static ULONG typetext_func(struct Hook *hook, Object *app, LONG *params)
 /* Hook structs */
 static struct Hook ask_hook;
 static struct Hook getlast_hook;
+static struct Hook getmodel_hook;
 static struct Hook clear_hook;
 static struct Hook setmodel_hook;
 static struct Hook setsystem_hook;
@@ -318,6 +328,7 @@ static struct MUI_Command arexx_commands[] = {
     { (CONST_STRPTR)"GETLAST",   NULL,                     0, NULL, {0,0,0,0,0} },
     { (CONST_STRPTR)"CLEAR",     NULL,                     0, NULL, {0,0,0,0,0} },
     { (CONST_STRPTR)"SETMODEL",  (CONST_STRPTR)"MODEL/A",  1, NULL, {0,0,0,0,0} },
+    { (CONST_STRPTR)"GETMODEL",  NULL,                     0, NULL, {0,0,0,0,0} },
     { (CONST_STRPTR)"SETSYSTEM", (CONST_STRPTR)"PROMPT/F", 1, NULL, {0,0,0,0,0} },
     { (CONST_STRPTR)"MEMADD",    (CONST_STRPTR)"TEXT/F",   1, NULL, {0,0,0,0,0} },
     { (CONST_STRPTR)"MEMCLEAR",  NULL,                     0, NULL, {0,0,0,0,0} },
@@ -361,36 +372,38 @@ void arexx_setup(struct ARexxContext *ctx, struct Claude *claude,
     init_hook(&memclear_hook,  (ULONG (*)())memclear_func);
     init_hook(&memcount_hook,  (ULONG (*)())memcount_func);
     init_hook(&memory_hook,    (ULONG (*)())memory_func);
+    init_hook(&getmodel_hook,  (ULONG (*)())getmodel_func);
     init_hook(&move_hook,      (ULONG (*)())move_func);
     init_hook(&resize_hook,    (ULONG (*)())resize_func);
     init_hook(&windowpos_hook, (ULONG (*)())windowpos_func);
     init_hook(&tofront_hook,  (ULONG (*)())tofront_func);
     init_hook(&toback_hook,   (ULONG (*)())toback_func);
 
-    /* Wire hooks into command table */
+    /* Wire hooks into command table (indices match arexx_commands[] order) */
     arexx_commands[0].mc_Hook  = &ask_hook;
     arexx_commands[1].mc_Hook  = &getlast_hook;
     arexx_commands[2].mc_Hook  = &clear_hook;
     arexx_commands[3].mc_Hook  = &setmodel_hook;
-    arexx_commands[4].mc_Hook  = &setsystem_hook;
-    arexx_commands[5].mc_Hook  = &memadd_hook;
-    arexx_commands[6].mc_Hook  = &memclear_hook;
-    arexx_commands[7].mc_Hook  = &memcount_hook;
-    arexx_commands[8].mc_Hook  = &memory_hook;
-    arexx_commands[9].mc_Hook  = &move_hook;
-    arexx_commands[10].mc_Hook = &resize_hook;
-    arexx_commands[11].mc_Hook = &windowpos_hook;
-    arexx_commands[12].mc_Hook = &tofront_hook;
-    arexx_commands[13].mc_Hook = &toback_hook;
+    arexx_commands[4].mc_Hook  = &getmodel_hook;
+    arexx_commands[5].mc_Hook  = &setsystem_hook;
+    arexx_commands[6].mc_Hook  = &memadd_hook;
+    arexx_commands[7].mc_Hook  = &memclear_hook;
+    arexx_commands[8].mc_Hook  = &memcount_hook;
+    arexx_commands[9].mc_Hook  = &memory_hook;
+    arexx_commands[10].mc_Hook = &move_hook;
+    arexx_commands[11].mc_Hook = &resize_hook;
+    arexx_commands[12].mc_Hook = &windowpos_hook;
+    arexx_commands[13].mc_Hook = &tofront_hook;
+    arexx_commands[14].mc_Hook = &toback_hook;
 
     init_hook(&mousemove_hook,  (ULONG (*)())mousemove_func);
     init_hook(&mouseclick_hook, (ULONG (*)())mouseclick_func);
     init_hook(&keypress_hook,   (ULONG (*)())keypress_func);
     init_hook(&typetext_hook,   (ULONG (*)())typetext_func);
-    arexx_commands[14].mc_Hook = &mousemove_hook;
-    arexx_commands[15].mc_Hook = &mouseclick_hook;
-    arexx_commands[16].mc_Hook = &keypress_hook;
-    arexx_commands[17].mc_Hook = &typetext_hook;
+    arexx_commands[15].mc_Hook = &mousemove_hook;
+    arexx_commands[16].mc_Hook = &mouseclick_hook;
+    arexx_commands[17].mc_Hook = &keypress_hook;
+    arexx_commands[18].mc_Hook = &typetext_hook;
 }
 
 void arexx_cleanup(struct ARexxContext *ctx)
@@ -561,6 +574,10 @@ char *arexx_exec_local(const char *command, int *rc)
         if (!args || !*args) { *rc = 10; return strdup("Usage: SETMODEL <model>"); }
         strncpy(arx_ctx->claude->config->model, args, CONFIG_MAX_MODEL_LEN - 1);
         return strdup("OK");
+    }
+
+    if (strcasecmp(cmd_name, "GETMODEL") == 0) {
+        return strdup(arx_ctx->claude->config->model);
     }
 
     if (strcasecmp(cmd_name, "SETSYSTEM") == 0) {

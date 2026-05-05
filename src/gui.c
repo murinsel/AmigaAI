@@ -906,6 +906,12 @@ void gui_set_status(struct Gui *gui, const char *text)
         xset(gui->status, MUIA_Text_Contents, (ULONG)text);
 }
 
+void gui_set_title(struct Gui *gui, const char *title)
+{
+    if (gui->win)
+        xset(gui->win, MUIA_Window_Title, (ULONG)title);
+}
+
 void gui_set_busy(struct Gui *gui, int busy)
 {
     gui->busy = busy;

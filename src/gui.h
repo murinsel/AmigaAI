@@ -76,6 +76,9 @@ void gui_add_text(struct Gui *gui, const char *prefix, const char *text);
 /* Set the status bar text. */
 void gui_set_status(struct Gui *gui, const char *text);
 
+/* Update the main window title (e.g. to include the active model). */
+void gui_set_title(struct Gui *gui, const char *title);
+
 /* Set/clear busy state (sleep/wake the application). */
 void gui_set_busy(struct Gui *gui, int busy);
 

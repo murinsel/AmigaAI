@@ -91,6 +91,7 @@ static int  path_setup_done = 0;
 /* Forward declarations */
 static int  open_libraries(void);
 static void close_libraries(void);
+static void update_window_title(void);
 static void handle_send(void);
 static void handle_new_chat(void);
 static void handle_about(void);
@@ -237,6 +238,15 @@ static void close_libraries(void)
 
     MUIMasterBase = NULL;
     IntuitionBase = NULL;
+}
+
+/* Refresh the main window title with the active model name. */
+static void update_window_title(void)
+{
+    char title[CONFIG_MAX_MODEL_LEN + 32];
+    snprintf(title, sizeof(title), "%s %s - %s",
+             PROGRAM_NAME, VERSION_STRING, app_config.model);
+    gui_set_title(&app_gui, title);
 }
 
 /* Show an error requester when launched from Workbench (no console) */
@@ -1248,6 +1258,7 @@ static void handle_model_select(void)
                     config_save(&app_config, 1);
                     snprintf(buf, sizeof(buf), GetString(MSG_MODEL_SET), app_config.model);
                     gui_set_status(&app_gui, buf);
+                    update_window_title();
                 }
             }
             done = 1;
@@ -2160,6 +2171,15 @@ int main(int argc, char *argv[])
     dbg_step(13, "GUI OK");
     app_arexx.win = app_gui.win;
     app_arexx.app = app_gui.app;
+
+    /* Show active model in window title and status bar */
+    update_window_title();
+    {
+        char buf[128];
+        snprintf(buf, sizeof(buf), GetString(MSG_MODEL_SET), app_config.model);
+        gui_set_status(&app_gui, buf);
+    }
+
     dbg_step(14, "All init done - entering main loop");
 
     /* From Workbench, create icon if it doesn't exist yet */

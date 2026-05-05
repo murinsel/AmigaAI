@@ -200,6 +200,7 @@ Port name: `AMIGAAI`
 | `GETLAST` | Get the last response |
 | `CLEAR` | Clear conversation history |
 | `SETMODEL <model>` | Change the Claude model |
+| `GETMODEL` | Return the active model name |
 | `SETSYSTEM <prompt>` | Set system prompt |
 | `MEMADD <text>` | Add a persistent memory entry |
 | `MEMCLEAR` | Clear all memory entries |

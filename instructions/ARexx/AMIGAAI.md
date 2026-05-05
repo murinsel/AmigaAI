@@ -20,6 +20,7 @@ Example: arexx_command port=AMIGAAI command="MOVE 200 100"
 - `GETLAST` -- Return the last response from a previous ASK command
 - `CLEAR` -- Clear conversation history and last response
 - `SETMODEL MODEL/A` -- Change the AI model (e.g. claude-sonnet-4-6)
+- `GETMODEL` -- Return the name of the currently active AI model
 - `SETSYSTEM PROMPT/F` -- Change the system prompt
 - `MEMADD TEXT/F` -- Add a persistent memory entry
 - `MEMCLEAR` -- Clear all persistent memory entries

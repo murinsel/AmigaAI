@@ -123,7 +123,8 @@ NEVER use `*` as wildcard. It does NOT work on AmigaDOS.
 - Example: `LIST WORK: PAT=#?.mod` matches all .mod files
 
 ## Screen Capture (SGrab)
-- `sgrab FILE <path> PNG NOBEEP` -- Capture full screen as PNG
+- `sgrab FILE <path> PNG NOBEEP` -- Capture frontmost screen as PNG
+- `sgrab FILE <path> PNG NOBEEP PUBSCREEN <name>` -- Capture a specific public screen by name (no focus change)
 - `sgrab FILE <path> PNG NOBEEP X <x> Y <y> W <w> H <h>` -- Capture region
 - `sgrab FILE <path> JPEG NOBEEP` -- Capture as JPEG
 - Formats: ILBM (default), PNG, JPEG

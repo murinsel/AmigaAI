@@ -657,8 +657,8 @@ cJSON *tools_build_json(void)
             "interior without borders. Alternatively specify x/y/w/h for "
             "a specific region. To capture a program running on its own "
             "screen (e.g. DPaint, ProTracker), pass screen=<pubname> — "
-            "the screen is grabbed directly without being brought to "
-            "front. Use list_screens first to discover open screen names.");
+            "sgrab grabs that screen in place via PUBSCREEN, no focus "
+            "change. Use list_screens first to discover open screen names.");
 
         {
             cJSON *win_prop = cJSON_CreateObject();
@@ -679,7 +679,7 @@ cJSON *tools_build_json(void)
             cJSON_AddStringToObject(scr_prop, "type", "string");
             cJSON_AddStringToObject(scr_prop, "description",
                 "Public screen name to capture (e.g. \"Workbench\", "
-                "\"DPaint\"). Captured directly via sgrab PUBSCREEN — "
+                "\"DPaint\"). Captured in place via sgrab PUBSCREEN — "
                 "no focus change. Use list_screens to discover names.");
             cJSON_AddItemToObject(props, "screen", scr_prop);
         }
@@ -1595,8 +1595,8 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
     /* Build sgrab command */
     pos = snprintf(cmd, sizeof(cmd), "sgrab FILE %s PNG NOBEEP", SCREENSHOT_FILE);
 
-    /* If screen=<pubname> given, tell sgrab to grab that public screen
-     * directly via its PUBSCREEN parameter — no need to bring it to front. */
+    /* If screen=<pubname> given, use sgrab's PUBSCREEN keyword to grab
+     * that public screen directly — no focus change, no display redraw. */
     sj = cJSON_GetObjectItemCaseSensitive(input, "screen");
     if (sj && cJSON_IsString(sj) && sj->valuestring[0]) {
         pos += snprintf(cmd + pos, sizeof(cmd) - pos,

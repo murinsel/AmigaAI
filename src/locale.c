@@ -102,7 +102,7 @@ static const char * const default_strings[MSG_COUNT] = {
     /* MSG_CMD_PORTS_LISTED   */  "Ports listed",
     /* MSG_CMD_MEM_ENTRIES    */  "Memory: %d entries",
     /* MSG_WARN_NO_APIKEY     */  "\033bWARNING:\033n No API key configured!",
-    /* MSG_WARN_SET_APIKEY    */  "Use Settings > API Key or set ENV:AmigaAI/api_key",
+    /* MSG_WARN_SET_APIKEY    */  "Use Settings > Endpoint... or set ENV:AmigaAI/api_key",
     /* MSG_WARN_MEM_LOADED    */  "Memory: %d entries loaded",
     /* MSG_SYSTEM_COMING_SOON */  "System prompt editor - coming soon",
     /* MSG_APP_DESCRIPTION    */  "Claude AI Agent for AmigaOS",

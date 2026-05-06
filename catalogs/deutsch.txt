@@ -175,7 +175,7 @@ Ged\xe4chtnis: %d Eintr\xe4ge
 85
 \033bWARNUNG:\033n Kein API-Schl\xfcssel konfiguriert!
 86
-Verwende Einstellungen > API-Schl\xfcssel oder setze ENV:AmigaAI/api_key
+Verwende Einstellungen > Endpoint... oder setze ENV:AmigaAI/api_key
 87
 Ged\xe4chtnis: %d Eintr\xe4ge geladen
 88

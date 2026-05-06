@@ -232,7 +232,6 @@ static Object *make_menu(void)
     Object *mi_quit     = mk_menuitem(GetString(MSG_MENU_QUIT), "Q", GUI_ID_QUIT);
 
     /* --- Settings menu items --- */
-    Object *mi_apikey   = mk_menuitem(GetString(MSG_MENU_APIKEY),        NULL, GUI_ID_APIKEY);
     Object *mi_model    = mk_menuitem(GetString(MSG_MENU_MODEL),         NULL, GUI_ID_MODEL);
     Object *mi_system   = mk_menuitem(GetString(MSG_MENU_SYSTEM_PROMPT), NULL, GUI_ID_SYSTEM);
     Object *mi_endpoint = mk_menuitem(GetString(MSG_MENU_ENDPOINT),      NULL, GUI_ID_ENDPOINT);
@@ -264,7 +263,6 @@ static Object *make_menu(void)
     {
         struct TagItem tags[] = {
             { MUIA_Menu_Title,    (ULONG)GetString(MSG_MENU_SETTINGS) },
-            { MUIA_Family_Child,  (ULONG)mi_apikey },
             { MUIA_Family_Child,  (ULONG)mi_model },
             { MUIA_Family_Child,  (ULONG)mi_system },
             { MUIA_Family_Child,  (ULONG)mi_endpoint },
@@ -602,7 +600,6 @@ int gui_open(struct Gui *gui, struct MUI_Command *commands)
     MENU_NOTIFY(GUI_ID_QUIT,     MUIV_Application_ReturnID_Quit);
 
     /* Menu notifications - Settings */
-    MENU_NOTIFY(GUI_ID_APIKEY, GUI_ID_APIKEY);
     MENU_NOTIFY(GUI_ID_MODEL,    GUI_ID_MODEL);
     MENU_NOTIFY(GUI_ID_SYSTEM,   GUI_ID_SYSTEM);
     MENU_NOTIFY(GUI_ID_ENDPOINT, GUI_ID_ENDPOINT);

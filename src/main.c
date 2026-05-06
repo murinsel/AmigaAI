@@ -2329,11 +2329,6 @@ int main(int argc, char *argv[])
             handle_about();
             break;
 
-        case GUI_ID_APIKEY:
-            /* TODO: Open API key requester */
-            gui_set_status(&app_gui, GetString(MSG_APIKEY_HINT));
-            break;
-
         case GUI_ID_MODEL:
             handle_model_select();
             break;

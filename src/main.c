@@ -23,6 +23,7 @@
 #include "input.h"
 #include "memory.h"
 #include "tools.h"
+#include "models.h"
 #include "dt_identify.h"
 #include "base64.h"
 #include "png_convert.h"
@@ -1212,22 +1213,41 @@ cleanup:
     MUI_FreeClass(wincl);
 }
 
+/* Repopulate a MUI List with names from a ModelList, then preselect
+ * whichever entry matches app_config.model (or row 0 if none). */
+static void repopulate_model_list(Object *list, struct ModelList *ml)
+{
+    int i, active = 0;
+
+    DoMethod(list, MUIM_List_Clear);
+    for (i = 0; i < ml->count; i++) {
+        DoMethod(list, MUIM_List_InsertSingle,
+                 (ULONG)ml->names[i], MUIV_List_Insert_Bottom);
+        if (strcmp(ml->names[i], app_config.model) == 0)
+            active = i;
+    }
+    xset(list, MUIA_List_Active, (ULONG)active);
+}
+
 static void handle_model_select(void)
 {
-    Object *win, *list, *ok_btn, *cancel_btn;
+    Object *win, *list, *ok_btn, *cancel_btn, *refresh_btn;
     Object *hgrp, *vgrp;
     ULONG open;
     ULONG sigs;
     int done = 0;
-    int i, active = 0;
     struct IClass *wincl;
-    const char **models = get_model_list();
+    struct ModelList ml;
 
-    /* Find currently active model in list */
-    for (i = 0; models[i]; i++) {
-        if (strcmp(models[i], app_config.model) == 0) {
-            active = i;
-            break;
+    /* Try cached list first; fall back to static defaults */
+    if (models_load_cache(app_config.api_key_realm, &ml) != 0) {
+        const char **defaults = get_model_list();
+        int i;
+        ml.count = 0;
+        for (i = 0; defaults[i] && ml.count < MODELS_MAX_COUNT; i++) {
+            strncpy(ml.names[ml.count], defaults[i], MODELS_MAX_NAME - 1);
+            ml.names[ml.count][MODELS_MAX_NAME - 1] = '\0';
+            ml.count++;
         }
     }
 
@@ -1241,15 +1261,19 @@ static void handle_model_select(void)
         cancel_params[0] = (ULONG)GetString(MSG_BTN_CANCEL);
         cancel_btn = MUI_MakeObjectA(MUIO_Button, cancel_params);
     }
-    if (!ok_btn || !cancel_btn) return;
+    {
+        ULONG p[1];
+        p[0] = (ULONG)"_Refresh";
+        refresh_btn = MUI_MakeObjectA(MUIO_Button, p);
+    }
+    if (!ok_btn || !cancel_btn || !refresh_btn) return;
 
-    /* Create List with model entries */
+    /* Create List, populate after the object exists */
     {
         struct TagItem tags[] = {
             { MUIA_Frame, MUIV_Frame_InputList },
             { MUIA_List_ConstructHook, MUIV_List_ConstructHook_String },
             { MUIA_List_DestructHook,  MUIV_List_DestructHook_String },
-            { MUIA_List_SourceArray, (ULONG)models },
             { MUIA_CycleChain, (ULONG)TRUE },
             { TAG_DONE, 0 }
         };
@@ -1258,13 +1282,13 @@ static void handle_model_select(void)
 
     if (!list) return;
 
-    /* Pre-select active model */
-    xset(list, MUIA_List_Active, (ULONG)active);
+    repopulate_model_list(list, &ml);
 
     {
         struct TagItem tags[] = {
             { MUIA_Group_Horiz, TRUE },
             { MUIA_Group_Child, (ULONG)ok_btn },
+            { MUIA_Group_Child, (ULONG)refresh_btn },
             { MUIA_Group_Child, (ULONG)cancel_btn },
             { TAG_DONE, 0 }
         };
@@ -1326,6 +1350,13 @@ static void handle_model_select(void)
                          MUIM_Application_ReturnID, 101 };
         DoMethodA(cancel_btn, (Msg)msg);
     }
+    /* Refresh button */
+    {
+        ULONG msg[] = { MUIM_Notify, MUIA_Pressed, (ULONG)FALSE,
+                         (ULONG)app_gui.app, 2,
+                         MUIM_Application_ReturnID, 102 };
+        DoMethodA(refresh_btn, (Msg)msg);
+    }
     /* Window close = Cancel */
     {
         ULONG msg[] = { MUIM_Notify, MUIA_Window_CloseRequest, (ULONG)TRUE,
@@ -1375,6 +1406,30 @@ static void handle_model_select(void)
         case 101: /* Cancel / Close */
             done = 1;
             break;
+        case 102: /* Refresh — fetch live model list from API */
+        {
+            char *err_msg = NULL;
+            gui_set_busy(&app_gui, 1);
+            gui_set_status(&app_gui, "Fetching model list...");
+            if (models_fetch(&app_config, &ml, &err_msg) == 0) {
+                models_save_cache(app_config.api_key_realm, &ml);
+                repopulate_model_list(list, &ml);
+                {
+                    char buf[64];
+                    snprintf(buf, sizeof(buf),
+                             "Refreshed: %d models", ml.count);
+                    gui_set_status(&app_gui, buf);
+                }
+            } else {
+                char buf[128];
+                snprintf(buf, sizeof(buf), "Refresh failed: %s",
+                         err_msg ? err_msg : "unknown");
+                gui_set_status(&app_gui, buf);
+                free(err_msg);
+            }
+            gui_set_busy(&app_gui, 0);
+            break;
+        }
         case MUIV_Application_ReturnID_Quit:
             done = 1;
             break;

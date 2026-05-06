@@ -687,3 +687,120 @@ done:
     free(raw_response);
     return ret;
 }
+
+int http_get(const char *host,
+             int port,
+             int use_ssl,
+             const char *path,
+             const char **headers,
+             struct HttpResponse *response)
+{
+    int   sock = -1;
+    SSL  *ssl  = NULL;
+    char *request = NULL;
+    char *raw_response = NULL;
+    int   request_len;
+    int   ret = -1;
+    long  raw_len = 0;
+    const char *body_start;
+    int i;
+
+    memset(response, 0, sizeof(*response));
+
+    /* Build HTTP GET request */
+    request = malloc(HTTP_MAX_HEADER_SIZE);
+    if (!request) goto done;
+
+    request_len = snprintf(request, HTTP_MAX_HEADER_SIZE,
+        "GET %s HTTP/1.1\r\n"
+        "Host: %s\r\n"
+        "Connection: close\r\n",
+        path, host);
+
+    if (headers) {
+        for (i = 0; headers[i] != NULL; i++) {
+            request_len += snprintf(request + request_len,
+                HTTP_MAX_HEADER_SIZE - request_len,
+                "%s\r\n", headers[i]);
+        }
+    }
+
+    request_len += snprintf(request + request_len,
+        HTTP_MAX_HEADER_SIZE - request_len, "\r\n");
+
+    sock = tcp_connect(host, port);
+    if (sock < 0) goto done;
+
+    if (use_ssl) {
+        ssl = SSL_new(ssl_ctx);
+        if (!ssl) {
+            printf("ERROR: SSL_new failed\n");
+            goto done;
+        }
+        SSL_set_fd(ssl, sock);
+        SSL_set_tlsext_host_name(ssl, host);
+        if (SSL_connect(ssl) <= 0) {
+            unsigned long e = ERR_get_error();
+            char buf[256];
+            ERR_error_string_n(e, buf, sizeof(buf));
+            printf("ERROR: SSL handshake failed: %s\n", buf);
+            goto done;
+        }
+    }
+
+    /* Send request */
+    if (use_ssl) {
+        int total = 0;
+        while (total < request_len) {
+            int n = SSL_write(ssl, request + total, request_len - total);
+            if (n <= 0) goto done;
+            total += n;
+        }
+    } else {
+        int total = 0;
+        while (total < request_len) {
+            int n = send(sock, request + total, request_len - total, 0);
+            if (n <= 0) goto done;
+            total += n;
+        }
+    }
+
+    /* Read response */
+    {
+        int aborted = 0;
+        if (use_ssl)
+            raw_response = ssl_read_all(ssl, sock, &raw_len, &aborted);
+        else
+            raw_response = plain_read_all(sock, &raw_len, &aborted);
+        if (aborted || !raw_response || raw_len == 0) goto done;
+    }
+
+    response->status_code = parse_status_code(raw_response);
+
+    body_start = find_body(raw_response, raw_len);
+    if (!body_start) goto done;
+
+    {
+        long body_len = raw_len - (body_start - raw_response);
+        response->body = malloc(body_len + 1);
+        if (!response->body) goto done;
+        memcpy(response->body, body_start, body_len);
+        response->body[body_len] = '\0';
+        response->body_length = body_len;
+
+        if (is_chunked(raw_response))
+            response->body_length = decode_chunked(response->body, body_len);
+    }
+
+    ret = 0;
+
+done:
+    if (ssl) {
+        SSL_shutdown(ssl);
+        SSL_free(ssl);
+    }
+    if (sock >= 0) CloseSocket(sock);
+    free(request);
+    free(raw_response);
+    return ret;
+}

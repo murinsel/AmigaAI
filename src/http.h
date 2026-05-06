@@ -44,6 +44,15 @@ int http_post(const char *host,
               const char *body,
               struct HttpResponse *response);
 
+/* Perform an HTTP/HTTPS GET request. Same parameters as http_post
+ * but no body. Used to fetch the model list from /v1/models endpoints. */
+int http_get(const char *host,
+             int port,
+             int use_ssl,
+             const char *path,
+             const char **headers,
+             struct HttpResponse *response);
+
 /* Set event callback for non-blocking I/O.
  * The callback is called periodically during SSL reads
  * to allow GUI event processing and abort checking. */

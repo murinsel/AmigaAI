@@ -20,12 +20,18 @@
 #include <exec/memory.h>
 #include <dos/dostags.h>
 #include <dos/dosextens.h>
+#include <intuition/intuition.h>
+#include <intuition/screens.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
+#include <proto/intuition.h>
 #include <proto/rexxsyslib.h>
 #include <rexx/storage.h>
 #include <rexx/rxslib.h>
 #include <utility/tagitem.h>
+
+/* Defined in main.c */
+extern struct IntuitionBase *IntuitionBase;
 
 /* Temp file for capturing shell command output */
 #define TOOL_CMD_OUTPUT "T:amigaai_cmd.out"
@@ -646,9 +652,13 @@ cJSON *tools_build_json(void)
         cJSON_AddStringToObject(tool, "description",
             "Capture a screenshot of the Amiga screen using sgrab. "
             "Returns the image as PNG. Omit all parameters for a full "
-            "screen capture. Use window=true to capture the active window, "
-            "or window_contents=true for just the window interior without "
-            "borders. Alternatively specify x/y/w/h for a specific region.");
+            "frontmost screen capture. Use window=true to capture the "
+            "active window, or window_contents=true for just the window "
+            "interior without borders. Alternatively specify x/y/w/h for "
+            "a specific region. To capture a program running on its own "
+            "screen (e.g. DPaint, ProTracker), pass screen=<pubname>; "
+            "AmigaAI brings that public screen to front before grabbing. "
+            "Use list_screens first to discover open screen names.");
 
         {
             cJSON *win_prop = cJSON_CreateObject();
@@ -663,6 +673,15 @@ cJSON *tools_build_json(void)
             cJSON_AddStringToObject(winc_prop, "description",
                 "Capture the active window contents only (no borders)");
             cJSON_AddItemToObject(props, "window_contents", winc_prop);
+        }
+        {
+            cJSON *scr_prop = cJSON_CreateObject();
+            cJSON_AddStringToObject(scr_prop, "type", "string");
+            cJSON_AddStringToObject(scr_prop, "description",
+                "Public screen name to capture (e.g. \"Workbench\", "
+                "\"DPaint\"). The screen is brought to front before "
+                "the grab. Use list_screens to discover names.");
+            cJSON_AddItemToObject(props, "screen", scr_prop);
         }
 
         cJSON_AddStringToObject(x_prop, "type", "integer");
@@ -688,6 +707,27 @@ cJSON *tools_build_json(void)
         cJSON_AddStringToObject(schema, "type", "object");
         cJSON_AddItemToObject(schema, "properties", props);
         /* No required params — all optional */
+
+        cJSON_AddItemToObject(tool, "input_schema", schema);
+        cJSON_AddItemToArray(tools, tool);
+    }
+
+    /* Tool 12: list_screens */
+    {
+        cJSON *tool = cJSON_CreateObject();
+        cJSON *schema = cJSON_CreateObject();
+
+        cJSON_AddStringToObject(tool, "name", "list_screens");
+        cJSON_AddStringToObject(tool, "description",
+            "List all currently open Intuition screens (Workbench, "
+            "public screens of running apps, custom screens). Returns "
+            "one line per screen with: name, public name (or '-'), "
+            "size, depth, and whether it's the frontmost screen. Use "
+            "this to find the right pubname before calling screenshot "
+            "with screen=<name>.");
+
+        cJSON_AddStringToObject(schema, "type", "object");
+        cJSON_AddItemToObject(schema, "properties", cJSON_CreateObject());
 
         cJSON_AddItemToObject(tool, "input_schema", schema);
         cJSON_AddItemToArray(tools, tool);
@@ -1550,7 +1590,32 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
     long fsize;
     unsigned char *fdata;
     char *b64;
-    cJSON *xj, *yj, *wj, *hj;
+    cJSON *xj, *yj, *wj, *hj, *sj;
+    struct Screen *target_screen = NULL;
+    char screen_name_buf[64];
+
+    /* If screen=<pubname> given, lock it and bring to front. sgrab
+     * captures the frontmost screen; this is the most reliable way
+     * to grab a non-frontmost program's screen. */
+    sj = cJSON_GetObjectItemCaseSensitive(input, "screen");
+    if (sj && cJSON_IsString(sj) && sj->valuestring[0]) {
+        strncpy(screen_name_buf, sj->valuestring, sizeof(screen_name_buf) - 1);
+        screen_name_buf[sizeof(screen_name_buf) - 1] = '\0';
+        target_screen = LockPubScreen((CONST_STRPTR)screen_name_buf);
+        if (!target_screen) {
+            *is_error = 1;
+            {
+                char err[128];
+                snprintf(err, sizeof(err),
+                    "Public screen '%s' not found. Use list_screens to "
+                    "see available screens.", screen_name_buf);
+                return strdup(err);
+            }
+        }
+        ScreenToFront(target_screen);
+        /* Wait briefly so the display has time to redraw before sgrab */
+        Delay(15);  /* 15 * (1/50)s = 0.3s */
+    }
 
     /* Build sgrab command */
     pos = snprintf(cmd, sizeof(cmd), "sgrab FILE %s PNG NOBEEP", SCREENSHOT_FILE);
@@ -1581,8 +1646,16 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
 
     /* Execute sgrab */
     if (SystemTagList(cmd, NULL) != 0) {
+        if (target_screen)
+            UnlockPubScreen(NULL, target_screen);
         *is_error = 1;
         return strdup("sgrab command failed. Is sgrab installed in the path?");
+    }
+
+    /* Release the screen lock now that sgrab is done */
+    if (target_screen) {
+        UnlockPubScreen(NULL, target_screen);
+        target_screen = NULL;
     }
 
     /* Read the PNG file */
@@ -1634,6 +1707,86 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
 
     *has_image = 1;
     return b64;
+}
+
+/* ===================== List screens ===================== */
+
+static char *tool_exec_list_screens(int *is_error)
+{
+    char *result;
+    int pos = 0, cap = 2048;
+    struct Screen *first, *s;
+    struct Screen *frontmost;
+
+    (void)is_error;
+
+    if (!IntuitionBase) {
+        *is_error = 1;
+        return strdup("Intuition not available");
+    }
+
+    result = malloc(cap);
+    if (!result) {
+        *is_error = 1;
+        return strdup("Out of memory");
+    }
+    result[0] = '\0';
+
+    /* Walk the screen list. Lock with LockIBase since we're reading
+     * a chain that Intuition can mutate. */
+    {
+        ULONG lock = LockIBase(0);
+
+        first = IntuitionBase->FirstScreen;
+        frontmost = IntuitionBase->ActiveScreen;
+
+        for (s = first; s; s = s->NextScreen) {
+            const char *title = s->Title ?
+                (const char *)s->Title : "(untitled)";
+            const char *pubname = "-";
+            int n;
+
+            /* If pubScreen of this screen has a name, fish it out.
+             * Public screens carry a name in their PubScreenNode. */
+            {
+                struct List *plist = LockPubScreenList();
+                if (plist) {
+                    struct Node *node;
+                    for (node = plist->lh_Head;
+                         node->ln_Succ;
+                         node = node->ln_Succ)
+                    {
+                        struct PubScreenNode *psn =
+                            (struct PubScreenNode *)node;
+                        if (psn->psn_Screen == s) {
+                            if (psn->psn_Node.ln_Name)
+                                pubname = (const char *)psn->psn_Node.ln_Name;
+                            break;
+                        }
+                    }
+                    UnlockPubScreenList();
+                }
+            }
+
+            n = snprintf(result + pos, cap - pos,
+                "%-22s pub=%-12s %dx%dx%d%s\n",
+                title, pubname,
+                (int)s->Width, (int)s->Height,
+                (int)s->BitMap.Depth,
+                (s == frontmost) ? " [front]" : "");
+            if (n > 0 && pos + n < cap)
+                pos += n;
+        }
+
+        UnlockIBase(lock);
+    }
+
+    if (pos == 0) {
+        free(result);
+        return strdup("(no screens open)");
+    }
+
+    return result;
 }
 
 /* ===================== ARexx help lookup ===================== */
@@ -1810,6 +1963,9 @@ char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image
 
     if (strcmp(name, "screenshot") == 0)
         return tool_exec_screenshot(input, is_error, has_image);
+
+    if (strcmp(name, "list_screens") == 0)
+        return tool_exec_list_screens(is_error);
 
     *is_error = 1;
     {

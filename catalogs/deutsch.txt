@@ -41,7 +41,7 @@ _Abbrechen
 18
 Bereit.
 19
-Sende an Claude...
+Sende an %s...
 20
 Anfrage abgebrochen.
 21

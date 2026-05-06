@@ -642,7 +642,12 @@ static void handle_send(void)
 
         /* Clear input and set busy */
         gui_clear_input(&app_gui);
-        gui_set_status(&app_gui, GetString(MSG_STATUS_SENDING));
+        {
+            char status_buf[96];
+            snprintf(status_buf, sizeof(status_buf),
+                     GetString(MSG_STATUS_SENDING), get_assistant_label());
+            gui_set_status(&app_gui, status_buf);
+        }
         gui_set_busy(&app_gui, 1);
 
         /* Send to API */

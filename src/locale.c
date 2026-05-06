@@ -35,7 +35,7 @@ static const char * const default_strings[MSG_COUNT] = {
     /* MSG_BTN_OK             */  "_OK",
     /* MSG_BTN_CANCEL         */  "_Cancel",
     /* MSG_STATUS_READY       */  "Ready.",
-    /* MSG_STATUS_SENDING     */  "Sending to Claude...",
+    /* MSG_STATUS_SENDING     */  "Sending to %s...",
     /* MSG_STATUS_ABORTED     */  "Request aborted.",
     /* MSG_STATUS_ERROR       */  "Error",
     /* MSG_STATUS_CHAT_CLEARED */ "Chat cleared. Ready.",

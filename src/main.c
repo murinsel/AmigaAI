@@ -749,6 +749,7 @@ static void handle_memory_view(void)
 /* Anthropic native models (used when api_provider == "anthropic"
  * AND host is api.anthropic.com — i.e. direct Anthropic API). */
 static const char *model_list_anthropic_native[] = {
+    "claude-opus-4-7",
     "claude-sonnet-4-6",
     "claude-haiku-4-5-20251001",
     "claude-opus-4-6",
@@ -769,6 +770,7 @@ static const char *model_list_openrouter_anthropic[] = {
 /* OpenAI Chat Completions format on OpenRouter — multi-vendor.
  * Only models that support tool/function calling. */
 static const char *model_list_openrouter_openai[] = {
+    "anthropic/claude-opus-4.7",
     "anthropic/claude-sonnet-4.6",
     "anthropic/claude-haiku-4.5",
     "openai/gpt-4o",

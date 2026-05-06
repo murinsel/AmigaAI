@@ -249,6 +249,45 @@ static void update_window_title(void)
     gui_set_title(&app_gui, title);
 }
 
+/* Derive a short, friendly label for the assistant from the model name,
+ * e.g. "claude-sonnet-4-6" -> "Claude", "openai/gpt-4o" -> "GPT-4o",
+ * "google/gemini-2.5-pro" -> "Gemini", etc. */
+static const char *get_assistant_label(void)
+{
+    static char buf[32];
+    const char *m = app_config.model;
+    const char *p;
+
+    if (!m || !*m) return "Assistant";
+
+    /* Skip "vendor/" prefix on OpenRouter model names */
+    p = strchr(m, '/');
+    p = p ? p + 1 : m;
+
+    if (strstr(p, "claude"))   return "Claude";
+    if (strstr(p, "gpt"))      return "GPT";
+    if (strstr(p, "gemini"))   return "Gemini";
+    if (strstr(p, "llama"))    return "Llama";
+    if (strstr(p, "mistral"))  return "Mistral";
+    if (strstr(p, "deepseek")) return "DeepSeek";
+    if (strstr(p, "qwen"))     return "Qwen";
+
+    /* Fallback: model name, truncated */
+    strncpy(buf, p, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+    return buf;
+}
+
+/* Build a bold, formatted assistant prefix like "\033bClaude:\033n " for
+ * use with gui_add_text(). Returns a pointer to a static buffer that's
+ * overwritten on each call. */
+static const char *get_assistant_prefix(void)
+{
+    static char buf[64];
+    snprintf(buf, sizeof(buf), "\033b%s:\033n ", get_assistant_label());
+    return buf;
+}
+
 /* Show an error requester when launched from Workbench (no console) */
 static void wb_error(const char *msg)
 {
@@ -300,7 +339,7 @@ static void create_icon(const char *name)
 /* Called when ARexx returns a response - update the GUI */
 static void arexx_response_cb(const char *response)
 {
-    gui_add_text(&app_gui, "Claude: ", response);
+    gui_add_text(&app_gui, get_assistant_prefix(), response);
 }
 
 /* Called during tool execution - show status in GUI */
@@ -621,9 +660,9 @@ static void handle_send(void)
         free(error_msg);
     } else if (reply) {
         /* Display response */
-        gui_add_text(&app_gui, GetString(MSG_LABEL_CLAUDE), reply);
+        gui_add_text(&app_gui, get_assistant_prefix(), reply);
         gui_add_line(&app_gui, "");
-        chat_log("CLAUDE", reply);
+        chat_log(get_assistant_label(), reply);
 
         /* Show token usage in status bar */
         snprintf(status_buf, sizeof(status_buf),
@@ -1632,7 +1671,7 @@ static void handle_chat_load(void)
                         gui_add_text(&app_gui, GetString(MSG_LABEL_YOU),
                                      content->valuestring);
                     else
-                        gui_add_text(&app_gui, GetString(MSG_LABEL_CLAUDE),
+                        gui_add_text(&app_gui, get_assistant_prefix(),
                                      content->valuestring);
                     gui_add_line(&app_gui, "");
                 }
@@ -1799,9 +1838,9 @@ static void handle_dropped_file(const char *path, int insert_path)
         gui_set_busy(&app_gui, 0);
 
         if (reply) {
-            gui_add_text(&app_gui, GetString(MSG_LABEL_CLAUDE), reply);
+            gui_add_text(&app_gui, get_assistant_prefix(), reply);
             gui_add_line(&app_gui, "");
-            chat_log("CLAUDE", reply);
+            chat_log(get_assistant_label(), reply);
 
             snprintf(status_buf, sizeof(status_buf),
                      GetString(MSG_STATUS_TOKENS),
@@ -1885,9 +1924,9 @@ static void handle_dropped_file(const char *path, int insert_path)
         gui_set_busy(&app_gui, 0);
 
         if (reply) {
-            gui_add_text(&app_gui, GetString(MSG_LABEL_CLAUDE), reply);
+            gui_add_text(&app_gui, get_assistant_prefix(), reply);
             gui_add_line(&app_gui, "");
-            chat_log("CLAUDE", reply);
+            chat_log(get_assistant_label(), reply);
 
             snprintf(status_buf, sizeof(status_buf),
                      GetString(MSG_STATUS_TOKENS),

@@ -656,9 +656,9 @@ cJSON *tools_build_json(void)
             "active window, or window_contents=true for just the window "
             "interior without borders. Alternatively specify x/y/w/h for "
             "a specific region. To capture a program running on its own "
-            "screen (e.g. DPaint, ProTracker), pass screen=<pubname>; "
-            "AmigaAI brings that public screen to front before grabbing. "
-            "Use list_screens first to discover open screen names.");
+            "screen (e.g. DPaint, ProTracker), pass screen=<pubname> — "
+            "the screen is grabbed directly without being brought to "
+            "front. Use list_screens first to discover open screen names.");
 
         {
             cJSON *win_prop = cJSON_CreateObject();
@@ -679,8 +679,8 @@ cJSON *tools_build_json(void)
             cJSON_AddStringToObject(scr_prop, "type", "string");
             cJSON_AddStringToObject(scr_prop, "description",
                 "Public screen name to capture (e.g. \"Workbench\", "
-                "\"DPaint\"). The screen is brought to front before "
-                "the grab. Use list_screens to discover names.");
+                "\"DPaint\"). Captured directly via sgrab PUBSCREEN — "
+                "no focus change. Use list_screens to discover names.");
             cJSON_AddItemToObject(props, "screen", scr_prop);
         }
 
@@ -1591,34 +1591,17 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
     unsigned char *fdata;
     char *b64;
     cJSON *xj, *yj, *wj, *hj, *sj;
-    struct Screen *target_screen = NULL;
-    char screen_name_buf[64];
-
-    /* If screen=<pubname> given, lock it and bring to front. sgrab
-     * captures the frontmost screen; this is the most reliable way
-     * to grab a non-frontmost program's screen. */
-    sj = cJSON_GetObjectItemCaseSensitive(input, "screen");
-    if (sj && cJSON_IsString(sj) && sj->valuestring[0]) {
-        strncpy(screen_name_buf, sj->valuestring, sizeof(screen_name_buf) - 1);
-        screen_name_buf[sizeof(screen_name_buf) - 1] = '\0';
-        target_screen = LockPubScreen((CONST_STRPTR)screen_name_buf);
-        if (!target_screen) {
-            *is_error = 1;
-            {
-                char err[128];
-                snprintf(err, sizeof(err),
-                    "Public screen '%s' not found. Use list_screens to "
-                    "see available screens.", screen_name_buf);
-                return strdup(err);
-            }
-        }
-        ScreenToFront(target_screen);
-        /* Wait briefly so the display has time to redraw before sgrab */
-        Delay(15);  /* 15 * (1/50)s = 0.3s */
-    }
 
     /* Build sgrab command */
     pos = snprintf(cmd, sizeof(cmd), "sgrab FILE %s PNG NOBEEP", SCREENSHOT_FILE);
+
+    /* If screen=<pubname> given, tell sgrab to grab that public screen
+     * directly via its PUBSCREEN parameter — no need to bring it to front. */
+    sj = cJSON_GetObjectItemCaseSensitive(input, "screen");
+    if (sj && cJSON_IsString(sj) && sj->valuestring[0]) {
+        pos += snprintf(cmd + pos, sizeof(cmd) - pos,
+                        " PUBSCREEN \"%s\"", sj->valuestring);
+    }
 
     /* Window capture modes (override x/y/w/h) */
     {
@@ -1646,16 +1629,9 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
 
     /* Execute sgrab */
     if (SystemTagList(cmd, NULL) != 0) {
-        if (target_screen)
-            UnlockPubScreen(NULL, target_screen);
         *is_error = 1;
-        return strdup("sgrab command failed. Is sgrab installed in the path?");
-    }
-
-    /* Release the screen lock now that sgrab is done */
-    if (target_screen) {
-        UnlockPubScreen(NULL, target_screen);
-        target_screen = NULL;
+        return strdup("sgrab command failed. Is sgrab installed and is "
+                      "the screen name correct?");
     }
 
     /* Read the PNG file */

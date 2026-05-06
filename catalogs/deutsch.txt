@@ -57,7 +57,7 @@ Sende ARexx-Befehl...
 26
 Kein API-Schl\xfcssel - in Einstellungen konfigurieren
 27
-Willkommen bei AmigaAI 0.3
+Willkommen bei AmigaAI %s
 28
 Nachricht eingeben und Enter dr\xfccken oder Senden klicken.
 29

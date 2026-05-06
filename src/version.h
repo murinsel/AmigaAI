@@ -3,9 +3,9 @@
 
 #define PROGRAM_NAME    "AmigaAI"
 #define VERSION_MAJOR   0
-#define VERSION_MINOR   91
-#define VERSION_STRING  "0.9.1"
-#define VERSION_DATE    "19.03.2026"
+#define VERSION_MINOR   92
+#define VERSION_STRING  "0.9.2"
+#define VERSION_DATE    "06.05.2026"
 
 #define VERSTAG "\0$VER: " PROGRAM_NAME " " VERSION_STRING " (" VERSION_DATE ")"
 

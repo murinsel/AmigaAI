@@ -10,7 +10,7 @@
 ; ============================================================
 
 (welcome
-    "Welcome to the AmigaAI 0.9.1 installer.\n\n"
+    "Welcome to the AmigaAI 0.9.2 installer.\n\n"
     "AmigaAI is a native Claude AI agent\n"
     "for AmigaOS 3.x (68020+)."
 )

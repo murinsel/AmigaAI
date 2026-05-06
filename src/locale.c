@@ -43,7 +43,7 @@ static const char * const default_strings[MSG_COUNT] = {
     /* MSG_STATUS_EXECUTING   */  "Executing shell command...",
     /* MSG_STATUS_AREXX_SENDING */ "Sending ARexx command...",
     /* MSG_STATUS_NO_APIKEY   */  "No API key - configure in Settings",
-    /* MSG_WELCOME            */  "Welcome to " PROGRAM_NAME " " VERSION_STRING,
+    /* MSG_WELCOME            */  "Welcome to " PROGRAM_NAME " %s",
     /* MSG_WELCOME_HINT       */  "Type a message and press Enter or click Send.",
     /* MSG_LABEL_YOU          */  "\033bYou:\033n ",
     /* MSG_LABEL_CLAUDE       */  "\033bClaude:\033n ",

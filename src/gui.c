@@ -653,7 +653,11 @@ int gui_open(struct Gui *gui, struct MUI_Command *commands)
     }
 
     /* Welcome message */
-    gui_add_line(gui, GetString(MSG_WELCOME));
+    {
+        char buf[128];
+        snprintf(buf, sizeof(buf), GetString(MSG_WELCOME), VERSION_STRING);
+        gui_add_line(gui, buf);
+    }
     gui_add_line(gui, GetString(MSG_WELCOME_HINT));
     gui_add_line(gui, "");
 

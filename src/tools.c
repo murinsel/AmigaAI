@@ -1649,8 +1649,10 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
             DeleteRexxMsg(rmsg);
             DeleteMsgPort(reply_port);
             *is_error = 1;
-            return strdup("SGRAB ARexx port not found. Launch sgrab "
-                          "from a Shell first (it must stay running).");
+            return strdup("SGRAB ARexx port not found. Start sgrab "
+                          "from a Shell with:\n"
+                          "  sgrab CX_POPKEY=\"shift ctrl numericpad *\"\n"
+                          "(it stays resident as a Commodity).");
         }
 
         WaitPort(reply_port);

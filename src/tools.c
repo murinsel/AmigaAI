@@ -656,8 +656,9 @@ cJSON *tools_build_json(void)
             "active window, or window_contents=true for just the window "
             "interior without borders. Alternatively specify x/y/w/h for "
             "a specific region. To capture a program running on its own "
-            "screen (e.g. DPaint, ProTracker), pass screen=<pubname> — "
-            "sgrab grabs that screen in place via PUBSCREEN, no focus "
+            "screen (e.g. DPaint, ProTracker), pass screen=<pubname>; "
+            "this routes through sgrab's ARexx port (sgrab must be "
+            "running) so the screen is grabbed in place — no focus "
             "change. Use list_screens first to discover open screen names.");
 
         {
@@ -679,8 +680,8 @@ cJSON *tools_build_json(void)
             cJSON_AddStringToObject(scr_prop, "type", "string");
             cJSON_AddStringToObject(scr_prop, "description",
                 "Public screen name to capture (e.g. \"Workbench\", "
-                "\"DPaint\"). Captured in place via sgrab PUBSCREEN — "
-                "no focus change. Use list_screens to discover names.");
+                "\"DeluxeMusic\"). Routed through SGRAB ARexx port — "
+                "sgrab must be running. Use list_screens to discover names.");
             cJSON_AddItemToObject(props, "screen", scr_prop);
         }
 
@@ -1592,46 +1593,119 @@ static char *tool_exec_screenshot(cJSON *input, int *is_error, int *has_image)
     char *b64;
     cJSON *xj, *yj, *wj, *hj, *sj;
 
-    /* Build sgrab command */
-    pos = snprintf(cmd, sizeof(cmd), "sgrab FILE %s PNG NOBEEP", SCREENSHOT_FILE);
-
-    /* If screen=<pubname> given, use sgrab's PUBSCREEN keyword to grab
-     * that public screen directly — no focus change, no display redraw. */
     sj = cJSON_GetObjectItemCaseSensitive(input, "screen");
-    if (sj && cJSON_IsString(sj) && sj->valuestring[0]) {
-        pos += snprintf(cmd + pos, sizeof(cmd) - pos,
-                        " PUBSCREEN \"%s\"", sj->valuestring);
-    }
-
-    /* Window capture modes (override x/y/w/h) */
-    {
-        cJSON *winc = cJSON_GetObjectItemCaseSensitive(input, "window_contents");
-        cJSON *win  = cJSON_GetObjectItemCaseSensitive(input, "window");
-        if (winc && cJSON_IsTrue(winc))
-            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " WINDOWCONTENTS");
-        else if (win && cJSON_IsTrue(win))
-            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " WINDOW");
-    }
-
     xj = cJSON_GetObjectItemCaseSensitive(input, "x");
     yj = cJSON_GetObjectItemCaseSensitive(input, "y");
     wj = cJSON_GetObjectItemCaseSensitive(input, "w");
     hj = cJSON_GetObjectItemCaseSensitive(input, "h");
 
-    if (xj && cJSON_IsNumber(xj))
-        pos += snprintf(cmd + pos, sizeof(cmd) - pos, " X %d", xj->valueint);
-    if (yj && cJSON_IsNumber(yj))
-        pos += snprintf(cmd + pos, sizeof(cmd) - pos, " Y %d", yj->valueint);
-    if (wj && cJSON_IsNumber(wj))
-        pos += snprintf(cmd + pos, sizeof(cmd) - pos, " W %d", wj->valueint);
-    if (hj && cJSON_IsNumber(hj))
-        pos += snprintf(cmd + pos, sizeof(cmd) - pos, " H %d", hj->valueint);
+    if (sj && cJSON_IsString(sj) && sj->valuestring[0]) {
+        /* Specific public screen — must go through sgrab's ARexx port
+         * (the CLI grabs only the frontmost screen, no PUBSCREEN arg).
+         * sgrab must be running so its SGRAB port is registered. */
+        struct MsgPort *reply_port, *target_port;
+        struct RexxMsg *rmsg;
 
-    /* Execute sgrab */
-    if (SystemTagList(cmd, NULL) != 0) {
-        *is_error = 1;
-        return strdup("sgrab command failed. Is sgrab installed and is "
-                      "the screen name correct?");
+        pos = snprintf(cmd, sizeof(cmd),
+                       "GRABSCREEN SCREEN %s FILE \"%s\" PNG",
+                       sj->valuestring, SCREENSHOT_FILE);
+        if (xj && cJSON_IsNumber(xj))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " X=%d", xj->valueint);
+        if (yj && cJSON_IsNumber(yj))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " Y=%d", yj->valueint);
+        if (wj && cJSON_IsNumber(wj))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " W=%d", wj->valueint);
+        if (hj && cJSON_IsNumber(hj))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " H=%d", hj->valueint);
+
+        reply_port = CreateMsgPort();
+        if (!reply_port) {
+            *is_error = 1;
+            return strdup("Cannot create reply port");
+        }
+        rmsg = CreateRexxMsg(reply_port, NULL, NULL);
+        if (!rmsg) {
+            DeleteMsgPort(reply_port);
+            *is_error = 1;
+            return strdup("Cannot create RexxMsg");
+        }
+        rmsg->rm_Args[0] = (STRPTR)CreateArgstring((STRPTR)cmd, strlen(cmd));
+        if (!rmsg->rm_Args[0]) {
+            DeleteRexxMsg(rmsg);
+            DeleteMsgPort(reply_port);
+            *is_error = 1;
+            return strdup("Cannot create argstring");
+        }
+        rmsg->rm_Action = RXCOMM | RXFF_RESULT;
+
+        Forbid();
+        target_port = FindPort((CONST_STRPTR)"SGRAB");
+        if (target_port)
+            PutMsg(target_port, (struct Message *)rmsg);
+        Permit();
+
+        if (!target_port) {
+            DeleteArgstring(rmsg->rm_Args[0]);
+            DeleteRexxMsg(rmsg);
+            DeleteMsgPort(reply_port);
+            *is_error = 1;
+            return strdup("SGRAB ARexx port not found. Launch sgrab "
+                          "from a Shell first (it must stay running).");
+        }
+
+        WaitPort(reply_port);
+        {
+            struct RexxMsg *reply = (struct RexxMsg *)GetMsg(reply_port);
+            int rexx_err = 0;
+            char err_buf[80];
+            err_buf[0] = '\0';
+            if (reply) {
+                if (reply->rm_Result1 != 0) {
+                    rexx_err = 1;
+                    snprintf(err_buf, sizeof(err_buf),
+                             "SGRAB returned %ld/%ld",
+                             reply->rm_Result1, reply->rm_Result2);
+                }
+                if (reply->rm_Result2 && reply->rm_Result1 == 0)
+                    DeleteArgstring((STRPTR)reply->rm_Result2);
+            }
+            DeleteArgstring(rmsg->rm_Args[0]);
+            DeleteRexxMsg(rmsg);
+            DeleteMsgPort(reply_port);
+
+            if (rexx_err) {
+                *is_error = 1;
+                return strdup(err_buf);
+            }
+        }
+    } else {
+        /* No screen= given: grab the frontmost screen via CLI sgrab. */
+        pos = snprintf(cmd, sizeof(cmd),
+                       "sgrab FILE %s PNG NOBEEP", SCREENSHOT_FILE);
+
+        {
+            cJSON *winc = cJSON_GetObjectItemCaseSensitive(input, "window_contents");
+            cJSON *win  = cJSON_GetObjectItemCaseSensitive(input, "window");
+            if (winc && cJSON_IsTrue(winc))
+                pos += snprintf(cmd + pos, sizeof(cmd) - pos, " WINDOWCONTENTS");
+            else if (win && cJSON_IsTrue(win))
+                pos += snprintf(cmd + pos, sizeof(cmd) - pos, " WINDOW");
+        }
+
+        if (xj && cJSON_IsNumber(xj))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " X %d", xj->valueint);
+        if (yj && cJSON_IsNumber(yj))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " Y %d", yj->valueint);
+        if (wj && cJSON_IsNumber(wj))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " W %d", wj->valueint);
+        if (hj && cJSON_IsNumber(hj))
+            pos += snprintf(cmd + pos, sizeof(cmd) - pos, " H %d", hj->valueint);
+
+        if (SystemTagList(cmd, NULL) != 0) {
+            *is_error = 1;
+            return strdup("sgrab command failed. "
+                          "Is sgrab installed in the path?");
+        }
     }
 
     /* Read the PNG file */

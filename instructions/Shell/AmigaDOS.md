@@ -124,11 +124,12 @@ NEVER use `*` as wildcard. It does NOT work on AmigaDOS.
 
 ## Screen Capture (SGrab)
 - `sgrab FILE <path> PNG NOBEEP` -- Capture frontmost screen as PNG
-- `sgrab FILE <path> PNG NOBEEP PUBSCREEN <name>` -- Capture a specific public screen by name (no focus change)
 - `sgrab FILE <path> PNG NOBEEP X <x> Y <y> W <w> H <h>` -- Capture region
 - `sgrab FILE <path> JPEG NOBEEP` -- Capture as JPEG
 - Formats: ILBM (default), PNG, JPEG
 - NOBEEP suppresses the screen flash during capture
+- The CLI form ALWAYS grabs the frontmost screen — there is no PUBSCREEN argument here.
+  To grab a specific public screen, use the SGRAB ARexx port (`GRABSCREEN SCREEN <pubname>`) — see instructions/ARexx/SGRAB.md.
 - Use the screenshot tool instead of calling sgrab directly
 
 ## Redirection

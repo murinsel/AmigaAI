@@ -1,6 +1,8 @@
 #ifndef AMIGAAI_HTTP_H
 #define AMIGAAI_HTTP_H
 
+#include <stddef.h>   /* size_t */
+
 #define HTTP_MAX_HEADER_SIZE  4096
 #define HTTP_INITIAL_BUF_SIZE 8192
 #define HTTP_READ_CHUNK_SIZE  4096
@@ -52,6 +54,18 @@ int http_get(const char *host,
              const char *path,
              const char **headers,
              struct HttpResponse *response);
+
+/* Same as http_get, but when the reply is a 3xx the value of its Location
+ * header is copied into location, so a caller can follow the redirect.
+ * Pass NULL and 0 to ignore it. */
+int http_get_location(const char *host,
+             int port,
+             int use_ssl,
+             const char *path,
+             const char **headers,
+             struct HttpResponse *response,
+             char *location,
+             size_t location_size);
 
 /* Set event callback for non-blocking I/O.
  * The callback is called periodically during SSL reads

@@ -754,7 +754,11 @@ cJSON *tools_build_json(void)
             "which contains Version, Requires and Architecture fields. GitHub "
             "exposes releases as JSON at "
             "https://api.github.com/repos/<owner>/<repo>/releases/latest where "
-            "the \"tag_name\" field is the version. Output is truncated to 16KB.");
+            "the \"tag_name\" field is the version. Output is truncated to 16KB. "
+            "URLs are case sensitive. Aminet in particular answers a mistyped "
+            "path with 502 Bad Gateway rather than 404, so a 502 usually means "
+            "your URL is wrong, not that the site is down: check the spelling "
+            "and the capitalisation and try again before giving up.");
 
         cJSON_AddStringToObject(url_prop, "type", "string");
         cJSON_AddStringToObject(url_prop, "description",

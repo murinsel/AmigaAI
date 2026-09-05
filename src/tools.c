@@ -11,6 +11,7 @@
 #include "dt_identify.h"
 #include "input.h"
 #include "base64.h"
+#include "http.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -736,6 +737,40 @@ cJSON *tools_build_json(void)
         cJSON_AddItemToArray(tools, tool);
     }
 
+    /* Tool: http_get */
+    {
+        cJSON *tool = cJSON_CreateObject();
+        cJSON *schema = cJSON_CreateObject();
+        cJSON *props = cJSON_CreateObject();
+        cJSON *url_prop = cJSON_CreateObject();
+        cJSON *req = cJSON_CreateArray();
+
+        cJSON_AddStringToObject(tool, "name", "http_get");
+        cJSON_AddStringToObject(tool, "description",
+            "Fetch a URL over HTTP or HTTPS and return the response body as text. "
+            "Use this to look up information on the internet, for example the "
+            "latest version of an Amiga package. Aminet exposes a plain-text "
+            "description per package at https://aminet.net/<dir>/<name>.readme "
+            "which contains Version, Requires and Architecture fields. GitHub "
+            "exposes releases as JSON at "
+            "https://api.github.com/repos/<owner>/<repo>/releases/latest where "
+            "the \"tag_name\" field is the version. Output is truncated to 16KB.");
+
+        cJSON_AddStringToObject(url_prop, "type", "string");
+        cJSON_AddStringToObject(url_prop, "description",
+            "Full URL including scheme, e.g. "
+            "https://aminet.net/util/libs/AmiSSL-v5-OS3.readme");
+        cJSON_AddItemToObject(props, "url", url_prop);
+
+        cJSON_AddStringToObject(schema, "type", "object");
+        cJSON_AddItemToObject(schema, "properties", props);
+        cJSON_AddItemToArray(req, cJSON_CreateString("url"));
+        cJSON_AddItemToObject(schema, "required", req);
+
+        cJSON_AddItemToObject(tool, "input_schema", schema);
+        cJSON_AddItemToArray(tools, tool);
+    }
+
     return tools;
 }
 
@@ -1237,6 +1272,119 @@ static char *tool_exec_arexx(cJSON *input, int *is_error)
 }
 
 /* Read a file and return its contents */
+/* Fetch a URL over HTTP/HTTPS and return the response body.
+ *
+ * Reuses the same AmiSSL-backed HTTP client the API calls go through, so
+ * no extra dependency is needed on the Amiga side. */
+static char *tool_exec_http_get(cJSON *input, int *is_error)
+{
+    cJSON *url_json;
+    const char *url, *p, *slash, *colon;
+    const char *headers[3];
+    char host[256];
+    char path[512];
+    char head[64];
+    int port, use_ssl, truncated = 0, n;
+    long hostlen, len;
+    struct HttpResponse resp;
+    char *result;
+
+    url_json = cJSON_GetObjectItemCaseSensitive(input, "url");
+    if (!url_json || !cJSON_IsString(url_json) || !url_json->valuestring[0]) {
+        *is_error = 1;
+        return strdup("Missing 'url' parameter");
+    }
+    url = url_json->valuestring;
+
+    if (strncmp(url, "https://", 8) == 0) {
+        p = url + 8;
+        use_ssl = 1;
+        port = 443;
+    } else if (strncmp(url, "http://", 7) == 0) {
+        p = url + 7;
+        use_ssl = 0;
+        port = 80;
+    } else {
+        *is_error = 1;
+        return strdup("URL must start with http:// or https://");
+    }
+
+    slash = strchr(p, '/');
+    if (slash) {
+        hostlen = (long)(slash - p);
+        strncpy(path, slash, sizeof(path) - 1);
+        path[sizeof(path) - 1] = '\0';
+    } else {
+        hostlen = (long)strlen(p);
+        strcpy(path, "/");
+    }
+
+    if (hostlen <= 0 || hostlen >= (long)sizeof(host)) {
+        *is_error = 1;
+        return strdup("Invalid host in URL");
+    }
+    memcpy(host, p, (size_t)hostlen);
+    host[hostlen] = '\0';
+
+    /* Optional :port suffix on the host */
+    colon = strchr(host, ':');
+    if (colon) {
+        port = atoi(colon + 1);
+        host[colon - host] = '\0';
+        if (port <= 0 || host[0] == '\0') {
+            *is_error = 1;
+            return strdup("Invalid port in URL");
+        }
+    }
+
+    printf("  [tool] http_get: %s\n", url);
+
+    /* GitHub's API returns 403 to requests without a User-Agent. */
+    headers[0] = "User-Agent: AmigaAI";
+    headers[1] = "Accept: */*";
+    headers[2] = NULL;
+
+    memset(&resp, 0, sizeof(resp));
+    if (http_get(host, port, use_ssl, path, headers, &resp) != 0) {
+        char buf[320];
+        if (resp.body) free(resp.body);
+        *is_error = 1;
+        snprintf(buf, sizeof(buf), "Request to %s failed", host);
+        return strdup(buf);
+    }
+
+    len = resp.body_length;
+    if (len < 0)
+        len = 0;
+    if (len > TOOLS_MAX_OUTPUT - 128) {
+        len = TOOLS_MAX_OUTPUT - 128;
+        truncated = 1;
+    }
+
+    n = snprintf(head, sizeof(head), "HTTP %d\n", resp.status_code);
+    if (n < 0 || n >= (int)sizeof(head))
+        n = 0;
+
+    result = malloc((size_t)(n + len + 32));
+    if (!result) {
+        if (resp.body) free(resp.body);
+        *is_error = 1;
+        return strdup("Out of memory");
+    }
+
+    memcpy(result, head, (size_t)n);
+    if (resp.body && len > 0)
+        memcpy(result + n, resp.body, (size_t)len);
+    result[n + len] = '\0';
+    if (truncated)
+        strcat(result, "\n[truncated]");
+
+    if (resp.body)
+        free(resp.body);
+
+    return result;
+}
+
 static char *tool_exec_read_file(cJSON *input, int *is_error)
 {
     cJSON *path_json;
@@ -1990,6 +2138,9 @@ char *tool_execute(const char *name, cJSON *input, int *is_error, int *has_image
 
     if (strcmp(name, "read_file") == 0)
         return tool_exec_read_file(input, is_error);
+
+    if (strcmp(name, "http_get") == 0)
+        return tool_exec_http_get(input, is_error);
 
     if (strcmp(name, "write_file") == 0)
         return tool_exec_write_file(input, is_error);

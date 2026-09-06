@@ -171,6 +171,8 @@ AmigaAI provides Claude with the following tools:
 | `key_press` | Send a raw keyboard event |
 | `type_text` | Type a string via keyboard simulation |
 | `screenshot` | Capture a screenshot (full screen or region) |
+| `http_get` | Fetch a URL over HTTP/HTTPS and return the body as text |
+| `http_download` | Download a URL straight to a file, following redirects |
 
 ## ARexx Knowledge Base
 

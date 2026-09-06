@@ -244,7 +244,12 @@ static void close_libraries(void)
 /* Refresh the main window title with the active model name. */
 static void update_window_title(void)
 {
-    char title[CONFIG_MAX_MODEL_LEN + 32];
+    /* MUI/Intuition keep a pointer to the title string (MUIA_Window_Title
+     * is not copied), so the buffer must outlive this function. A stack
+     * buffer here leaves the window title pointing at freed stack memory,
+     * which shows up as garbage characters / rendering corruption in the
+     * title bar once the stack is reused. */
+    static char title[CONFIG_MAX_MODEL_LEN + 32];
     snprintf(title, sizeof(title), "%s %s - %s",
              PROGRAM_NAME, VERSION_STRING, app_config.model);
     gui_set_title(&app_gui, title);

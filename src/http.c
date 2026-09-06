@@ -688,12 +688,78 @@ done:
     return ret;
 }
 
+/* Case-insensitive prefix compare. strnicmp is not portable here. */
+static int hdr_prefix_eq(const char *s, const char *prefix, size_t n)
+{
+    size_t i;
+    for (i = 0; i < n; i++) {
+        int a = (unsigned char)s[i];
+        int b = (unsigned char)prefix[i];
+        if (a >= 'A' && a <= 'Z') a += 32;
+        if (b >= 'A' && b <= 'Z') b += 32;
+        if (a != b || a == '\0') return 0;
+    }
+    return 1;
+}
+
+/* Copy the value of a response header into out, empty string if absent.
+ * Scans only the header block, which ends at the first blank line. */
+static void extract_header(const char *raw, const char *name,
+                           char *out, size_t outsz)
+{
+    size_t namelen = strlen(name);
+    const char *p = raw;
+
+    if (outsz == 0) return;
+    out[0] = '\0';
+
+    /* Skip the status line */
+    p = strchr(p, '\n');
+    if (!p) return;
+    p++;
+
+    while (*p && !(p[0] == '\r' && p[1] == '\n') && p[0] != '\n') {
+        const char *eol = strchr(p, '\n');
+        if (!eol) eol = p + strlen(p);
+
+        if (hdr_prefix_eq(p, name, namelen) && p[namelen] == ':') {
+            const char *v = p + namelen + 1;
+            size_t len;
+            while (*v == ' ' || *v == '\t') v++;
+            len = (size_t)(eol - v);
+            while (len > 0 && (v[len - 1] == '\r' || v[len - 1] == ' '))
+                len--;
+            if (len >= outsz) len = outsz - 1;
+            memcpy(out, v, len);
+            out[len] = '\0';
+            return;
+        }
+
+        if (*eol == '\0') break;
+        p = eol + 1;
+    }
+}
+
+/* Original entry point: same request, redirect target discarded. */
 int http_get(const char *host,
              int port,
              int use_ssl,
              const char *path,
              const char **headers,
              struct HttpResponse *response)
+{
+    return http_get_location(host, port, use_ssl, path, headers, response,
+                             NULL, 0);
+}
+
+int http_get_location(const char *host,
+             int port,
+             int use_ssl,
+             const char *path,
+             const char **headers,
+             struct HttpResponse *response,
+             char *location,
+             size_t location_size)
 {
     int   sock = -1;
     SSL  *ssl  = NULL;
@@ -776,6 +842,12 @@ int http_get(const char *host,
     }
 
     response->status_code = parse_status_code(raw_response);
+
+    if (location && location_size > 0) {
+        location[0] = '\0';
+        if (response->status_code >= 300 && response->status_code < 400)
+            extract_header(raw_response, "Location", location, location_size);
+    }
 
     body_start = find_body(raw_response, raw_len);
     if (!body_start) goto done;

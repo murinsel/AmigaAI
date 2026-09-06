@@ -176,7 +176,7 @@ AmigaAI provides Claude with the following tools:
 
 AmigaAI includes detailed ARexx documentation for popular Amiga applications. When Claude detects a running ARexx port, it automatically loads the compact command overview. For detailed parameter info, it can query individual commands on demand via the `arexx_help` tool — keeping token usage low while providing full documentation depth.
 
-Supported applications: **DMusic**, **IBrowse**, **PageStream**, **Workbench**, **YAM**
+Supported applications: **DMusic**, **Directory Opus 5 / Magellan**, **IBrowse**, **PageStream**, **Workbench**, **YAM**
 
 Additional applications can be supported by adding `.md` (overview) and `.help` (detailed reference) files to `instructions/ARexx/`.
 
